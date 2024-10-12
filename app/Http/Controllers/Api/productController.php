@@ -47,7 +47,10 @@ class ProductController extends Controller
         }
 
         $image = $request->file('image');
-        $image->storeAs('public/products', $image->hashName());
+        $imageName = $image->hashName();
+        
+        // Menyimpan gambar di public storage
+        $image->storeAs('public/products', $imageName);
 
         $product = Product::create([
             'product_name' => $request->product_name,
@@ -59,7 +62,7 @@ class ProductController extends Controller
             'product_tag' => $request->product_tag,
             'company' => $request->company,
             'notes' => $request->notes,
-            'image' => $image->hashName(),
+            'image' => $imageName,
         ]);
 
 

@@ -6,13 +6,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 
-class product extends Model
+class Product extends Model
 {
     use HasFactory;
     protected $table = "products";
-    protected $primaryKey = 'id';
+    protected $primaryKey = 'product_id';
     protected $fillable = [
         'product_name',
+        'category_id',
         'sales_price',
         'cost',
         'barcode',
@@ -23,6 +24,11 @@ class product extends Model
         'image',
     ];
 
+    public function productCategory()
+    {
+        return $this->belongsTo(ProductCategory::class, 'product_category_id', 'product_category_id');
+    }
+    
     /**
      * image
      *

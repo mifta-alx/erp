@@ -11,3 +11,4 @@ Route::get('/user', function (Request $request) {
 
 Route::apiResource('/products', App\Http\Controllers\Api\productController::class);
 Route::apiResource('/materials', App\Http\Controllers\Api\materialController::class);
+Route::apiResource('/productcategory', App\Http\Controllers\Api\ProductcategoryController::class);

@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Models\material;
+use App\Models\Material;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\materialResource;
+use App\Http\Resources\MaterialResource;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
-class materialController extends Controller
+class MaterialController extends Controller
 {
     /**
      * index
@@ -18,8 +18,8 @@ class materialController extends Controller
      */
     public function index()
     {
-        $material = Material::latest()->paginate(5);
-        return new materialResource(true, 'List Data material', $material);
+        $material = Material::latest();
+        return new MaterialResource(true, 'List Data material', $material);
     }
     /**
      * store
@@ -31,6 +31,7 @@ class materialController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'material_name' => 'required',
+            'category_id' => 'required',
             'sales_price' => 'required',
             'cost' => 'required',
             'barcode' => 'required',
@@ -49,6 +50,7 @@ class materialController extends Controller
 
         $material = Material::create([
             'material_name' => $request->material_name,
+            'category_id' => $request->category_id,
             'sales_price' => $request->sales_price,
             'cost' => $request->cost,
             'barcode' => $request->barcode,
@@ -59,7 +61,7 @@ class materialController extends Controller
         ]);
 
 
-        return new materialResource(true, 'Data Material Add Success', $material);
+        return new MaterialResource(true, 'Data Material Add Success', $material);
     }
     /**
      * show
@@ -70,7 +72,7 @@ class materialController extends Controller
     public function show($id)
     {
         $material = Material::find($id);
-        return new materialResource(true, 'Detail Data Material', $material);
+        return new MaterialResource(true, 'Detail Data Material', $material);
     }
 
     public function update(Request $request,$id)
@@ -78,6 +80,7 @@ class materialController extends Controller
        
         $validator = Validator::make($request->all(), [
             'material_name' => 'required',
+            'category_id' => 'required',
             'sales_price' => 'required',
             'cost' => 'required',
             'barcode' => 'required',
@@ -101,6 +104,7 @@ class materialController extends Controller
 
             $material->update([
                 'material_name' => $request->material_name,
+                'category_id' => $request->category_id,
                 'sales_price' => $request->sales_price,
                 'cost' => $request->cost,
                 'barcode' => $request->barcode,
@@ -112,6 +116,7 @@ class materialController extends Controller
         } else {
             $material->update([
                 'material_name' => $request->material_name,
+                'category_id' => $request->category_id,
                 'sales_price' => $request->sales_price,
                 'cost' => $request->cost,
                 'barcode' => $request->barcode,
@@ -120,13 +125,13 @@ class materialController extends Controller
                 'notes' => $request->notes,
             ]);
         }
-        return new materialResource(true, 'Data material Berhasil Diubah!', $material);
+        return new MaterialResource(true, 'Data material Berhasil Diubah!', $material);
     }
 
     public function destroy($id){
-        $material = material::find($id);
+        $material = Material::find($id);
         Storage::delete('public/materials/'. basename($material->image));
         $material->delete();
-        return new materialResource(true, 'Data Succefully Delete', $material);
+        return new MaterialResource(true, 'Data Succefully Delete', $material);
     }
 }

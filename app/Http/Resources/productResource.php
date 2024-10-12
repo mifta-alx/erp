@@ -5,7 +5,7 @@ namespace App\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class productResource extends JsonResource
+class ProductResource extends JsonResource
 {
     //define properti
     public $status;

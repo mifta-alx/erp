@@ -12,17 +12,17 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('materials', function (Blueprint $table) {
-            $table->id();
+            $table->id('material_id');
             $table->string('material_name');
-            $table->unsignedBigInteger('product_category_id')->unsigned();
-            $table->foreign('product_category_id')->references('id')->on('product_categories')->onDelete('cascade');
+            $table->unsignedBigInteger('category_id')->unsigned();
+            $table->foreign('category_id')->references('category_id')->on('categories')->onDelete('cascade');
             $table->double('sales_price');
             $table->double('cost');
             $table->string('barcode');
             $table->string('internal_reference');
             $table->string('material_tag');
             $table->string('company');
-            $table->text('notes');
+            $table->text('notes')->nullable();
             $table->string('image');
             $table->timestamps();
         });

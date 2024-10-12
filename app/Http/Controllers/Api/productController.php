@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Models\product;
+use App\Models\Product;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\productResource;
+use App\Http\Resources\ProductResource;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
-class productController extends Controller
+class ProductController extends Controller
 {
     /**
      * index
@@ -18,8 +18,8 @@ class productController extends Controller
      */
     public function index()
     {
-        $products = Product::latest()->paginate(5);
-        return new productResource(true, 'List Data Product', $products);
+        $products = Product::with('productCategory')->latest()->get(); 
+        return new ProductResource(true, 'List Data Product', $products);
     }
     /**
      * store
@@ -31,13 +31,14 @@ class productController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'product_name' => 'required',
+            'category_id' => 'required',
             'sales_price' => 'required',
             'cost' => 'required',
             'barcode' => 'required',
             'internal_reference' => 'required',
             'product_tag' => 'required',
             'company' => 'required',
-            'notes' => 'required',
+            // 'notes' => 'required',
             'image' => 'required|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
@@ -50,6 +51,7 @@ class productController extends Controller
 
         $product = Product::create([
             'product_name' => $request->product_name,
+            'category_id' => $request->category_id,
             'sales_price' => $request->sales_price,
             'cost' => $request->cost,
             'barcode' => $request->barcode,
@@ -61,7 +63,7 @@ class productController extends Controller
         ]);
 
 
-        return new productResource(true, 'Data Product Add Success', $product);
+        return new ProductResource(true, 'Data Product Add Success', $product);
     }
     /**
      * show
@@ -72,7 +74,7 @@ class productController extends Controller
     public function show($id)
     {
         $product = Product::find($id);
-        return new productResource(true, 'Detail Data product', $product);
+        return new ProductResource(true, 'Detail Data product', $product);
     }
 
     public function update(Request $request,$id)
@@ -80,13 +82,14 @@ class productController extends Controller
        
         $validator = Validator::make($request->all(), [
             'product_name' => 'required',
+            'category_id' => 'required',
             'sales_price' => 'required',
             'cost' => 'required',
             'barcode' => 'required',
             'internal_reference' => 'required',
             'product_tag' => 'required',
             'company' => 'required',
-            'notes' => 'required',
+            // 'notes' => 'required',
         ]);
       
 
@@ -104,6 +107,7 @@ class productController extends Controller
 
             $product->update([
                 'product_name' => $request->product_name,
+                'category_id' => $request->category_id,
                 'sales_price' => $request->sales_price,
                 'cost' => $request->cost,
                 'barcode' => $request->barcode,
@@ -116,6 +120,7 @@ class productController extends Controller
         } else {
             $product->update([
                 'product_name' => $request->product_name,
+                'category_id' => $request->category_id,
                 'sales_price' => $request->sales_price,
                 'cost' => $request->cost,
                 'barcode' => $request->barcode,
@@ -125,13 +130,13 @@ class productController extends Controller
                 'notes' => $request->notes,
             ]);
         }
-        return new productResource(true, 'Data Product Berhasil Diubah!', $product);
+        return new ProductResource(true, 'Data Product Berhasil Diubah!', $product);
     }
 
     public function destroy($id){
         $product = Product::find($id);
         Storage::delete('public/products/'. basename($product->image));
         $product->delete();
-        return new productResource(true, 'Data Succefully Delete', $product);
+        return new ProductResource(true, 'Data Succefully Delete', $product);
     }
 }

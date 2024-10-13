@@ -12,3 +12,5 @@ Route::get('/user', function (Request $request) {
 Route::apiResource('/products', App\Http\Controllers\Api\ProductController::class);
 Route::apiResource('/materials', App\Http\Controllers\Api\MaterialController::class);
 Route::apiResource('/categories', App\Http\Controllers\Api\CategoryController::class);
+Route::apiResource('/boms', App\Http\Controllers\Api\BomController::class);
+Route::apiResource('/bom-components', App\Http\Controllers\Api\BomComponentController::class);

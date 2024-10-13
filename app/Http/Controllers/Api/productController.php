@@ -18,7 +18,7 @@ class ProductController extends Controller
      */
     public function index()
     {
-        $products = Product::with('productCategory')->latest()->get(); 
+        $products = Product::with('category')->latest()->get(); 
         return new ProductResource(true, 'List Product Data', $products);
     }
     /**

@@ -18,7 +18,7 @@ class MaterialController extends Controller
      */
     public function index()
     {
-        $material = Material::latest();
+        $material = Material::with('category')->latest()->get();
         return new MaterialResource(true, 'List Material Data', $material);
     }
     /**

@@ -21,6 +21,38 @@ class MaterialController extends Controller
         $material = Material::with('category')->latest()->get();
         return new MaterialResource(true, 'List Material Data', $material);
     }
+
+    private function validateMaterial(Request $request)
+    {
+        return Validator::make(
+            $request->all(),
+            [
+                'material_name' => 'required|string',
+                'category_id' => 'required',
+                'sales_price' => 'required|numeric',
+                'cost' => 'required|numeric',
+                'barcode' => 'required',
+                'internal_reference' => 'required',
+                'material_tag' => 'required',
+                'company' => 'required',
+                'image' => $request->isMethod('post') ? 'required|image|mimes:jpeg,png,jpg|max:2048' : 'sometimes|image|mimes:jpeg,png,jpg|max:2048',
+            ],
+            [
+                'material_name.required' => 'Material Name Must Be Filled',
+                'category_id.required' => 'Category Must Be Filled',
+                'sales_price.required' => 'Sales Price Must Be Filled',
+                'cost.required' => 'Cost Must Be Filled',
+                'barcode.required' => 'Barcode Must Be Filled',
+                'internal_reference.required' => 'Internal Reference Must Be Filled',
+                'material_tag.required' => 'Material Tag Must Be Filled',
+                'company.required' => 'Company Must Be Filled',
+                'image.required' => 'Image Must Be Filled',
+                'image.image' => 'File Must Be An Image',
+                'image.mimes' => 'Images Must Be In jpeg, png, or jpg Format',
+                'image.max' => 'Maximum Image Size is 2MB',
+            ]
+        );
+    }
     /**
      * store
      *
@@ -29,21 +61,14 @@ class MaterialController extends Controller
      */
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'material_name' => 'required',
-            'category_id' => 'required',
-            'sales_price' => 'required',
-            'cost' => 'required',
-            'barcode' => 'required',
-            'internal_reference' => 'required',
-            'material_tag' => 'required',
-            'company' => 'required',
-            // 'notes' => 'required',
-            'image' => 'required|image|mimes:jpeg,png,jpg|max:2048',
-        ]);
+        $validator = $this->validateMaterial($request);
 
         if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation Vailed',
+                'errors' => $validator->errors()
+            ], 422);
         }
 
         $image = $request->file('image');
@@ -77,27 +102,19 @@ class MaterialController extends Controller
         return new MaterialResource(true, 'Detail Material Data', $material);
     }
 
-    public function update(Request $request,$id)
+    public function update(Request $request, $id)
     {
-       
-        $validator = Validator::make($request->all(), [
-            'material_name' => 'required',
-            'category_id' => 'required',
-            'sales_price' => 'required',
-            'cost' => 'required',
-            'barcode' => 'required',
-            'internal_reference' => 'required',
-            'material_tag' => 'required',
-            'company' => 'required',
-            // 'notes' => 'required',
-        ]);
-      
+        $validator = $this->validateMaterial($request);
 
         if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
+            return response()->json([
+                'success' => false,
+                'message' => 'Validasi gagal',
+                'errors' => $validator->errors()
+            ], 422);
         }
 
-         $material = Material::find($id);
+        $material = Material::find($id);
 
         if ($request->hasFile('image')) {
             $image = $request->file('image');
@@ -133,9 +150,10 @@ class MaterialController extends Controller
         return new MaterialResource(true, 'Material Data Successfully Changed', $material);
     }
 
-    public function destroy($id){
+    public function destroy($id)
+    {
         $material = Material::find($id);
-        Storage::delete('public/materials/'. basename($material->image));
+        Storage::delete('public/materials/' . basename($material->image));
         $material->delete();
         return new MaterialResource(true, 'Data Deleted Successfully', $material);
     }

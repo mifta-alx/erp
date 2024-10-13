@@ -18,8 +18,36 @@ class ProductController extends Controller
      */
     public function index()
     {
-        $products = Product::with('category')->latest()->get(); 
+        $products = Product::with('category')->latest()->get();
         return new ProductResource(true, 'List Product Data', $products);
+    }
+
+    private function validateProduct(Request $request)
+    {
+        return Validator::make($request->all(), [
+            'product_name' => 'required|string',
+            'category_id' => 'required',
+            'sales_price' => 'required|numeric',
+            'cost' => 'required|numeric',
+            'barcode' => 'required',
+            'internal_reference' => 'required',
+            'product_tag' => 'required',
+            'company' => 'required',
+            'image' => $request->isMethod('post') ? 'required|image|mimes:jpeg,png,jpg|max:2048' : 'sometimes|image|mimes:jpeg,png,jpg|max:2048',
+        ], [
+            'product_name.required' => 'Product Name Must Be Filled',
+            'category_id.required' => 'Category Must Be Filled',
+            'sales_price.required' => 'Sales Price Must Be Filled',
+            'cost.required' => 'Cost Must Be Filled',
+            'barcode.required' => 'Barcode Must Be Filled',
+            'internal_reference.required' => 'Internal Reference Must Be Filled',
+            'product_tag.required' => 'Product Tag Must Be Filled',
+            'company.required' => 'Company Must Be Filled',
+            'image.required' => 'Image Must Be Filled',
+            'image.image' => 'File Must Be An Image',
+            'image.mimes' => 'Images Must Be In jpeg, png, or jpg Format',
+            'image.max' => 'Maximum Image Size is 2MB',
+        ]);
     }
     /**
      * store
@@ -29,26 +57,19 @@ class ProductController extends Controller
      */
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'product_name' => 'required',
-            'category_id' => 'required',
-            'sales_price' => 'required',
-            'cost' => 'required',
-            'barcode' => 'required',
-            'internal_reference' => 'required',
-            'product_tag' => 'required',
-            'company' => 'required',
-            // 'notes' => 'required',
-            'image' => 'required|image|mimes:jpeg,png,jpg|max:2048',
-        ]);
+        $validator = $this->validateProduct($request);
 
         if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation Vailed',
+                'errors' => $validator->errors()
+            ], 422);
         }
 
         $image = $request->file('image');
         $imageName = $image->hashName();
-        
+
         // Menyimpan gambar di public storage
         $image->storeAs('public/products', $imageName);
 
@@ -64,8 +85,6 @@ class ProductController extends Controller
             'notes' => $request->notes,
             'image' => $imageName,
         ]);
-
-
         return new ProductResource(true, 'Product Data Successfully Added', $product);
     }
     /**
@@ -80,27 +99,19 @@ class ProductController extends Controller
         return new ProductResource(true, 'Detail Product Data', $product);
     }
 
-    public function update(Request $request,$id)
+    public function update(Request $request, $id)
     {
-       
-        $validator = Validator::make($request->all(), [
-            'product_name' => 'required',
-            'category_id' => 'required',
-            'sales_price' => 'required',
-            'cost' => 'required',
-            'barcode' => 'required',
-            'internal_reference' => 'required',
-            'product_tag' => 'required',
-            'company' => 'required',
-            // 'notes' => 'required',
-        ]);
-      
-
+        $validator = $this->validateProduct($request);
+        
         if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
+            return response()->json([
+                'success' => false,
+                'message' => 'Validasi gagal',
+                'errors' => $validator->errors()
+            ], 422);
         }
 
-         $product = Product::find($id);
+        $product = Product::find($id);
 
         if ($request->hasFile('image')) {
             $image = $request->file('image');
@@ -136,9 +147,10 @@ class ProductController extends Controller
         return new ProductResource(true, 'Product Data Successfully Changed', $product);
     }
 
-    public function destroy($id){
+    public function destroy($id)
+    {
         $product = Product::find($id);
-        Storage::delete('public/products/'. basename($product->image));
+        Storage::delete('public/products/' . basename($product->image));
         $product->delete();
         return new ProductResource(true, 'Data Deleted Successfully', $product);
     }

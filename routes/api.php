@@ -9,6 +9,6 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware(Authenticate::using('sanctum'));
 
-Route::apiResource('/products', App\Http\Controllers\Api\productController::class);
-Route::apiResource('/materials', App\Http\Controllers\Api\materialController::class);
-Route::apiResource('/productcategory', App\Http\Controllers\Api\ProductcategoryController::class);
+Route::apiResource('/products', App\Http\Controllers\Api\ProductController::class);
+Route::apiResource('/materials', App\Http\Controllers\Api\MaterialController::class);
+Route::apiResource('/categories', App\Http\Controllers\Api\CategoryController::class);

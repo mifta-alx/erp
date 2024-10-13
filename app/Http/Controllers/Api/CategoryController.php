@@ -3,18 +3,17 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Resources\ProductCategoryResource;
-use App\Http\Resources\ProductResource;
-use App\Models\ProductCategory;
+use App\Http\Resources\CategoryResource;
+use App\Models\Category;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\Request;
 
-class ProductCategoryController extends Controller
+class CategoryController extends Controller
 {
     public function index()
     {
-        $productcategory = ProductCategory::latest();
-        return new ProductCategoryResource(true, 'List Data category', $productcategory);
+        $category = Category::latest();
+        return new CategoryResource(true, 'List Category Data', $category);
     }
     /**
      * store
@@ -32,10 +31,10 @@ class ProductCategoryController extends Controller
             return response()->json($validator->errors(), 422);
         }
 
-        $productcategory = ProductCategory::create([
+        $category = Category::create([
             'category' => $request->category,
         ]);
-        return new ProductCategoryResource(true, 'Data Product Add Success', $productcategory);
+        return new CategoryResource(true, 'Category Data Successfully Added', $category);
     }
     /**
      * show
@@ -45,8 +44,8 @@ class ProductCategoryController extends Controller
      */
     public function show($id)
     {
-        $productcategory = ProductCategory::find($id);
-        return new ProductCategoryResource(true, 'Detail Data product', $productcategory);
+        $category = Category::find($id);
+        return new CategoryResource(true, 'Detail Category Data', $category);
     }
 
     public function update(Request $request, $id)
@@ -61,17 +60,17 @@ class ProductCategoryController extends Controller
             return response()->json($validator->errors(), 422);
         }
 
-        $productcategory = ProductCategory::find($id);
-        $productcategory->update([
+        $category = Category::find($id);
+        $category->update([
             'category' => $request->category,
         ]);
-        return new ProductCategoryResource(true, 'Data Product Berhasil Diubah!', $productcategory);
+        return new CategoryResource(true, 'Category Data Successfully Changed', $category);
     }
 
     public function destroy($id)
     {
-        $productcategory = ProductCategoryResource::find($id);
-        $productcategory->delete();
-        return new productResource(true, 'Data Succefully Delete', $productcategory);
+        $category = CategoryResource::find($id);
+        $category->delete();
+        return new CategoryResource(true, 'Data Deleted Successfully', $category);
     }
 }

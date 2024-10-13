@@ -19,7 +19,7 @@ class ProductController extends Controller
     public function index()
     {
         $products = Product::with('productCategory')->latest()->get(); 
-        return new ProductResource(true, 'List Data Product', $products);
+        return new ProductResource(true, 'List Product Data', $products);
     }
     /**
      * store
@@ -66,7 +66,7 @@ class ProductController extends Controller
         ]);
 
 
-        return new ProductResource(true, 'Data Product Add Success', $product);
+        return new ProductResource(true, 'Product Data Successfully Added', $product);
     }
     /**
      * show
@@ -77,7 +77,7 @@ class ProductController extends Controller
     public function show($id)
     {
         $product = Product::find($id);
-        return new ProductResource(true, 'Detail Data product', $product);
+        return new ProductResource(true, 'Detail Product Data', $product);
     }
 
     public function update(Request $request,$id)
@@ -133,13 +133,13 @@ class ProductController extends Controller
                 'notes' => $request->notes,
             ]);
         }
-        return new ProductResource(true, 'Data Product Berhasil Diubah!', $product);
+        return new ProductResource(true, 'Product Data Successfully Changed', $product);
     }
 
     public function destroy($id){
         $product = Product::find($id);
         Storage::delete('public/products/'. basename($product->image));
         $product->delete();
-        return new ProductResource(true, 'Data Succefully Delete', $product);
+        return new ProductResource(true, 'Data Deleted Successfully', $product);
     }
 }

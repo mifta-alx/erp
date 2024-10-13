@@ -19,7 +19,7 @@ class MaterialController extends Controller
     public function index()
     {
         $material = Material::latest();
-        return new MaterialResource(true, 'List Data material', $material);
+        return new MaterialResource(true, 'List Material Data', $material);
     }
     /**
      * store
@@ -37,7 +37,8 @@ class MaterialController extends Controller
             'barcode' => 'required',
             'internal_reference' => 'required',
             'material_tag' => 'required',
-            'notes' => 'required',
+            'company' => 'required',
+            // 'notes' => 'required',
             'image' => 'required|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
@@ -56,12 +57,13 @@ class MaterialController extends Controller
             'barcode' => $request->barcode,
             'internal_reference' => $request->internal_reference,
             'material_tag' => $request->material_tag,
+            'company' => $request->company,
             'notes' => $request->notes,
             'image' => $image->hashName(),
         ]);
 
 
-        return new MaterialResource(true, 'Data Material Add Success', $material);
+        return new MaterialResource(true, 'Material Data Successfully Added', $material);
     }
     /**
      * show
@@ -72,7 +74,7 @@ class MaterialController extends Controller
     public function show($id)
     {
         $material = Material::find($id);
-        return new MaterialResource(true, 'Detail Data Material', $material);
+        return new MaterialResource(true, 'Detail Material Data', $material);
     }
 
     public function update(Request $request,$id)
@@ -86,7 +88,8 @@ class MaterialController extends Controller
             'barcode' => 'required',
             'internal_reference' => 'required',
             'material_tag' => 'required',
-            'notes' => 'required',
+            'company' => 'required',
+            // 'notes' => 'required',
         ]);
       
 
@@ -110,6 +113,7 @@ class MaterialController extends Controller
                 'barcode' => $request->barcode,
                 'internal_reference' => $request->internal_reference,
                 'material_tag' => $request->material_tag,
+                'company' => $request->company,
                 'notes' => $request->notes,
                 'image' => $image->hashName(),
             ]);
@@ -122,16 +126,17 @@ class MaterialController extends Controller
                 'barcode' => $request->barcode,
                 'internal_reference' => $request->internal_reference,
                 'material_tag' => $request->material_tag,
+                'company' => $request->company,
                 'notes' => $request->notes,
             ]);
         }
-        return new MaterialResource(true, 'Data material Berhasil Diubah!', $material);
+        return new MaterialResource(true, 'Material Data Successfully Changed', $material);
     }
 
     public function destroy($id){
         $material = Material::find($id);
         Storage::delete('public/materials/'. basename($material->image));
         $material->delete();
-        return new MaterialResource(true, 'Data Succefully Delete', $material);
+        return new MaterialResource(true, 'Data Deleted Successfully', $material);
     }
 }

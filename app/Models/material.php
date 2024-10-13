@@ -26,7 +26,7 @@ class Material extends Model
 
     public function productCategory()
     {
-        return $this->belongsTo(ProductCategory::class, 'category_id', 'category_id');
+        return $this->belongsTo(Category::class, 'category_id', 'category_id');
     }
 
     protected function image(): Attribute

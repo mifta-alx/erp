@@ -12,7 +12,7 @@ class CategoryController extends Controller
 {
     public function index()
     {
-        $category = Category::latest();
+        $category = Category::latest()->get();
         return new CategoryResource(true, 'List Category Data', $category);
     }
     /**
@@ -69,7 +69,7 @@ class CategoryController extends Controller
 
     public function destroy($id)
     {
-        $category = CategoryResource::find($id);
+        $category = Category::find($id);
         $category->delete();
         return new CategoryResource(true, 'Data Deleted Successfully', $category);
     }

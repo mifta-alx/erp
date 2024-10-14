@@ -19,7 +19,6 @@ class Product extends Model
         'barcode',
         'internal_reference',
         'product_tag',
-        'company',
         'notes',
         'image',
     ];

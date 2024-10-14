@@ -19,9 +19,8 @@ return new class extends Migration
             $table->double('sales_price');
             $table->double('cost');
             $table->string('barcode');
-            $table->string('internal_reference');
-            $table->string('product_tag');
-            $table->string('company');
+            $table->string('internal_reference')->nullable();
+            $table->string('product_tag')->nullable();
             $table->text('notes')->nullable();
             $table->string('image');
             $table->timestamps();

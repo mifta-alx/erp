@@ -30,9 +30,6 @@ class ProductController extends Controller
             'sales_price' => 'required|numeric',
             'cost' => 'required|numeric',
             'barcode' => 'required',
-            'internal_reference' => 'required',
-            'product_tag' => 'required',
-            'company' => 'required',
             'image' => $request->isMethod('post') ? 'required|image|mimes:jpeg,png,jpg|max:2048' : 'sometimes|image|mimes:jpeg,png,jpg|max:2048',
         ], [
             'product_name.required' => 'Product Name Must Be Filled',
@@ -40,9 +37,6 @@ class ProductController extends Controller
             'sales_price.required' => 'Sales Price Must Be Filled',
             'cost.required' => 'Cost Must Be Filled',
             'barcode.required' => 'Barcode Must Be Filled',
-            'internal_reference.required' => 'Internal Reference Must Be Filled',
-            'product_tag.required' => 'Product Tag Must Be Filled',
-            'company.required' => 'Company Must Be Filled',
             'image.required' => 'Image Must Be Filled',
             'image.image' => 'File Must Be An Image',
             'image.mimes' => 'Images Must Be In jpeg, png, or jpg Format',
@@ -81,7 +75,6 @@ class ProductController extends Controller
             'barcode' => $request->barcode,
             'internal_reference' => $request->internal_reference,
             'product_tag' => $request->product_tag,
-            'company' => $request->company,
             'notes' => $request->notes,
             'image' => $imageName,
         ]);
@@ -102,11 +95,11 @@ class ProductController extends Controller
     public function update(Request $request, $id)
     {
         $validator = $this->validateProduct($request);
-        
+
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Validasi gagal',
+                'message' => 'Validation Vailed ',
                 'errors' => $validator->errors()
             ], 422);
         }
@@ -127,7 +120,6 @@ class ProductController extends Controller
                 'barcode' => $request->barcode,
                 'internal_reference' => $request->internal_reference,
                 'product_tag' => $request->product_tag,
-                'company' => $request->company,
                 'notes' => $request->notes,
                 'image' => $image->hashName(),
             ]);
@@ -140,7 +132,6 @@ class ProductController extends Controller
                 'barcode' => $request->barcode,
                 'internal_reference' => $request->internal_reference,
                 'product_tag' => $request->product_tag,
-                'company' => $request->company,
                 'notes' => $request->notes,
             ]);
         }

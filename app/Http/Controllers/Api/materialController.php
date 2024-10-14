@@ -32,9 +32,6 @@ class MaterialController extends Controller
                 'sales_price' => 'required|numeric',
                 'cost' => 'required|numeric',
                 'barcode' => 'required',
-                'internal_reference' => 'required',
-                'material_tag' => 'required',
-                'company' => 'required',
                 'image' => $request->isMethod('post') ? 'required|image|mimes:jpeg,png,jpg|max:2048' : 'sometimes|image|mimes:jpeg,png,jpg|max:2048',
             ],
             [
@@ -43,9 +40,6 @@ class MaterialController extends Controller
                 'sales_price.required' => 'Sales Price Must Be Filled',
                 'cost.required' => 'Cost Must Be Filled',
                 'barcode.required' => 'Barcode Must Be Filled',
-                'internal_reference.required' => 'Internal Reference Must Be Filled',
-                'material_tag.required' => 'Material Tag Must Be Filled',
-                'company.required' => 'Company Must Be Filled',
                 'image.required' => 'Image Must Be Filled',
                 'image.image' => 'File Must Be An Image',
                 'image.mimes' => 'Images Must Be In jpeg, png, or jpg Format',
@@ -82,7 +76,6 @@ class MaterialController extends Controller
             'barcode' => $request->barcode,
             'internal_reference' => $request->internal_reference,
             'material_tag' => $request->material_tag,
-            'company' => $request->company,
             'notes' => $request->notes,
             'image' => $image->hashName(),
         ]);
@@ -130,7 +123,6 @@ class MaterialController extends Controller
                 'barcode' => $request->barcode,
                 'internal_reference' => $request->internal_reference,
                 'material_tag' => $request->material_tag,
-                'company' => $request->company,
                 'notes' => $request->notes,
                 'image' => $image->hashName(),
             ]);
@@ -143,7 +135,6 @@ class MaterialController extends Controller
                 'barcode' => $request->barcode,
                 'internal_reference' => $request->internal_reference,
                 'material_tag' => $request->material_tag,
-                'company' => $request->company,
                 'notes' => $request->notes,
             ]);
         }

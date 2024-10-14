@@ -19,7 +19,6 @@ class Material extends Model
         'barcode',
         'internal_reference',
         'material_tag',
-        'company',
         'notes',
         'image',
     ];

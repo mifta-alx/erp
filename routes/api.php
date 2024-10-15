@@ -14,4 +14,4 @@ Route::apiResource('/materials', App\Http\Controllers\Api\MaterialController::cl
 Route::apiResource('/categories', App\Http\Controllers\Api\CategoryController::class);
 Route::apiResource('/boms', App\Http\Controllers\Api\BomController::class);
 Route::apiResource('/bom-components', App\Http\Controllers\Api\BomComponentController::class);
-Route::apiResource('/uploud-images', App\Http\Controllers\Api\ImageController::class);
+Route::apiResource('/upload-images', App\Http\Controllers\Api\ImageController::class);

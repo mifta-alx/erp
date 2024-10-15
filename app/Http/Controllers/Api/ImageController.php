@@ -11,24 +11,32 @@ use Illuminate\Support\Facades\Validator;
 
 class ImageController extends Controller
 {
-    private function validateImage(Request $request){
+    private function validateImage(Request $request)
+    {
         return Validator::make($request->all(), [
-            'name' => $request->isMethod('post') ? 'required|image|mimes:jpeg,png,jpg|max:2048' : 'sometimes|image|mimes:jpeg,png,jpg|max:2048',
-        ],[
-            'name.required' => 'Image Must Be Filled',
-            'name.image' => 'File Must Be An Image',
-            'name.mimes' => 'Images Must Be In jpeg, png, or jpg Format',
-            'name.max' => 'Maximum Image Size is 2MB',
+            'image' => $request->isMethod('post') ? 'required|image|mimes:jpeg,png,jpg|max:2048' : 'sometimes|image|mimes:jpeg,png,jpg|max:2048',
+        ], [
+            'image.required' => 'Image Must Be Filled',
+            'image.image' => 'File Must Be An Image',
+            'image.mimes' => 'Images Must Be In jpeg, png, or jpg Format',
+            'image.max' => 'Maximum Image Size is 2MB',
         ]);
     }
     public function index()
     {
-        $image = Image::get();
+        $image = Image::orederedBy('image_id', 'ASC')->get();
         return new ImageResource(true, 'List Image Data', $image);
     }
 
-    public function show($id){
+    public function show($id)
+    {
         $image = Image::find($id);
+        if (!$image) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Image not found'
+            ], 404);
+        }
         return new ImageResource(true, 'Detail Image Data', $image);
     }
 
@@ -36,40 +44,28 @@ class ImageController extends Controller
     {
         $validator = $this->validateImage($request);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation Failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        $image = $request->file('name');
+        $image = $request->file('image');
         $imageName = $image->hashName();
         $image->storeAs('public/images', $imageName);
 
-        $imageUrl = Storage::url('images/' . $imageName);
         $image = Image::create([
-            'name' => $imageName,
+            'image' => $imageName,
         ]);
 
-        return new ImageResource(true, 'Image Successfully Uploaded', ['id'=>$image->image_id,'name'=>$image->name,'url'=>$imageUrl]);
+        return new ImageResource(true, 'Image Successfully Uploaded', ['id' => $image->image_id, 'name' => $image->image]);
     }
 
     public function update(Request $request, $id)
     {
         $validator = $this->validateImage($request);
 
-        if ($validator->fails()) {
+        $image = Image::find($id);
+        if (!$image) {
             return response()->json([
                 'success' => false,
-                'message' => 'Validation Vailed',
-                'errors' => $validator->errors()
-            ], 422);
+                'message' => 'Image not found'
+            ], 404);
         }
-
-        $image = Image::find($id);
-
         if ($request->hasFile('image')) {
             Storage::delete('public/images/' . $image->image);
             $newImageFile = $request->file('image');
@@ -84,6 +80,12 @@ class ImageController extends Controller
     public function destroy($id)
     {
         $image = Image::find($id);
+        if (!$image) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Image not found'
+            ], 404);
+        }
         Storage::delete('public/images/' . $image->image);
         $image->delete();
         return new ImageResource(true, 'Image Deleted Successfully', $image);

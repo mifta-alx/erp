@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Models\Product;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ProductResource;
+use App\Models\Image;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -18,8 +19,26 @@ class ProductController extends Controller
      */
     public function index()
     {
-        $products = Product::with('category')->latest()->get();
-        return new ProductResource(true, 'List Product Data', $products);
+        $products = Product::with('category')->orderBy('created_at', 'ASC')->get();
+        $productData = $products->map(function ($product) {
+            return [
+                'id' => $product->product_id,
+                'name' => $product->product_name,
+                'category_id' => $product->category_id,
+                'category_name' => $product->category->category,
+                'sales_price' => $product->sales_price,
+                'cost' => $product->cost,
+                'barcode' => $product->barcode,
+                'internal_reference' => $product->internal_reference,
+                'product_tag' => $product->product_tag,
+                'notes' => $product->notes,
+                'image' => $product->image,
+                'created_at'=>$product->created_at,
+                'updated_at'=>$product->updated_at
+            ];
+        });
+
+        return new ProductResource(true, 'List Product Data', $productData);
     }
 
     private function validateProduct(Request $request)
@@ -30,7 +49,7 @@ class ProductController extends Controller
             'sales_price' => 'required|numeric',
             'cost' => 'required|numeric',
             'barcode' => 'required',
-            'image' => $request->isMethod('post') ? 'required|image|mimes:jpeg,png,jpg|max:2048' : 'sometimes|image|mimes:jpeg,png,jpg|max:2048',
+            'image' => 'required'
         ], [
             'product_name.required' => 'Product Name Must Be Filled',
             'category_id.required' => 'Category Must Be Filled',
@@ -38,9 +57,6 @@ class ProductController extends Controller
             'cost.required' => 'Cost Must Be Filled',
             'barcode.required' => 'Barcode Must Be Filled',
             'image.required' => 'Image Must Be Filled',
-            'image.image' => 'File Must Be An Image',
-            'image.mimes' => 'Images Must Be In jpeg, png, or jpg Format',
-            'image.max' => 'Maximum Image Size is 2MB',
         ]);
     }
     /**
@@ -53,20 +69,6 @@ class ProductController extends Controller
     {
         $validator = $this->validateProduct($request);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation Vailed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        $image = $request->file('image');
-        $imageName = $image->hashName();
-
-        // Menyimpan gambar di public storage
-        $image->storeAs('public/products', $imageName);
-
         $product = Product::create([
             'product_name' => $request->product_name,
             'category_id' => $request->category_id,
@@ -76,9 +78,10 @@ class ProductController extends Controller
             'internal_reference' => $request->internal_reference,
             'product_tag' => $request->product_tag,
             'notes' => $request->notes,
-            'image' => $imageName,
+            'image' => $request->image,
         ]);
-        return new ProductResource(true, 'Product Data Successfully Added', $product);
+
+        return new ProductResource(true, 'Product Data Successfully Added', []);
     }
     /**
      * show
@@ -89,60 +92,65 @@ class ProductController extends Controller
     public function show($id)
     {
         $product = Product::find($id);
-        return new ProductResource(true, 'Detail Product Data', $product);
+        if (!$product) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Product not found'
+            ], 404);
+        }
+        return new ProductResource(true, 'List Product Data', [
+            'id' => $product->product_id,
+            'name' => $product->product_name,
+            'category_id' => $product->category_id,
+            'category_name' => $product->category->category,
+            'sales_price' => $product->sales_price,
+            'cost' => $product->cost,
+            'barcode' => $product->barcode,
+            'internal_reference' => $product->internal_reference,
+            'product_tag' => $product->product_tag,
+            'notes' => $product->notes,
+            'image' => $product->image,
+            'created_at'=>$product->created_at,
+            'updated_at'=>$product->updated_at
+        ]);
     }
 
     public function update(Request $request, $id)
     {
         $validator = $this->validateProduct($request);
 
-        if ($validator->fails()) {
+        $product = Product::find($id);
+        if (!$product) {
             return response()->json([
                 'success' => false,
-                'message' => 'Validation Vailed ',
-                'errors' => $validator->errors()
-            ], 422);
+                'message' => 'Product not found'
+            ], 404);
         }
+        $product->update([
+            'product_name' => $request->product_name,
+            'category_id' => $request->category_id,
+            'sales_price' => $request->sales_price,
+            'cost' => $request->cost,
+            'barcode' => $request->barcode,
+            'internal_reference' => $request->internal_reference,
+            'product_tag' => $request->product_tag,
+            'notes' => $request->notes,
+            'image' => $request->image,
+        ]);
 
-        $product = Product::find($id);
-
-        if ($request->hasFile('image')) {
-            $image = $request->file('image');
-            $image->storeAs('public/products', $image->hashName());
-            Storage::delete('public/products/' . basename($product->image));
-
-
-            $product->update([
-                'product_name' => $request->product_name,
-                'category_id' => $request->category_id,
-                'sales_price' => $request->sales_price,
-                'cost' => $request->cost,
-                'barcode' => $request->barcode,
-                'internal_reference' => $request->internal_reference,
-                'product_tag' => $request->product_tag,
-                'notes' => $request->notes,
-                'image' => $image->hashName(),
-            ]);
-        } else {
-            $product->update([
-                'product_name' => $request->product_name,
-                'category_id' => $request->category_id,
-                'sales_price' => $request->sales_price,
-                'cost' => $request->cost,
-                'barcode' => $request->barcode,
-                'internal_reference' => $request->internal_reference,
-                'product_tag' => $request->product_tag,
-                'notes' => $request->notes,
-            ]);
-        }
-        return new ProductResource(true, 'Product Data Successfully Changed', $product);
+        return new ProductResource(true, 'Product Data Successfully Changed', []);
     }
 
     public function destroy($id)
     {
         $product = Product::find($id);
-        Storage::delete('public/products/' . basename($product->image));
+        if (!$product) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Product not found'
+            ], 404);
+        }
         $product->delete();
-        return new ProductResource(true, 'Data Deleted Successfully', $product);
+        return new ProductResource(true, 'Data Deleted Successfully', []);
     }
 }

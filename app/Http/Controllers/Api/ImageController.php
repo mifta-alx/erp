@@ -24,7 +24,7 @@ class ImageController extends Controller
     }
     public function index()
     {
-        $image = Image::orederedBy('image_id', 'ASC')->get();
+        $image = Image::orderBy('image_id', 'ASC')->get();
         return new ImageResource(true, 'List Image Data', $image);
     }
 

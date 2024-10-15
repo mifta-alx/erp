@@ -43,7 +43,13 @@ class ImageController extends Controller
     public function store(Request $request)
     {
         $validator = $this->validateImage($request);
-
+        if($validator->fails()){
+            return response()->json([
+                'success'=>false,
+                'message'=>'Validation Failed',
+                'errors'=>$validator->errors()
+            ],422);
+        }
         $image = $request->file('image');
         $imageName = $image->hashName();
         $image->storeAs('public/images', $imageName);
@@ -58,7 +64,13 @@ class ImageController extends Controller
     public function update(Request $request, $id)
     {
         $validator = $this->validateImage($request);
-
+        if($validator->fails()){
+            return response()->json([
+                'success'=>false,
+                'message'=>'Validation Failed',
+                'errors'=>$validator->errors()
+            ],422);
+        }
         $image = Image::find($id);
         if (!$image) {
             return response()->json([

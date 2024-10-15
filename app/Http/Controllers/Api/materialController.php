@@ -70,7 +70,13 @@ class MaterialController extends Controller
     public function store(Request $request)
     {
         $validator = $this->validateMaterial($request);
-
+        if($validator->fails()){
+            return response()->json([
+                'success'=>false,
+                'message'=>'Validation Failed',
+                'errors'=>$validator->errors()
+            ],422);
+        }
         $material = Material::create([
             'material_name' => $request->material_name,
             'category_id' => $request->category_id,
@@ -120,7 +126,13 @@ class MaterialController extends Controller
     public function update(Request $request, $id)
     {
         $validator = $this->validateMaterial($request);
-
+        if($validator->fails()){
+            return response()->json([
+                'success'=>false,
+                'message'=>'Validation Failed',
+                'errors'=>$validator->errors()
+            ],422);
+        }
         $material = Material::find($id);
         if (!$material) {
             return response()->json([

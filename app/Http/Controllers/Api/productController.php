@@ -68,7 +68,13 @@ class ProductController extends Controller
     public function store(Request $request)
     {
         $validator = $this->validateProduct($request);
-
+        if($validator->fails()){
+            return response()->json([
+                'success'=>false,
+                'message'=>'Validation Failed',
+                'errors'=>$validator->errors()
+            ],422);
+        }
         $product = Product::create([
             'product_name' => $request->product_name,
             'category_id' => $request->category_id,
@@ -118,7 +124,13 @@ class ProductController extends Controller
     public function update(Request $request, $id)
     {
         $validator = $this->validateProduct($request);
-
+        if($validator->fails()){
+            return response()->json([
+                'success'=>false,
+                'message'=>'Validation Failed',
+                'errors'=>$validator->errors()
+            ],422);
+        }
         $product = Product::find($id);
         if (!$product) {
             return response()->json([

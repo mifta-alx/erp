@@ -22,7 +22,7 @@ return new class extends Migration
             $table->string('internal_reference')->nullable();
             $table->string('product_tag')->nullable();
             $table->text('notes')->nullable();
-            $table->text('image');
+            $table->string('image');
             $table->timestamps();
         });        
     }

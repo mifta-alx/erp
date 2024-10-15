@@ -27,12 +27,4 @@ class Material extends Model
     {
         return $this->belongsTo(Category::class, 'category_id', 'category_id');
     }
-
-    protected function image(): Attribute
-    {
-        return Attribute::make(
-            get: fn ($image) => url('/storage/materials/' . $image),
-        );
-    }
-    
 }

@@ -63,7 +63,7 @@ class ProductController extends Controller
             'image_uuid.required' => 'Image Must Be Filled',
         ]);
     }
-    
+
     public function store(Request $request)
     {
         $validator = $this->validateProduct($request);
@@ -100,25 +100,26 @@ class ProductController extends Controller
             'image_url' => $imageUrl,
         ]);
 
-        $tagIds = [];
-        $tagNames = [];
+        if ($request->has('tags') && is_array($request->tags)) {
+            $tagIds = $request->tags;
 
-        if ($request->has('tags') && $request->tags !== null) {
-            $tags = $request->tags;
+            $existingTags = Tag::whereIn('tag_id', $tagIds)->pluck('tag_id')->toArray();
 
-            if (is_string($tags)) {
-                $tags = explode(',', $tags);
+            if (count($existingTags) !== count($tagIds)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Some tag IDs are invalid.'
+                ], 422);
             }
 
-            foreach ($tags as $tagName) {
-                $tagName = trim($tagName);
-                $tag = Tag::firstOrCreate(['name_tag' => $tagName]);
-                $tagIds[] = $tag->tag_id;
-                $tagNames[] = $tag->name_tag;
-            }
-
-            $product->tag()->sync($tagIds);
+            $product->tag()->sync($existingTags);
+        } else {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tags must be an array of tag IDs.'
+            ], 422);
         }
+        $product = Product::with('tag')->find($product->id);
 
         return new ProductResource(true, 'Product Data Successfully Added', []);
     }
@@ -200,23 +201,26 @@ class ProductController extends Controller
             'image_url' => $imageUrl,
         ]);
 
-        if ($request->has('tags') && $request->tags !== null) {
-            $tags = $request->tags;
+        if ($request->has('tags') && is_array($request->tags)) {
+            $tagIds = $request->tags;
 
-            if (is_string($tags)) {
-                $tags = explode(',', $tags);
+            $existingTags = Tag::whereIn('tag_id', $tagIds)->pluck('tag_id')->toArray();
+
+            if (count($existingTags) !== count($tagIds)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Some tag IDs are invalid.'
+                ], 422);
             }
 
-            $tagIds = [];
-            foreach ($tags as $tagName) {
-                $tag = Tag::firstOrCreate(['name_tag' => trim($tagName)]);
-                $tagIds[] = $tag->tag_id;
-            }
-
-            $product->tag()->sync($tagIds);
+            $product->tag()->sync($existingTags);
         } else {
-            $product->tag()->detach();
+            return response()->json([
+                'success' => false,
+                'message' => 'Tags must be an array of tag IDs.'
+            ], 422);
         }
+        $product = Product::with('tag')->find($product->id);
 
         return new ProductResource(true, 'Product Data Successfully Updated', []);
     }

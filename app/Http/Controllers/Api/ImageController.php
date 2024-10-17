@@ -22,10 +22,20 @@ class ImageController extends Controller
             'image.max' => 'Maximum Image Size is 2MB',
         ]);
     }
+
     public function index()
     {
-        $image = Image::orderBy('image_id', 'ASC')->get();
-        return new ImageResource(true, 'List Image Data', $image);
+        $images = Image::orderBy('image_id', 'ASC')->get();
+        $storageUrl = env('STORAGE_URL');
+        $imageData = $images->map(function ($image) use($storageUrl){
+            return [
+                'id' => $image->image_id,
+                'uuid' => $image->image_uuid,
+                'name' => $image->image,
+                'url' => $storageUrl . '/storage/images/' . $image->image,
+            ];
+        });
+        return new ImageResource(true, 'List Image Data', $imageData);
     }
 
     public function show($id)
@@ -43,33 +53,39 @@ class ImageController extends Controller
     public function store(Request $request)
     {
         $validator = $this->validateImage($request);
-        if($validator->fails()){
+        if ($validator->fails()) {
             return response()->json([
-                'success'=>false,
-                'message'=>'Validation Failed',
-                'errors'=>$validator->errors()
-            ],422);
+                'success' => false,
+                'message' => 'Validation Failed',
+                'errors' => $validator->errors()
+            ], 422);
         }
         $image = $request->file('image');
         $imageName = $image->hashName();
         $image->storeAs('public/images', $imageName);
 
         $image = Image::create([
+            'image_uuid' => $request->image_uuid,
             'image' => $imageName,
         ]);
-
-        return new ImageResource(true, 'Image Successfully Uploaded', ['id' => $image->image_id, 'name' => $image->image]);
+        $storageUrl = env('STORAGE_URL');
+        return new ImageResource(true, 'Image Successfully Uploaded', [
+            'id' => $image->image_id,
+            'uuid' => $image->image_uuid,
+            'name' => $image->image,
+            'url' => $storageUrl . '/storage/images/' . $image->image,
+        ]);
     }
 
     public function update(Request $request, $id)
     {
         $validator = $this->validateImage($request);
-        if($validator->fails()){
+        if ($validator->fails()) {
             return response()->json([
-                'success'=>false,
-                'message'=>'Validation Failed',
-                'errors'=>$validator->errors()
-            ],422);
+                'success' => false,
+                'message' => 'Validation Failed',
+                'errors' => $validator->errors()
+            ], 422);
         }
         $image = Image::find($id);
         if (!$image) {
@@ -89,9 +105,10 @@ class ImageController extends Controller
         return new ImageResource(true, 'Image Updated Successfully', $image);
     }
 
-    public function destroy($id)
+    public function destroy($uuid)
     {
-        $image = Image::find($id);
+        // $image = Image::find($id);
+        $image = Image::where('uuid', $uuid)->first();
         if (!$image) {
             return response()->json([
                 'success' => false,
@@ -100,6 +117,6 @@ class ImageController extends Controller
         }
         Storage::delete('public/images/' . $image->image);
         $image->delete();
-        return new ImageResource(true, 'Image Deleted Successfully', $image);
+        return new ImageResource(true, 'Image Deleted Successfully', []);
     }
 }

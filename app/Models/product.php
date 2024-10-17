@@ -18,13 +18,23 @@ class Product extends Model
         'cost',
         'barcode',
         'internal_reference',
-        'product_tag',
         'notes',
-        'image',
+        'image_url',
+        'image_uuid',
     ];
 
     public function category()
     {
         return $this->belongsTo(Category::class, 'category_id', 'category_id');
+    }
+
+    public function image()
+    {
+        return $this->belongsTo(Image::class, 'image_uuid', 'image_uuid');
+    }    
+
+    public function tag()
+    {
+        return $this->belongsToMany(Tag::class, 'pivottags', 'product_id', 'tag_id')->withTimestamps();
     }
 }

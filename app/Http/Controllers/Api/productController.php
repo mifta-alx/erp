@@ -6,20 +6,16 @@ use App\Models\Product;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ProductResource;
 use App\Models\Image;
+use App\Models\Tag;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
 {
-    /**
-     * index
-     *
-     * @return void
-     */
+
     public function index()
     {
-        $products = Product::with('category')->orderBy('created_at', 'ASC')->get();
+        $products = Product::with('category', 'tag')->orderBy('created_at', 'ASC')->get();
         $productData = $products->map(function ($product) {
             return [
                 'id' => $product->product_id,
@@ -30,16 +26,24 @@ class ProductController extends Controller
                 'cost' => $product->cost,
                 'barcode' => $product->barcode,
                 'internal_reference' => $product->internal_reference,
-                'product_tag' => $product->product_tag,
+                'tags' => $product->tag->map(function ($tag) {
+                    return [
+                        'id' => $tag->tag_id,
+                        'name' => $tag->name_tag
+                    ];
+                }),
                 'notes' => $product->notes,
-                'image' => $product->image,
-                'created_at'=>$product->created_at,
-                'updated_at'=>$product->updated_at
+                'image_uuid' => $product->image_uuid,
+                'image_url' => $product->image_url,
+                'created_at' => $product->created_at,
+                'updated_at' => $product->updated_at
             ];
         });
 
         return new ProductResource(true, 'List Product Data', $productData);
     }
+
+
 
     private function validateProduct(Request $request)
     {
@@ -49,32 +53,39 @@ class ProductController extends Controller
             'sales_price' => 'required|numeric',
             'cost' => 'required|numeric',
             'barcode' => 'required',
-            'image' => 'required'
+            'image_uuid' => 'required'
         ], [
             'product_name.required' => 'Product Name Must Be Filled',
             'category_id.required' => 'Category Must Be Filled',
             'sales_price.required' => 'Sales Price Must Be Filled',
             'cost.required' => 'Cost Must Be Filled',
             'barcode.required' => 'Barcode Must Be Filled',
-            'image.required' => 'Image Must Be Filled',
+            'image_uuid.required' => 'Image Must Be Filled',
         ]);
     }
-    /**
-     * store
-     *
-     * @param  mixed $request
-     * @return void
-     */
+
     public function store(Request $request)
     {
         $validator = $this->validateProduct($request);
-        if($validator->fails()){
+        if ($validator->fails()) {
             return response()->json([
-                'success'=>false,
-                'message'=>'Validation Failed',
-                'errors'=>$validator->errors()
-            ],422);
+                'success' => false,
+                'message' => 'Validation Failed',
+                'errors' => $validator->errors()
+            ], 422);
         }
+
+        $imageUuid = $request->image_uuid;
+        $image = Image::where('image_uuid', $imageUuid)->first();
+
+        if (!$image) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Image not found'
+            ], 404);
+        }
+        $storageUrl = env('STORAGE_URL');
+        $imageUrl = $storageUrl . '/storage/images/' . $image->image;
         $product = Product::create([
             'product_name' => $request->product_name,
             'category_id' => $request->category_id,
@@ -82,19 +93,29 @@ class ProductController extends Controller
             'cost' => $request->cost,
             'barcode' => $request->barcode,
             'internal_reference' => $request->internal_reference,
-            'product_tag' => $request->product_tag,
             'notes' => $request->notes,
-            'image' => $request->image,
+            'image_uuid' => $image->image_uuid,
+            'image_url' => $imageUrl,
         ]);
+
+        if ($request->has('tags') && $request->tags !== null) {
+            $tags = $request->tags;
+            if (is_string($tags)) {
+                $tags = explode(',', $tags);
+            }
+
+            $tagIds = [];
+
+            foreach ($tags as $tagName) {
+                $tag = Tag::firstOrCreate(['name_tag' => trim($tagName)]);
+                $tagIds[] = $tag->tag_id;
+            }
+            $product->tag()->sync($tagIds);
+        }
 
         return new ProductResource(true, 'Product Data Successfully Added', []);
     }
-    /**
-     * show
-     *
-     * @param  mixed $id
-     * @return void
-     */
+
     public function show($id)
     {
         $product = Product::find($id);
@@ -113,24 +134,31 @@ class ProductController extends Controller
             'cost' => $product->cost,
             'barcode' => $product->barcode,
             'internal_reference' => $product->internal_reference,
-            'product_tag' => $product->product_tag,
+            'tags' => $product->tag->map(function ($tag) {
+                return [
+                    'id' => $tag->tag_id,
+                    'name' => $tag->name_tag
+                ];
+            }),
             'notes' => $product->notes,
-            'image' => $product->image,
-            'created_at'=>$product->created_at,
-            'updated_at'=>$product->updated_at
+            'image_uuid' => $product->image_uuid,
+            'image_url' => $product->image_url,
+            'created_at' => $product->created_at,
+            'updated_at' => $product->updated_at
         ]);
     }
 
     public function update(Request $request, $id)
     {
         $validator = $this->validateProduct($request);
-        if($validator->fails()){
+        if ($validator->fails()) {
             return response()->json([
-                'success'=>false,
-                'message'=>'Validation Failed',
-                'errors'=>$validator->errors()
-            ],422);
+                'success' => false,
+                'message' => 'Validation Failed',
+                'errors' => $validator->errors()
+            ], 422);
         }
+
         $product = Product::find($id);
         if (!$product) {
             return response()->json([
@@ -138,6 +166,21 @@ class ProductController extends Controller
                 'message' => 'Product not found'
             ], 404);
         }
+
+        $imageUuid = $request->image_uuid;
+        if ($imageUuid) {
+            $image = Image::where('image_uuid', $imageUuid)->first();
+            if (!$image) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Image not found'
+                ], 404);
+            }
+            $imageUrl = env('STORAGE_URL') . '/storage/images/' . $image->image;
+        } else {
+            $imageUrl = $product->image_url;
+        }
+
         $product->update([
             'product_name' => $request->product_name,
             'category_id' => $request->category_id,
@@ -145,13 +188,33 @@ class ProductController extends Controller
             'cost' => $request->cost,
             'barcode' => $request->barcode,
             'internal_reference' => $request->internal_reference,
-            'product_tag' => $request->product_tag,
             'notes' => $request->notes,
-            'image' => $request->image,
+            'image_uuid' => $imageUuid,
+            'image_url' => $imageUrl,
         ]);
 
-        return new ProductResource(true, 'Product Data Successfully Changed', []);
+        if ($request->has('tags') && $request->tags !== null) {
+            $tags = $request->tags;
+
+            if (is_string($tags)) {
+                $tags = explode(',', $tags);
+            }
+
+            $tagIds = [];
+            foreach ($tags as $tagName) {
+                $tag = Tag::firstOrCreate(['name_tag' => trim($tagName)]);
+                $tagIds[] = $tag->tag_id;
+            }
+
+            $product->tag()->sync($tagIds);
+        } else {
+            $product->tag()->detach();
+        }
+
+        return new ProductResource(true, 'Product Data Successfully Updated', []);
     }
+
+
 
     public function destroy($id)
     {

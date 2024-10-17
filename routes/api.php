@@ -18,3 +18,4 @@ Route::apiResource('/boms', App\Http\Controllers\Api\BomController::class);
 Route::apiResource('/bom-components', App\Http\Controllers\Api\BomComponentController::class);
 Route::apiResource('/upload-images', App\Http\Controllers\Api\ImageController::class);
 Route::delete('/upload-images/{uuid}', [ImageController::class, 'destroy']);
+Route::apiResource('/tags', App\Http\Controllers\Api\TagController::class);

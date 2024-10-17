@@ -53,7 +53,7 @@ class ProductController extends Controller
             'sales_price' => 'required|numeric',
             'cost' => 'required|numeric',
             'barcode' => 'required',
-            'image_uuid' => 'required'
+            'image_uuid' => 'required|string|exists:images,image_uuid',
         ], [
             'product_name.required' => 'Product Name Must Be Filled',
             'category_id.required' => 'Category Must Be Filled',
@@ -64,9 +64,80 @@ class ProductController extends Controller
         ]);
     }
 
+    // public function store(Request $request)
+    // {
+    //     $data = $request->json()->all();
+    //     $validator = $this->validateProduct($request);
+    //     if ($validator->fails()) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Validation Failed',
+    //             'errors' => $validator->errors()
+    //         ], 422);
+    //     }
+
+    //     $imageUuid = $request->image_uuid;
+    //     $image = Image::where('image_uuid', $imageUuid)->first();
+
+    //     if (!$image) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Image not found'
+    //         ], 404);
+    //     }
+
+    //     $storageUrl = env('STORAGE_URL');
+    //     $imageUrl = $storageUrl . '/storage/images/' . $image->image;
+
+    //     $product = Product::create([
+    //         'product_name' => $request->product_name,
+    //         'category_id' => $request->category_id,
+    //         'sales_price' => $request->sales_price,
+    //         'cost' => $request->cost,
+    //         'barcode' => $request->barcode,
+    //         'internal_reference' => $request->internal_reference,
+    //         'notes' => $request->notes,
+    //         'image_uuid' => $image->image_uuid,
+    //         'image_url' => $imageUrl,
+    //     ]);
+
+    //     if ($request->has('tags') && is_array($request->tags)) {
+    //         $tagIds = $request->tags;
+
+    //         $existingTags = Tag::whereIn('tag_id', $tagIds)->pluck('tag_id')->toArray();
+
+    //         if (count($existingTags) !== count($tagIds)) {
+    //             return response()->json([
+    //                 'success' => false,
+    //                 'message' => 'Some tag IDs are invalid.'
+    //             ], 422);
+    //         }
+
+    //         $product->tag()->sync($existingTags);
+    //     } else {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Tags must be an array of tag IDs.'
+    //         ], 422);
+    //     }
+    //     $product = Product::with('tag')->find($product->id);
+
+    //     return new ProductResource(true, 'Product Data Successfully Added', []);
+    // }
+
     public function store(Request $request)
     {
+        $data = $request->json()->all();
         $validator = $this->validateProduct($request);
+        $validator = Validator::make($data, [
+            'product_name' => 'required|string|min:2',
+            'category_id' => 'required|integer',
+            'sales_price' => 'required|numeric',
+            'cost' => 'required|numeric',
+            'barcode' => 'required|string',
+            'internal_reference' => 'nullable|string',
+        ]);
+
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
@@ -75,8 +146,7 @@ class ProductController extends Controller
             ], 422);
         }
 
-        $imageUuid = $request->image_uuid;
-        $image = Image::where('image_uuid', $imageUuid)->first();
+        $image = Image::where('image_uuid', $data['image_uuid'])->first();
 
         if (!$image) {
             return response()->json([
@@ -89,40 +159,25 @@ class ProductController extends Controller
         $imageUrl = $storageUrl . '/storage/images/' . $image->image;
 
         $product = Product::create([
-            'product_name' => $request->product_name,
-            'category_id' => $request->category_id,
-            'sales_price' => $request->sales_price,
-            'cost' => $request->cost,
-            'barcode' => $request->barcode,
-            'internal_reference' => $request->internal_reference,
-            'notes' => $request->notes,
+            'product_name' => $data['product_name'],
+            'category_id' => $data['category_id'],
+            'sales_price' => $data['sales_price'],
+            'cost' => $data['cost'],
+            'barcode' => $data['barcode'],
+            'internal_reference' => $data['internal_reference'],
+            'notes' => $data['notes'],
             'image_uuid' => $image->image_uuid,
             'image_url' => $imageUrl,
         ]);
 
-        if ($request->has('tags') && is_array($request->tags)) {
-            $tagIds = $request->tags;
+        $product->tag()->sync($data['tags']);
 
-            $existingTags = Tag::whereIn('tag_id', $tagIds)->pluck('tag_id')->toArray();
-
-            if (count($existingTags) !== count($tagIds)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Some tag IDs are invalid.'
-                ], 422);
-            }
-
-            $product->tag()->sync($existingTags);
-        } else {
-            return response()->json([
-                'success' => false,
-                'message' => 'Tags must be an array of tag IDs.'
-            ], 422);
-        }
         $product = Product::with('tag')->find($product->id);
 
-        return new ProductResource(true, 'Product Data Successfully Added', []);
+        return new ProductResource(true, 'Product Data Successfully Added', $product);
     }
+
+
 
     public function show($id)
     {

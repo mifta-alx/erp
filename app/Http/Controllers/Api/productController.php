@@ -63,7 +63,7 @@ class ProductController extends Controller
             'image_uuid.required' => 'Image Must Be Filled',
         ]);
     }
-
+    
     public function store(Request $request)
     {
         $validator = $this->validateProduct($request);
@@ -84,8 +84,10 @@ class ProductController extends Controller
                 'message' => 'Image not found'
             ], 404);
         }
+
         $storageUrl = env('STORAGE_URL');
         $imageUrl = $storageUrl . '/storage/images/' . $image->image;
+
         $product = Product::create([
             'product_name' => $request->product_name,
             'category_id' => $request->category_id,
@@ -98,18 +100,23 @@ class ProductController extends Controller
             'image_url' => $imageUrl,
         ]);
 
+        $tagIds = [];
+        $tagNames = [];
+
         if ($request->has('tags') && $request->tags !== null) {
             $tags = $request->tags;
+
             if (is_string($tags)) {
                 $tags = explode(',', $tags);
             }
 
-            $tagIds = [];
-
             foreach ($tags as $tagName) {
-                $tag = Tag::firstOrCreate(['name_tag' => trim($tagName)]);
+                $tagName = trim($tagName);
+                $tag = Tag::firstOrCreate(['name_tag' => $tagName]);
                 $tagIds[] = $tag->tag_id;
+                $tagNames[] = $tag->name_tag;
             }
+
             $product->tag()->sync($tagIds);
         }
 

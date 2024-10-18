@@ -38,10 +38,7 @@ class TagResource extends JsonResource
         return [
             'success'   => $this->status,
             'message'   => $this->message,
-            'data'      => [
-                'tag_id' => $this->tag_id,
-                'name' => $this->name_tag,
-            ]
+            'data'      => $this->resource
         ];
     }
 }

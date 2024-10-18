@@ -18,7 +18,6 @@ class TagController extends Controller
                 'name' => $tag->name_tag,
             ];
         });
-
         return new TagResource(true, 'List Tag Data', $formattedTags);
     }
 
@@ -43,7 +42,10 @@ class TagController extends Controller
         $tag = Tag::create([
             'name_tag' => $request->name_tag,
         ]);
-        return new TagResource(true, 'Tag Successfully Uploaded', $tag);
+        return new TagResource(true, 'Tag Successfully Uploaded', [
+            'id'=>$tag->tag_id,
+            'name'=>$tag->name_tag
+        ]);
     }
 
     public function update(Request $request, $id)
@@ -58,7 +60,10 @@ class TagController extends Controller
         $tag->update([
             'name_tag' => $request->name_tag,
         ]);
-        return new TagResource(true, '', []);
+        return new TagResource(true, 'Product Tag Successfully Updated', [
+            'id'=>$tag->tag_id,
+            'name'=>$tag->name_tag
+        ]);
     }
 
     public function destroy($id)
@@ -70,7 +75,7 @@ class TagController extends Controller
                 'message' => 'Tag not found'
             ], 404);
         }
-        $tag->destroy();
-        return new TagResource(true, '', []);
+        $tag->delete();
+        return new TagResource(true, 'Data Deleted Successfully', []);
     }
 }

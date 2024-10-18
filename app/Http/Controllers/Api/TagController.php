@@ -43,7 +43,7 @@ class TagController extends Controller
         $tag = Tag::create([
             'name_tag' => $request->name_tag,
         ]);
-        return new TagResource(true, 'Tag Successfully Uploaded', []);
+        return new TagResource(true, 'Tag Successfully Uploaded', $tag);
     }
 
     public function update(Request $request, $id)

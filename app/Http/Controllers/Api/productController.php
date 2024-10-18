@@ -9,6 +9,7 @@ use App\Models\Image;
 use App\Models\Tag;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\Request;
+use Illuminate\Support\Number;
 
 class ProductController extends Controller
 {
@@ -22,8 +23,8 @@ class ProductController extends Controller
                 'name' => $product->product_name,
                 'category_id' => $product->category_id,
                 'category_name' => $product->category->category,
-                'sales_price' => $product->sales_price,
-                'cost' => $product->cost,
+                'sales_price' => number_format($product->sales_price, 2),
+                'cost' => number_format($product->cost, 2),
                 'barcode' => $product->barcode,
                 'internal_reference' => $product->internal_reference,
                 'tags' => $product->tag->map(function ($tag) {
@@ -42,8 +43,6 @@ class ProductController extends Controller
 
         return new ProductResource(true, 'List Product Data', $productData);
     }
-
-
 
     private function validateProduct(Request $request)
     {
@@ -75,8 +74,8 @@ class ProductController extends Controller
                 'errors' => $validator->errors()
             ], 422);
         }
+        
         $image = Image::where('image_uuid', $data['image_uuid'])->first();
-
         if (!$image) {
             return response()->json([
                 'success' => false,
@@ -84,9 +83,8 @@ class ProductController extends Controller
             ], 404);
         }
 
-        $storageUrl = env('STORAGE_URL');
-        $imageUrl = $storageUrl . '/storage/images/' . $image->image;
-
+        $imageUrl = url('/storage/images/' . $image->image);       
+ 
         $product = Product::create([
             'product_name' => $data['product_name'],
             'category_id' => $data['category_id'],
@@ -102,8 +100,25 @@ class ProductController extends Controller
         $product->tag()->sync($data['tags']);
 
         $productWithTag = Product::with('tag')->find($product->product_id);
-        
-        return new ProductResource(true, 'Product Data Successfully Added', $productWithTag);
+
+        return new ProductResource(true, 'Product Data Successfully Added', [
+            'product_id' => $productWithTag->product_id,
+            'product_name' => $productWithTag->product_name,
+            'category_id' => $productWithTag->category_id,
+            'sales_price' => number_format($productWithTag->sales_price, 2),
+            'cost' => number_format($productWithTag->cost, 2),
+            'barcode' => $productWithTag->barcode,
+            'internal_reference' => $productWithTag->internal_reference,
+            'notes' => $productWithTag->notes,
+            'tags' => $productWithTag->tag->map(function ($tag) {
+                return [
+                    'tag_id' => $tag->tag_id,
+                    'name' => $tag->name_tag,
+                ];
+            }),
+            'image_uuid' => $productWithTag->image_uuid,
+            'image_url' => $productWithTag->image_url,
+        ]);
     }
 
     public function show($id)
@@ -116,30 +131,28 @@ class ProductController extends Controller
             ], 404);
         }
         return new ProductResource(true, 'List Product Data', [
-            'id' => $product->product_id,
-            'name' => $product->product_name,
+            'product_id' => $product->product_id,
+            'product_name' => $product->product_name,
             'category_id' => $product->category_id,
-            'category_name' => $product->category->category,
-            'sales_price' => $product->sales_price,
-            'cost' => $product->cost,
+            'sales_price' => number_format($product->sales_price, 2),
+            'cost' => number_format($product->cost, 2),
             'barcode' => $product->barcode,
             'internal_reference' => $product->internal_reference,
+            'notes' => $product->notes,
             'tags' => $product->tag->map(function ($tag) {
                 return [
-                    'id' => $tag->tag_id,
-                    'name' => $tag->name_tag
+                    'tag_id' => $tag->tag_id,
+                    'name' => $tag->name_tag,
                 ];
             }),
-            'notes' => $product->notes,
             'image_uuid' => $product->image_uuid,
             'image_url' => $product->image_url,
-            'created_at' => $product->created_at,
-            'updated_at' => $product->updated_at
         ]);
     }
 
     public function update(Request $request, $id)
     {
+        $data = $request->json()->all();
         $validator = $this->validateProduct($request);
         if ($validator->fails()) {
             return response()->json([
@@ -157,56 +170,43 @@ class ProductController extends Controller
             ], 404);
         }
 
-        $imageUuid = $request->image_uuid;
-        if ($imageUuid) {
-            $image = Image::where('image_uuid', $imageUuid)->first();
-            if (!$image) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Image not found'
-                ], 404);
-            }
-            $imageUrl = env('STORAGE_URL') . '/storage/images/' . $image->image;
-        } else {
-            $imageUrl = $product->image_url;
-        }
+        $imageUuid = $data['image_uuid'] ?? $product->image_uuid;
 
         $product->update([
-            'product_name' => $request->product_name,
-            'category_id' => $request->category_id,
-            'sales_price' => $request->sales_price,
-            'cost' => $request->cost,
-            'barcode' => $request->barcode,
-            'internal_reference' => $request->internal_reference,
-            'notes' => $request->notes,
+            'product_name' => $data['product_name'],
+            'category_id' => $data['category_id'],
+            'sales_price' => $data['sales_price'],
+            'cost' => $data['cost'],
+            'barcode' => $data['barcode'],
+            'internal_reference' => $data['internal_reference'],
+            'notes' => $data['notes'],
             'image_uuid' => $imageUuid,
-            'image_url' => $imageUrl,
+            'image_url' => $data['image_url'],
         ]);
 
-        if ($request->has('tags') && is_array($request->tags)) {
-            $tagIds = $request->tags;
+        $product->tag()->sync($data['tags']);
 
-            $existingTags = Tag::whereIn('tag_id', $tagIds)->pluck('tag_id')->toArray();
+        $productWithTag = Product::with('tag')->find($product->product_id);
 
-            if (count($existingTags) !== count($tagIds)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Some tag IDs are invalid.'
-                ], 422);
-            }
-
-            $product->tag()->sync($existingTags);
-        } else {
-            return response()->json([
-                'success' => false,
-                'message' => 'Tags must be an array of tag IDs.'
-            ], 422);
-        }
-        $product = Product::with('tag')->find($product->id);
-
-        return new ProductResource(true, 'Product Data Successfully Updated', []);
+        return new ProductResource(true, 'Product Data Successfully Updated', [
+            'product_id' => $productWithTag->product_id,
+            'product_name' => $productWithTag->product_name,
+            'category_id' => $productWithTag->category_id,
+            'sales_price' => number_format($productWithTag->sales_price, 2),
+            'cost' => number_format($productWithTag->cost, 2),
+            'barcode' => $productWithTag->barcode,
+            'internal_reference' => $productWithTag->internal_reference,
+            'notes' => $productWithTag->notes,
+            'tags' => $productWithTag->tag->map(function ($tag) {
+                return [
+                    'tag_id' => $tag->tag_id,
+                    'name' => $tag->name_tag,
+                ];
+            }),
+            'image_uuid' => $productWithTag->image_uuid,
+            'image_url' => $productWithTag->image_url,
+        ]);
     }
-
 
 
     public function destroy($id)

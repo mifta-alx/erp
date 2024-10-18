@@ -38,7 +38,24 @@ class ProductResource extends JsonResource
         return [
             'success'   => $this->status,
             'message'   => $this->message,
-            'data'      => $this->resource
+            'data'      => [
+                'product_id' => $this->product_id, // Pastikan menggunakan $this->id bukan $this->product_id
+                'product_name' => $this->product_name,
+                'category_id' => $this->category_id,
+                'sales_price' => $this->sales_price,
+                'cost' => $this->cost,
+                'barcode' => $this->barcode,
+                'internal_reference' => $this->internal_reference,
+                'notes' => $this->notes,
+                'tags' => $this->tag->map(function ($tag) {
+                    return [
+                        'tag_id' => $tag->tag_id,
+                        'name' => $tag->name_tag,
+                    ];
+                }), // Mengubah format tags agar lebih sederhana
+                'image_uuid' => $this->image_uuid,
+                'image_url' => $this->image_url,
+            ]
         ];
     }
 }

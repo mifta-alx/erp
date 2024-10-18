@@ -26,13 +26,12 @@ class ImageController extends Controller
     public function index()
     {
         $images = Image::orderBy('image_id', 'ASC')->get();
-        $storageUrl = env('STORAGE_URL');
-        $imageData = $images->map(function ($image) use($storageUrl){
+        $imageData = $images->map(function ($image) {
             return [
                 'id' => $image->image_id,
                 'uuid' => $image->image_uuid,
                 'name' => $image->image,
-                'url' => $storageUrl . '/storage/images/' . $image->image,
+                'url' => url('/storage/images/' . $image->image),
             ];
         });
         return new ImageResource(true, 'List Image Data', $imageData);
@@ -47,7 +46,12 @@ class ImageController extends Controller
                 'message' => 'Image not found'
             ], 404);
         }
-        return new ImageResource(true, 'Detail Image Data', $image);
+        return new ImageResource(true, 'Detail Image Data', [
+            'id' => $image->image_id,
+            'uuid' => $image->image_uuid,
+            'name' => $image->image,
+            'url' => url('/storage/images/' . $image->image),
+        ]);
     }
 
     public function store(Request $request)
@@ -60,6 +64,7 @@ class ImageController extends Controller
                 'errors' => $validator->errors()
             ], 422);
         }
+
         $image = $request->file('image');
         $imageName = $image->hashName();
         $image->storeAs('public/images', $imageName);
@@ -68,14 +73,15 @@ class ImageController extends Controller
             'image_uuid' => $request->image_uuid,
             'image' => $imageName,
         ]);
-        $storageUrl = env('STORAGE_URL');
+
         return new ImageResource(true, 'Image Successfully Uploaded', [
             'id' => $image->image_id,
             'uuid' => $image->image_uuid,
             'name' => $image->image,
-            'url' => $storageUrl . '/storage/images/' . $image->image,
+            'url' => url('/storage/images/' . $image->image),
         ]);
     }
+
 
     public function update(Request $request, $id)
     {
@@ -102,7 +108,12 @@ class ImageController extends Controller
             $image->image = $newImageName;
             $image->save();
         }
-        return new ImageResource(true, 'Image Updated Successfully', $image);
+        return new ImageResource(true, 'Image Updated Successfully', [
+            'id' => $image->image_id,
+            'uuid' => $image->image_uuid,
+            'name' => $image->image,
+            'url' => url('/storage/images/' . $image->image),
+        ]);
     }
 
     public function destroy($uuid)

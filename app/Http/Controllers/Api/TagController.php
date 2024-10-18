@@ -39,8 +39,9 @@ class TagController extends Controller
 
     public function store(Request $request)
     {
+        $data = $request->json()->all();
         $tag = Tag::create([
-            'name_tag' => $request->name_tag,
+            'name_tag' => $data['name_tag'],
         ]);
         return new TagResource(true, 'Tag Successfully Uploaded', [
             'id'=>$tag->tag_id,
@@ -50,6 +51,7 @@ class TagController extends Controller
 
     public function update(Request $request, $id)
     {
+        $data = $request->json()->all();
         $tag = Tag::find($id);
         if (!$tag) {
             return response()->json([
@@ -58,7 +60,7 @@ class TagController extends Controller
             ], 404);
         }
         $tag->update([
-            'name_tag' => $request->name_tag,
+            'name_tag' => $data['name_tag'],
         ]);
         return new TagResource(true, 'Product Tag Successfully Updated', [
             'id'=>$tag->tag_id,

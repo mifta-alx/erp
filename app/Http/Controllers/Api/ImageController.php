@@ -119,7 +119,7 @@ class ImageController extends Controller
     public function destroy($uuid)
     {
         // $image = Image::find($id);
-        $image = Image::where('uuid', $uuid)->first();
+        $image = Image::where('image_uuid', $uuid)->first();
         if (!$image) {
             return response()->json([
                 'success' => false,

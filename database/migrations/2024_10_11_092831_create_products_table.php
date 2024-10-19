@@ -18,7 +18,7 @@ return new class extends Migration
             $table->foreign('category_id')->references('category_id')->on('categories')->onDelete('cascade');
             $table->double('sales_price');
             $table->double('cost');
-            $table->string('barcode');
+            $table->string('barcode')->nullable();
             $table->string('internal_reference')->nullable();
             $table->text('notes')->nullable();
             $table->string('image_url');

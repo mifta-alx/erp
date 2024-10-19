@@ -16,12 +16,14 @@ class MaterialController extends Controller
         $materials = Material::with('category', 'tag')->orderBy('created_at', 'ASC')->get();
         $materialData = $materials->map(function ($material) {
             return [
-                'id' => $material->material_id,
-                'name' => $material->material_name,
+                'material_id' => $material->material_id,
+                'material_name' => $material->material_name,
                 'category_id' => $material->category_id,
                 'category_name' => $material->category->category,
-                'sales_price' => number_format($material->sales_price, 2),
-                'cost' => number_format($material->cost, 2),
+                // 'sales_price' => number_format($material->sales_price, 2),
+                // 'cost' => number_format($material->cost, 2),
+                'sales_price' => $material->sales_price,
+                'cost' => $material->cost,
                 'barcode' => $material->barcode,
                 'internal_reference' => $material->internal_reference,
                 'tags' => $material->tag->map(function ($tag) {
@@ -106,14 +108,16 @@ class MaterialController extends Controller
             'material_id' => $materialWithTag->material_id,
             'material_name' => $materialWithTag->material_name,
             'category_id' => $materialWithTag->category_id,
-            'sales_price' => number_format($materialWithTag->sales_price, 2),
-            'cost' => number_format($materialWithTag->cost, 2),
+            // 'sales_price' => number_format($materialWithTag->sales_price, 2),
+            // 'cost' => number_format($materialWithTag->cost, 2),
+            'sales_price' => $materialWithTag->sales_price,
+            'cost' => $materialWithTag->cost,
             'barcode' => $materialWithTag->barcode,
             'internal_reference' => $materialWithTag->internal_reference,
             'notes' => $materialWithTag->notes,
             'tags' => $materialWithTag->tag->map(function ($tag) {
                 return [
-                    'tag_id' => $tag->tag_id,
+                    'id' => $tag->tag_id,
                     'name' => $tag->name_tag,
                 ];
             }),
@@ -132,12 +136,14 @@ class MaterialController extends Controller
             ], 404);
         }
         return new MaterialResource(true, 'Detail Material Data', [
-            'id' => $material->material_id,
-            'name' => $material->material_name,
+            'material_id' => $material->material_id,
+            'material_name' => $material->material_name,
             'category_id' => $material->category_id,
             'category_name' => $material->category->category,
-            'sales_price' => number_format($material->sales_price, 2),
-            'cost' => number_format($material->cost, 2),
+            // 'sales_price' => number_format($material->sales_price, 2),
+            // 'cost' => number_format($material->cost, 2),
+            'sales_price' => $material->sales_price,
+            'cost' => $material->cost,
             'barcode' => $material->barcode,
             'internal_reference' => $material->internal_reference,
             'tags' => $material->tag->map(function ($tag) {
@@ -196,14 +202,16 @@ class MaterialController extends Controller
             'material_id' => $materialWithTag->material_id,
             'material_name' => $materialWithTag->material_name,
             'category_id' => $materialWithTag->category_id,
-            'sales_price' => number_format($materialWithTag->sales_price, 2),
-            'cost' => number_format($materialWithTag->cost, 2),
+            // 'sales_price' => number_format($materialWithTag->sales_price, 2),
+            // 'cost' => number_format($materialWithTag->cost, 2),
+            'sales_price' => $materialWithTag->sales_price,
+            'cost' => $materialWithTag->cost,
             'barcode' => $materialWithTag->barcode,
             'internal_reference' => $materialWithTag->internal_reference,
             'notes' => $materialWithTag->notes,
             'tags' => $materialWithTag->tag->map(function ($tag) {
                 return [
-                    'tag_id' => $tag->tag_id,
+                    'id' => $tag->tag_id,
                     'name' => $tag->name_tag,
                 ];
             }),

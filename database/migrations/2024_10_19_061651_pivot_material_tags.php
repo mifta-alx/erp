@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('pivot_material_tags', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('material_id');
-            $table->foreign('material_id')->references('material_id')->on('products')->onDelete('cascade');
+            $table->foreign('material_id')->references('material_id')->on('materials')->onDelete('cascade');
             $table->unsignedBigInteger('tag_id');
             $table->foreign('tag_id')->references('tag_id')->on('tags')->onDelete('cascade');
             $table->timestamps();

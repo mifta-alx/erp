@@ -18,8 +18,8 @@ class ProductController extends Controller
         $products = Product::with('category', 'tag')->orderBy('created_at', 'ASC')->get();
         $productData = $products->map(function ($product) {
             return [
-                'id' => $product->product_id,
-                'name' => $product->product_name,
+                'product_id' => $product->product_id,
+                'product_name' => $product->product_name,
                 'category_id' => $product->category_id,
                 'category_name' => $product->category->category,
                 // 'sales_price' => number_format($product->sales_price, 2),
@@ -103,8 +103,8 @@ class ProductController extends Controller
         $productWithTag = Product::with('tag')->find($product->product_id);
 
         return new ProductResource(true, 'Product Data Successfully Added', [
-            'id' => $productWithTag->product_id,
-            'name' => $productWithTag->product_name,
+            'product_id' => $productWithTag->product_id,
+            'product_name' => $productWithTag->product_name,
             'category_id' => $productWithTag->category_id,
             // 'sales_price' => number_format($productWithTag->sales_price, 2),
             // 'cost' => number_format($productWithTag->cost, 2),
@@ -134,8 +134,8 @@ class ProductController extends Controller
             ], 404);
         }
         return new ProductResource(true, 'List Product Data', [
-            'id' => $product->product_id,
-            'name' => $product->product_name,
+            'product_id' => $product->product_id,
+            'product_name' => $product->product_name,
             'category_id' => $product->category_id,
             // 'sales_price' => number_format($product->sales_price, 2),
             // 'cost' => number_format($product->cost, 2),
@@ -194,8 +194,8 @@ class ProductController extends Controller
         $productWithTag = Product::with('tag')->find($product->product_id);
 
         return new ProductResource(true, 'Product Data Successfully Updated', [
-            'id' => $productWithTag->product_id,
-            'name' => $productWithTag->product_name,
+            'product_id' => $productWithTag->product_id,
+            'product_name' => $productWithTag->product_name,
             'category_id' => $productWithTag->category_id,
             // 'sales_price' => number_format($productWithTag->sales_price, 2),
             // 'cost' => number_format($productWithTag->cost, 2),

@@ -103,8 +103,8 @@ class ProductController extends Controller
         $productWithTag = Product::with('tag')->find($product->product_id);
 
         return new ProductResource(true, 'Product Data Successfully Added', [
-            'product_id' => $productWithTag->product_id,
-            'product_name' => $productWithTag->product_name,
+            'id' => $productWithTag->product_id,
+            'name' => $productWithTag->product_name,
             'category_id' => $productWithTag->category_id,
             // 'sales_price' => number_format($productWithTag->sales_price, 2),
             // 'cost' => number_format($productWithTag->cost, 2),
@@ -115,7 +115,7 @@ class ProductController extends Controller
             'notes' => $productWithTag->notes,
             'tags' => $productWithTag->tag->map(function ($tag) {
                 return [
-                    'tag_id' => $tag->tag_id,
+                    'id' => $tag->tag_id,
                     'name' => $tag->name_tag,
                 ];
             }),
@@ -134,8 +134,8 @@ class ProductController extends Controller
             ], 404);
         }
         return new ProductResource(true, 'List Product Data', [
-            'product_id' => $product->product_id,
-            'product_name' => $product->product_name,
+            'id' => $product->product_id,
+            'name' => $product->product_name,
             'category_id' => $product->category_id,
             // 'sales_price' => number_format($product->sales_price, 2),
             // 'cost' => number_format($product->cost, 2),
@@ -146,7 +146,7 @@ class ProductController extends Controller
             'notes' => $product->notes,
             'tags' => $product->tag->map(function ($tag) {
                 return [
-                    'tag_id' => $tag->tag_id,
+                    'id' => $tag->tag_id,
                     'name' => $tag->name_tag,
                 ];
             }),
@@ -194,8 +194,8 @@ class ProductController extends Controller
         $productWithTag = Product::with('tag')->find($product->product_id);
 
         return new ProductResource(true, 'Product Data Successfully Updated', [
-            'product_id' => $productWithTag->product_id,
-            'product_name' => $productWithTag->product_name,
+            'id' => $productWithTag->product_id,
+            'name' => $productWithTag->product_name,
             'category_id' => $productWithTag->category_id,
             // 'sales_price' => number_format($productWithTag->sales_price, 2),
             // 'cost' => number_format($productWithTag->cost, 2),
@@ -206,7 +206,7 @@ class ProductController extends Controller
             'notes' => $productWithTag->notes,
             'tags' => $productWithTag->tag->map(function ($tag) {
                 return [
-                    'tag_id' => $tag->tag_id,
+                    'id' => $tag->tag_id,
                     'name' => $tag->name_tag,
                 ];
             }),

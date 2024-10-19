@@ -37,9 +37,9 @@ class ImageController extends Controller
         return new ImageResource(true, 'List Image Data', $imageData);
     }
 
-    public function show($id)
+    public function show($uuid)
     {
-        $image = Image::find($id);
+        $image = Image::where('image_uuid', $uuid)->first();
         if (!$image) {
             return response()->json([
                 'success' => false,
@@ -83,7 +83,7 @@ class ImageController extends Controller
     }
 
 
-    public function update(Request $request, $id)
+    public function update(Request $request, $uuid)
     {
         $validator = $this->validateImage($request);
         if ($validator->fails()) {
@@ -93,7 +93,7 @@ class ImageController extends Controller
                 'errors' => $validator->errors()
             ], 422);
         }
-        $image = Image::find($id);
+        $image = Image::where('image_uuid', $uuid)->first();
         if (!$image) {
             return response()->json([
                 'success' => false,

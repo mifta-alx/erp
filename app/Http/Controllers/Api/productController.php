@@ -13,7 +13,6 @@ use Illuminate\Support\Number;
 
 class ProductController extends Controller
 {
-
     public function index()
     {
         $products = Product::with('category', 'tag')->orderBy('created_at', 'ASC')->get();
@@ -74,7 +73,7 @@ class ProductController extends Controller
                 'errors' => $validator->errors()
             ], 422);
         }
-        
+
         $image = Image::where('image_uuid', $data['image_uuid'])->first();
         if (!$image) {
             return response()->json([
@@ -83,8 +82,8 @@ class ProductController extends Controller
             ], 404);
         }
 
-        $imageUrl = url('/storage/images/' . $image->image);       
- 
+        $imageUrl = url('/storage/images/' . $image->image);
+
         $product = Product::create([
             'product_name' => $data['product_name'],
             'category_id' => $data['category_id'],
@@ -207,7 +206,6 @@ class ProductController extends Controller
             'image_url' => $productWithTag->image_url,
         ]);
     }
-
 
     public function destroy($id)
     {

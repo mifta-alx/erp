@@ -179,6 +179,12 @@ class MaterialController extends Controller
         }
 
         $imageUuid = $data['image_uuid'] ?? $material->image_uuid;
+        $image = Image::where('image_uuid', $imageUuid)->first();
+        if ($image) {
+            $imageUrl = url('/storage/images/' . $image->image);
+        } else {
+            $imageUrl = $material->image_url;
+        }
 
         $material->update([
             'material_name' => $data['material_name'],
@@ -189,7 +195,7 @@ class MaterialController extends Controller
             'internal_reference' => $data['internal_reference'],
             'notes' => $data['notes'],
             'image_uuid' => $imageUuid,
-            'image_url' => $data['image_url'],
+            'image_url' => $imageUrl,
         ]);
 
         $material->tag()->sync($data['tags']);

@@ -18,7 +18,6 @@ class Material extends Model
         'cost',
         'barcode',
         'internal_reference',
-        'material_tag',
         'notes',
         'image_url',
         'image_uuid',

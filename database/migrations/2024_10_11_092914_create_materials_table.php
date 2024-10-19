@@ -20,7 +20,6 @@ return new class extends Migration
             $table->double('cost');
             $table->string('barcode');
             $table->string('internal_reference')->nullable();
-            $table->string('material_tag')->nullable();
             $table->text('notes')->nullable();
             $table->string('image_url');
             $table->string('image_uuid');

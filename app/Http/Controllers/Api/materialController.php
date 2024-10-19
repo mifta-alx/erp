@@ -52,7 +52,6 @@ class MaterialController extends Controller
                 'category_id' => 'required',
                 'sales_price' => 'required|numeric',
                 'cost' => 'required|numeric',
-                'barcode' => 'required',
                 'image_uuid' => 'required|string|exists:images,image_uuid'
             ],
             [
@@ -60,7 +59,6 @@ class MaterialController extends Controller
                 'category_id.required' => 'Category Must Be Filled',
                 'sales_price.required' => 'Sales Price Must Be Filled',
                 'cost.required' => 'Cost Must Be Filled',
-                'barcode.required' => 'Barcode Must Be Filled',
                 'image_uuid.required' => 'Image Must Be Filled',
             ]
         );

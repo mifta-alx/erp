@@ -22,7 +22,9 @@ return new class extends Migration
             $table->string('internal_reference')->nullable();
             $table->string('material_tag')->nullable();
             $table->text('notes')->nullable();
-            $table->string('image');
+            $table->string('image_url');
+            $table->string('image_uuid');
+            $table->foreign('image_uuid')->references('image_uuid')->on('images')->onDelete('cascade');
             $table->timestamps();
         });
     }

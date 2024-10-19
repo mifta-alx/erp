@@ -20,11 +20,17 @@ class Material extends Model
         'internal_reference',
         'material_tag',
         'notes',
-        'image',
+        'image_url',
+        'image_uuid',
     ];
 
     public function category()
     {
         return $this->belongsTo(Category::class, 'category_id', 'category_id');
+    }
+
+    public function tag()
+    {
+        return $this->belongsToMany(Tag::class, 'pivot_material_tags', 'material_id', 'tag_id')->withTimestamps();
     }
 }

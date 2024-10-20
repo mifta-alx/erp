@@ -195,7 +195,7 @@ class MaterialController extends Controller
             'internal_reference' => $data['internal_reference'],
             'notes' => $data['notes'],
             'image_uuid' => $imageUuid,
-            'image_url' => $imageUrl,
+            'image_url' => $$data['image_url'],
         ]);
 
         $material->tag()->sync($data['tags']);

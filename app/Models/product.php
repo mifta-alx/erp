@@ -28,10 +28,10 @@ class Product extends Model
         return $this->belongsTo(Category::class, 'category_id', 'category_id');
     }
 
-    public function image()
-    {
-        return $this->belongsTo(Image::class, 'image_uuid', 'image_uuid');
-    }    
+    // public function image()
+    // {
+    //     return $this->belongsTo(Image::class, 'image_uuid', 'image_uuid');
+    // }    
 
     public function tag()
     {

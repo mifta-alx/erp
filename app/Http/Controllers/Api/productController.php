@@ -174,12 +174,12 @@ class ProductController extends Controller
         }
 
         $imageUuid = $data['image_uuid'] ?? $product->image_uuid;
-        $image = Image::where('image_uuid', $imageUuid)->first();
-        if ($image) {
-            $imageUrl = url('/storage/images/' . $image->image);
-        } else {
-            $imageUrl = $product->image_url;
-        }
+        // $image = Image::where('image_uuid', $imageUuid)->first();
+        // if ($image) {
+        //     $imageUrl = url('/storage/images/' . $image->image);
+        // } else {
+        //     $imageUrl = $product->image_url;
+        // }
 
         $product->update([
             'product_name' => $data['product_name'],
@@ -190,7 +190,7 @@ class ProductController extends Controller
             'internal_reference' => $data['internal_reference'],
             'notes' => $data['notes'],
             'image_uuid' => $imageUuid,
-            'image_url' => $imageUrl,
+            'image_url' => $data['image_url'],
         ]);
 
         $product->tag()->sync($data['tags']);

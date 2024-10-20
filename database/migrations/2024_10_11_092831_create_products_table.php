@@ -23,7 +23,7 @@ return new class extends Migration
             $table->text('notes')->nullable();
             $table->string('image_url');
             $table->string('image_uuid');
-            $table->foreign('image_uuid')->references('image_uuid')->on('images')->onDelete('cascade');
+            // $table->foreign('image_uuid')->references('image_uuid')->on('images')->onDelete('cascade');
             $table->timestamps();
         });        
     }

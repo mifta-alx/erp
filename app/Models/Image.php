@@ -27,8 +27,8 @@ class Image extends Model
             }
         });
     }
-    public function product()
-    {
-        return $this->hasMany(Product::class, 'image_uuid', 'image_uuid');
-    }
+    // public function product()
+    // {
+    //     return $this->hasMany(Product::class, 'image_uuid', 'image_uuid');
+    // }
 }

@@ -4,8 +4,10 @@ namespace App\Http\Controllers\api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Bom;
+use App\Models\BomsComponent;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class BomController extends Controller
 {
@@ -27,7 +29,6 @@ class BomController extends Controller
                 ];
             });
             $bom_cost = $bom_components->sum('material_total_cost');
-
             return [
                 'bom_id' => $bom->bom_id,
                 'product_name' => $bom->product->product_name,
@@ -60,23 +61,54 @@ class BomController extends Controller
      */
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'product_id' => 'required',
-            'product_qty' => 'required',
-        ]);
-        if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
+        DB::beginTransaction();
+    
+        try {
+            // Validasi data
+            $validated = $request->validate([
+                'product_id' => 'required|exists:products,product_id',
+                'product_qty' => 'required|numeric|min:1',
+                'bom_components' => 'required|array',
+                'bom_components.*.material_id' => 'required|exists:materials,material_id',
+                'bom_components.*.material_qty' => 'required|numeric|min:1',
+            ]);
+    
+            // Simpan data BOM
+            $bom = Bom::create([
+                'product_id' => $validated['product_id'],
+                'product_qty' => $validated['product_qty'],
+            ]);
+    
+            // Simpan setiap bom_component
+            foreach ($validated['bom_components'] as $component) {
+                BomsComponent::create([
+                    'bom_id' => $bom->bom_id, // Menggunakan bom_id yang baru dibuat
+                    'material_id' => $component['material_id'],
+                    'material_qty' => $component['material_qty'],
+                ]);
+            }
+    
+            // Commit transaksi
+            DB::commit();
+    
+            return response()->json([
+                'success' => true,
+                'message' => 'Data BOM berhasil disimpan',
+                'data' => $bom->load('bom_components.material'), // Load relasi untuk menampilkan hasil lengkap
+            ], 201);
+        } catch (\Exception $e) {
+            // Rollback transaksi jika terjadi kesalahan
+            DB::rollBack();
+    
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menyimpan data BOM',
+                'error' => $e->getMessage(),
+            ], 500);
         }
-        $bom = Bom::create([
-            'product_id' => $request->product_id,
-            'product_qty' => $request->product_qty,
-        ]);
-        return response()->json([
-            'success'   => true,
-            'message'   => 'Data bom berhasil ditambahkan',
-            'data'      => $bom
-        ], 200);
     }
+    
+    
 
     /**
      * Display the specified resource.

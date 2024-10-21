@@ -144,19 +144,22 @@ class BomController extends Controller
                     ],
                     'bom_reference' => $bom->bom_reference,
                     'bom_qty' => $bom->bom_qty,
-                    'bom_components' => $bom->bom_components->map(function ($component) {
-                        return [
-                            'material_name' => $component->material->material_name,
-                            'material_qty' => $component->material_qty,
-                            'material_cost' => $component->material->cost,
-                            'material_total_cost' => $component->material->cost * $component->material_qty,
-                        ];
-                    }),
+                    'bom_components' => $bom->bom_components->isEmpty() 
+                        ? ['message' => 'Material are required'] 
+                        : $bom->bom_components->map(function ($component) {
+                            return [
+                                'material_name' => $component->material->material_name,
+                                'material_qty' => $component->material_qty,
+                                'material_cost' => $component->material->cost,
+                                'material_total_cost' => $component->material->cost * $component->material_qty,
+                            ];
+                        }),
                     'bom_cost' => $bom->bom_components->sum(function ($component) {
                         return $component->material->cost * $component->material_qty;
                     }),
                 ]
             ], 201);
+            
         } catch (\Exception $e) {
             DB::rollBack();
     

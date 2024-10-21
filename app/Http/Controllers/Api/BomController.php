@@ -73,14 +73,14 @@ class BomController extends Controller
 
         // Jalankan validasi
         $validator = Validator::make($request->all(), $rules, [
-            'product_id.required' => 'Product ID is required',
-            'product_id.exists' => 'Product ID not found',
-            'bom_qty.required' => 'Product quantity is required',
-            'bom_qty.numeric' => 'Product quantity must be a number',
-            'bom_qty.min' => 'Product quantity must be at least 1',
+            'product_id.required' => 'Product is required',
+            'product_id.exists' => 'Product not found',
+            'bom_qty.required' => 'Quantity is required',
+            'bom_qty.numeric' => 'Quantity must be a number',
+            'bom_qty.min' => 'Quantity must be at least 1',
             'bom_components.array' => 'BOM components must be an array',
-            'bom_components.*.material_id.required' => 'Material ID is required',
-            'bom_components.*.material_id.exists' => 'Material ID not found',
+            'bom_components.*.material_id.required' => 'Material is required',
+            'bom_components.*.material_id.exists' => 'Material not found',
             'bom_components.*.material_qty.required' => 'Material quantity is required',
             'bom_components.*.material_qty.numeric' => 'Material quantity must be a number',
             'bom_components.*.material_qty.min' => 'Material quantity must be at least 1',
@@ -89,7 +89,7 @@ class BomController extends Controller
         if ($validator->fails()) {
             return ['errors' => $validator->errors()];
         }
-        
+
 
         return ['data' => $validator->validated()];
     }
@@ -97,11 +97,11 @@ class BomController extends Controller
     public function store(Request $request)
     {
         DB::beginTransaction();
-    
+
         try {
             // Validasi data
             $validated = $this->validateBOMData($request);
-    
+
             if (isset($validated['errors'])) {
                 return response()->json([
                     'success' => false,
@@ -109,14 +109,14 @@ class BomController extends Controller
                     'errors' => $validated['errors'],
                 ], 422);
             }
-    
+
             // Simpan data BOM
             $bom = Bom::create([
                 'product_id' => $validated['data']['product_id'],
-                'bom_reference' => $request->input('bom_reference', null), 
-                'bom_qty' => $validated['data']['bom_qty'], 
+                'bom_reference' => $request->input('bom_reference', null),
+                'bom_qty' => $validated['data']['bom_qty'],
             ]);
-            
+
             if (isset($validated['data']['bom_components']) && count($validated['data']['bom_components']) > 0) {
                 foreach ($validated['data']['bom_components'] as $component) {
                     BomsComponent::create([
@@ -126,9 +126,9 @@ class BomController extends Controller
                     ]);
                 }
             }
-    
+
             DB::commit();
-    
+
             return response()->json([
                 'success' => true,
                 'message' => 'BOM data successfully saved',
@@ -144,8 +144,8 @@ class BomController extends Controller
                     ],
                     'bom_reference' => $bom->bom_reference,
                     'bom_qty' => $bom->bom_qty,
-                    'bom_components' => $bom->bom_components->isEmpty() 
-                        ? ['message' => 'Material are required'] 
+                    'bom_components' => $bom->bom_components->isEmpty()
+                        ? ['message' => 'Material are required']
                         : $bom->bom_components->map(function ($component) {
                             return [
                                 'material_name' => $component->material->material_name,
@@ -159,10 +159,9 @@ class BomController extends Controller
                     }),
                 ]
             ], 201);
-            
         } catch (\Exception $e) {
             DB::rollBack();
-    
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to save BOM data',
@@ -170,7 +169,7 @@ class BomController extends Controller
             ], 500);
         }
     }
-    
+
 
 
 

@@ -28,18 +28,28 @@ class BomController extends Controller
                     'material_total_cost' => $material_total_cost,
                 ];
             });
+
+            $product = [
+                'id' => $bom->product->product_id,
+                'name' => $bom->product->product_name,
+                'cost' => $bom->product->cost,
+                'sales_price' => $bom->product->sales_price,
+                'barcode' => $bom->product->barcode,
+                'internal_reference' => $bom->product->internal_reference,
+            ];
+
             $bom_cost = $bom_components->sum('material_total_cost');
+
             return [
                 'bom_id' => $bom->bom_id,
-                'product_name' => $bom->product->product_name,
-                'product_qty' => $bom->product_qty,
-                'product_cost' => $bom->product->cost,
+                'product' => $product,
+                'bom_reference' => $bom->bom_reference,
+                'bom_qty' => $bom->bom_qty,
                 'bom_components' => $bom_components,
                 'bom_cost' => $bom_cost,
             ];
         });
 
-        // Return data yang sudah diformat
         return response()->json([
             'success'   => true,
             'message'   => 'Data BOM berhasil diambil',
@@ -47,21 +57,27 @@ class BomController extends Controller
         ], 200);
     }
 
+
     private function validateBOMData($request)
     {
-        $validator = Validator::make($request->all(), [
+        $rules = [
             'product_id' => 'required|exists:products,product_id',
-            'product_qty' => 'required|numeric|min:1',
-            'bom_components' => 'required|array',
-            'bom_components.*.material_id' => 'required|exists:materials,material_id',
-            'bom_components.*.material_qty' => 'required|numeric|min:1',
-        ], [
+            'bom_qty' => 'required|numeric|min:1',
+        ];
+
+        if ($request->has('bom_components') && count($request->bom_components) > 0) {
+            $rules['bom_components'] = 'array';
+            $rules['bom_components.*.material_id'] = 'required|exists:materials,material_id';
+            $rules['bom_components.*.material_qty'] = 'required|numeric|min:1';
+        }
+
+        // Jalankan validasi
+        $validator = Validator::make($request->all(), $rules, [
             'product_id.required' => 'Product ID is required',
             'product_id.exists' => 'Product ID not found',
-            'product_qty.required' => 'Product quantity is required',
-            'product_qty.numeric' => 'Product quantity must be a number',
-            'product_qty.min' => 'Product quantity must be at least 1',
-            'bom_components.required' => 'BOM components are required',
+            'bom_qty.required' => 'Product quantity is required',
+            'bom_qty.numeric' => 'Product quantity must be a number',
+            'bom_qty.min' => 'Product quantity must be at least 1',
             'bom_components.array' => 'BOM components must be an array',
             'bom_components.*.material_id.required' => 'Material ID is required',
             'bom_components.*.material_id.exists' => 'Material ID not found',
@@ -73,28 +89,19 @@ class BomController extends Controller
         if ($validator->fails()) {
             return ['errors' => $validator->errors()];
         }
+        
+
         return ['data' => $validator->validated()];
     }
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
         DB::beginTransaction();
-
+    
         try {
-            // Validate the request data using a separate function
+            // Validasi data
             $validated = $this->validateBOMData($request);
-
-            // Check if validation fails
+    
             if (isset($validated['errors'])) {
                 return response()->json([
                     'success' => false,
@@ -102,34 +109,57 @@ class BomController extends Controller
                     'errors' => $validated['errors'],
                 ], 422);
             }
-
-            // Save the BOM data
+    
+            // Simpan data BOM
             $bom = Bom::create([
                 'product_id' => $validated['data']['product_id'],
-                'product_qty' => $validated['data']['product_qty'],
+                'bom_reference' => $request->input('bom_reference', null), 
+                'bom_qty' => $validated['data']['bom_qty'], 
             ]);
-
-            // Save each bom_component
-            foreach ($validated['data']['bom_components'] as $component) {
-                BomsComponent::create([
-                    'bom_id' => $bom->bom_id, // Use the newly created bom_id
-                    'material_id' => $component['material_id'],
-                    'material_qty' => $component['material_qty'],
-                ]);
+            
+            if (isset($validated['data']['bom_components']) && count($validated['data']['bom_components']) > 0) {
+                foreach ($validated['data']['bom_components'] as $component) {
+                    BomsComponent::create([
+                        'bom_id' => $bom->bom_id,
+                        'material_id' => $component['material_id'],
+                        'material_qty' => $component['material_qty'],
+                    ]);
+                }
             }
-
-            // Commit the transaction
+    
             DB::commit();
-
+    
             return response()->json([
                 'success' => true,
                 'message' => 'BOM data successfully saved',
-                'data' => $bom->load('bom_components.material'),
+                'data' => [
+                    'bom_id' => $bom->bom_id,
+                    'product' => [
+                        'id' => $bom->product->product_id,
+                        'name' => $bom->product->product_name,
+                        'cost' => $bom->product->cost,
+                        'sales_price' => $bom->product->sales_price,
+                        'barcode' => $bom->product->barcode,
+                        'internal_reference' => $bom->product->internal_reference,
+                    ],
+                    'bom_reference' => $bom->bom_reference,
+                    'bom_qty' => $bom->bom_qty,
+                    'bom_components' => $bom->bom_components->map(function ($component) {
+                        return [
+                            'material_name' => $component->material->material_name,
+                            'material_qty' => $component->material_qty,
+                            'material_cost' => $component->material->cost,
+                            'material_total_cost' => $component->material->cost * $component->material_qty,
+                        ];
+                    }),
+                    'bom_cost' => $bom->bom_components->sum(function ($component) {
+                        return $component->material->cost * $component->material_qty;
+                    }),
+                ]
             ], 201);
         } catch (\Exception $e) {
-            // Rollback the transaction in case of errors
             DB::rollBack();
-
+    
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to save BOM data',
@@ -137,6 +167,8 @@ class BomController extends Controller
             ], 500);
         }
     }
+    
+
 
 
 

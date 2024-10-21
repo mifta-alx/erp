@@ -19,12 +19,18 @@ class BomController extends Controller
         $boms = Bom::with(['product', 'bom_components.material'])->get();
         $data = $boms->map(function ($bom) {
             $bom_components = $bom->bom_components->map(function ($component) {
-                $material_cost = $component->material->cost;
-                $material_total_cost = $material_cost * $component->material_qty;
+                $material = $component->material;
+                $material_total_cost = $material->cost * $component->material_qty;
                 return [
-                    'material_name' => $component->material->material_name,
+                    'material' => [
+                        'id' => $material->material_id,
+                        'name' => $material->material_name,
+                        'cost' => $material->cost,
+                        'sales_price' => $material->sales_price,
+                        'barcode' => $material->barcode,
+                        'internal_reference' => $material->internal_reference,
+                    ],
                     'material_qty' => $component->material_qty,
-                    'material_cost' => $material_cost,
                     'material_total_cost' => $material_total_cost,
                 ];
             });
@@ -51,11 +57,12 @@ class BomController extends Controller
         });
 
         return response()->json([
-            'success'   => true,
-            'message'   => 'Data BOM berhasil diambil',
-            'data'      => $data
+            'success' => true,
+            'message' => 'Data BOM berhasil diambil',
+            'data' => $data
         ], 200);
     }
+
 
 
     private function validateBOMData($request)
@@ -148,9 +155,15 @@ class BomController extends Controller
                         ? ['message' => 'Material are required']
                         : $bom->bom_components->map(function ($component) {
                             return [
-                                'material_name' => $component->material->material_name,
+                                'material' => [
+                                    'id' => $component->material->material_id,
+                                    'name' => $component->material->material_name,
+                                    'cost' => $component->material->cost,
+                                    'sales_price' => $component->material->sales_price,
+                                    'barcode' => $component->material->barcode,
+                                    'internal_reference' => $component->material->internal_reference,
+                                ],
                                 'material_qty' => $component->material_qty,
-                                'material_cost' => $component->material->cost,
                                 'material_total_cost' => $component->material->cost * $component->material_qty,
                             ];
                         }),
@@ -170,24 +183,39 @@ class BomController extends Controller
         }
     }
 
-
-
-
-
     /**
      * Display the specified resource.
      */
     public function show($id)
     {
         $bom = Bom::with('bom_components.material')->find($id);
-    
+
         if (!$bom) {
             return response()->json([
                 'success' => false,
                 'message' => 'BOM not found',
             ], 404);
         }
-    
+
+        $bom_components = $bom->bom_components->map(function ($component) {
+            $material = $component->material;
+            $material_total_cost = $material->cost * $component->material_qty;
+            return [
+                'material' => [
+                    'id' => $material->material_id,
+                    'name' => $material->material_name,
+                    'cost' => $material->cost,
+                    'sales_price' => $material->sales_price,
+                    'barcode' => $material->barcode,
+                    'internal_reference' => $material->internal_reference,
+                ],
+                'material_qty' => $component->material_qty,
+                'material_total_cost' => $material_total_cost,
+            ];
+        });
+
+        $bom_cost = $bom_components->sum('material_total_cost');
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -202,23 +230,12 @@ class BomController extends Controller
                 ],
                 'bom_reference' => $bom->bom_reference,
                 'bom_qty' => $bom->bom_qty,
-                'bom_components' => $bom->bom_components->isEmpty() 
-                    ? ['message' => 'Data kosong']
-                    : $bom->bom_components->map(function ($component) {
-                        return [
-                            'material_name' => $component->material->material_name,
-                            'material_qty' => $component->material_qty,
-                            'material_cost' => $component->material->cost,
-                            'material_total_cost' => $component->material->cost * $component->material_qty,
-                        ];
-                    }),
-                'bom_cost' => $bom->bom_components->sum(function ($component) {
-                    return $component->material->cost * $component->material_qty;
-                }),
+                'bom_components' => $bom_components,
+                'bom_cost' => $bom_cost,
             ]
         ]);
     }
-    
+
 
     /**
      * Show the form for editing the specified resource.
@@ -234,11 +251,11 @@ class BomController extends Controller
     public function update(Request $request, $id)
     {
         DB::beginTransaction();
-        
+
         try {
             // Validasi data
             $validated = $this->validateBOMData($request);
-    
+
             if (isset($validated['errors'])) {
                 return response()->json([
                     'success' => false,
@@ -246,7 +263,7 @@ class BomController extends Controller
                     'errors' => $validated['errors'],
                 ], 422);
             }
-    
+
             // Temukan BOM
             $bom = Bom::find($id);
             if (!$bom) {
@@ -255,17 +272,17 @@ class BomController extends Controller
                     'message' => 'BOM not found',
                 ], 404);
             }
-    
+
             // Perbarui data BOM
             $bom->update([
                 'product_id' => $validated['data']['product_id'],
                 'bom_reference' => $request->input('bom_reference', null),
                 'bom_qty' => $validated['data']['bom_qty'],
             ]);
-    
+
             // Hapus komponen BOM yang ada
             $bom->bom_components()->delete();
-    
+
             // Simpan komponen BOM baru
             if (isset($validated['data']['bom_components']) && count($validated['data']['bom_components']) > 0) {
                 foreach ($validated['data']['bom_components'] as $component) {
@@ -276,9 +293,9 @@ class BomController extends Controller
                     ]);
                 }
             }
-    
+
             DB::commit();
-    
+
             return response()->json([
                 'success' => true,
                 'message' => 'BOM data successfully updated',
@@ -294,13 +311,19 @@ class BomController extends Controller
                     ],
                     'bom_reference' => $bom->bom_reference,
                     'bom_qty' => $bom->bom_qty,
-                    'bom_components' => $bom->bom_components->isEmpty() 
+                    'bom_components' => $bom->bom_components->isEmpty()
                         ? ['message' => 'Data kosong']
                         : $bom->bom_components->map(function ($component) {
                             return [
-                                'material_name' => $component->material->material_name,
+                                'material' => [
+                                    'id' => $component->material->material_id,
+                                    'name' => $component->material->material_name,
+                                    'cost' => $component->material->cost,
+                                    'sales_price' => $component->material->sales_price,
+                                    'barcode' => $component->material->barcode,
+                                    'internal_reference' => $component->material->internal_reference,
+                                ],
                                 'material_qty' => $component->material_qty,
-                                'material_cost' => $component->material->cost,
                                 'material_total_cost' => $component->material->cost * $component->material_qty,
                             ];
                         }),
@@ -311,7 +334,7 @@ class BomController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-    
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update BOM data',
@@ -319,14 +342,14 @@ class BomController extends Controller
             ], 500);
         }
     }
-    
+
     /**
      * Remove the specified resource from storage.
      */
     public function destroy($id)
     {
         DB::beginTransaction();
-        
+
         try {
             $bom = Bom::find($id);
             if (!$bom) {
@@ -335,20 +358,20 @@ class BomController extends Controller
                     'message' => 'BOM not found',
                 ], 404);
             }
-    
+
             // Hapus BOM dan komponen terkait
             $bom->bom_components()->delete();
             $bom->delete();
-    
+
             DB::commit();
-    
+
             return response()->json([
                 'success' => true,
                 'message' => 'BOM data successfully deleted',
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-    
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to delete BOM data',
@@ -356,5 +379,4 @@ class BomController extends Controller
             ], 500);
         }
     }
-    
 }

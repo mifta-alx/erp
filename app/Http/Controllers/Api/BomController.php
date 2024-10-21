@@ -177,10 +177,48 @@ class BomController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show($id)
     {
-        //
+        $bom = Bom::with('bom_components.material')->find($id);
+    
+        if (!$bom) {
+            return response()->json([
+                'success' => false,
+                'message' => 'BOM not found',
+            ], 404);
+        }
+    
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'bom_id' => $bom->bom_id,
+                'product' => [
+                    'id' => $bom->product->product_id,
+                    'name' => $bom->product->product_name,
+                    'cost' => $bom->product->cost,
+                    'sales_price' => $bom->product->sales_price,
+                    'barcode' => $bom->product->barcode,
+                    'internal_reference' => $bom->product->internal_reference,
+                ],
+                'bom_reference' => $bom->bom_reference,
+                'bom_qty' => $bom->bom_qty,
+                'bom_components' => $bom->bom_components->isEmpty() 
+                    ? ['message' => 'Data kosong']
+                    : $bom->bom_components->map(function ($component) {
+                        return [
+                            'material_name' => $component->material->material_name,
+                            'material_qty' => $component->material_qty,
+                            'material_cost' => $component->material->cost,
+                            'material_total_cost' => $component->material->cost * $component->material_qty,
+                        ];
+                    }),
+                'bom_cost' => $bom->bom_components->sum(function ($component) {
+                    return $component->material->cost * $component->material_qty;
+                }),
+            ]
+        ]);
     }
+    
 
     /**
      * Show the form for editing the specified resource.
@@ -193,16 +231,130 @@ class BomController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, $id)
     {
-        //
+        DB::beginTransaction();
+        
+        try {
+            // Validasi data
+            $validated = $this->validateBOMData($request);
+    
+            if (isset($validated['errors'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validated['errors'],
+                ], 422);
+            }
+    
+            // Temukan BOM
+            $bom = Bom::find($id);
+            if (!$bom) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'BOM not found',
+                ], 404);
+            }
+    
+            // Perbarui data BOM
+            $bom->update([
+                'product_id' => $validated['data']['product_id'],
+                'bom_reference' => $request->input('bom_reference', null),
+                'bom_qty' => $validated['data']['bom_qty'],
+            ]);
+    
+            // Hapus komponen BOM yang ada
+            $bom->bom_components()->delete();
+    
+            // Simpan komponen BOM baru
+            if (isset($validated['data']['bom_components']) && count($validated['data']['bom_components']) > 0) {
+                foreach ($validated['data']['bom_components'] as $component) {
+                    BomsComponent::create([
+                        'bom_id' => $bom->bom_id,
+                        'material_id' => $component['material_id'],
+                        'material_qty' => $component['material_qty'],
+                    ]);
+                }
+            }
+    
+            DB::commit();
+    
+            return response()->json([
+                'success' => true,
+                'message' => 'BOM data successfully updated',
+                'data' => [
+                    'bom_id' => $bom->bom_id,
+                    'product' => [
+                        'id' => $bom->product->product_id,
+                        'name' => $bom->product->product_name,
+                        'cost' => $bom->product->cost,
+                        'sales_price' => $bom->product->sales_price,
+                        'barcode' => $bom->product->barcode,
+                        'internal_reference' => $bom->product->internal_reference,
+                    ],
+                    'bom_reference' => $bom->bom_reference,
+                    'bom_qty' => $bom->bom_qty,
+                    'bom_components' => $bom->bom_components->isEmpty() 
+                        ? ['message' => 'Data kosong']
+                        : $bom->bom_components->map(function ($component) {
+                            return [
+                                'material_name' => $component->material->material_name,
+                                'material_qty' => $component->material_qty,
+                                'material_cost' => $component->material->cost,
+                                'material_total_cost' => $component->material->cost * $component->material_qty,
+                            ];
+                        }),
+                    'bom_cost' => $bom->bom_components->sum(function ($component) {
+                        return $component->material->cost * $component->material_qty;
+                    }),
+                ]
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+    
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update BOM data',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
-
+    
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy($id)
     {
-        //
+        DB::beginTransaction();
+        
+        try {
+            $bom = Bom::find($id);
+            if (!$bom) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'BOM not found',
+                ], 404);
+            }
+    
+            // Hapus BOM dan komponen terkait
+            $bom->bom_components()->delete();
+            $bom->delete();
+    
+            DB::commit();
+    
+            return response()->json([
+                'success' => true,
+                'message' => 'BOM data successfully deleted',
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+    
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete BOM data',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
+    
 }

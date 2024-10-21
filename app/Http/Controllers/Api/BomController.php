@@ -47,7 +47,34 @@ class BomController extends Controller
         ], 200);
     }
 
+    private function validateBOMData($request)
+    {
+        $validator = Validator::make($request->all(), [
+            'product_id' => 'required|exists:products,product_id',
+            'product_qty' => 'required|numeric|min:1',
+            'bom_components' => 'required|array',
+            'bom_components.*.material_id' => 'required|exists:materials,material_id',
+            'bom_components.*.material_qty' => 'required|numeric|min:1',
+        ], [
+            'product_id.required' => 'Product ID is required',
+            'product_id.exists' => 'Product ID not found',
+            'product_qty.required' => 'Product quantity is required',
+            'product_qty.numeric' => 'Product quantity must be a number',
+            'product_qty.min' => 'Product quantity must be at least 1',
+            'bom_components.required' => 'BOM components are required',
+            'bom_components.array' => 'BOM components must be an array',
+            'bom_components.*.material_id.required' => 'Material ID is required',
+            'bom_components.*.material_id.exists' => 'Material ID not found',
+            'bom_components.*.material_qty.required' => 'Material quantity is required',
+            'bom_components.*.material_qty.numeric' => 'Material quantity must be a number',
+            'bom_components.*.material_qty.min' => 'Material quantity must be at least 1',
+        ]);
 
+        if ($validator->fails()) {
+            return ['errors' => $validator->errors()];
+        }
+        return ['data' => $validator->validated()];
+    }
     /**
      * Show the form for creating a new resource.
      */
@@ -62,53 +89,56 @@ class BomController extends Controller
     public function store(Request $request)
     {
         DB::beginTransaction();
-    
+
         try {
-            // Validasi data
-            $validated = $request->validate([
-                'product_id' => 'required|exists:products,product_id',
-                'product_qty' => 'required|numeric|min:1',
-                'bom_components' => 'required|array',
-                'bom_components.*.material_id' => 'required|exists:materials,material_id',
-                'bom_components.*.material_qty' => 'required|numeric|min:1',
-            ]);
-    
-            // Simpan data BOM
+            // Validate the request data using a separate function
+            $validated = $this->validateBOMData($request);
+
+            // Check if validation fails
+            if (isset($validated['errors'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validated['errors'],
+                ], 422);
+            }
+
+            // Save the BOM data
             $bom = Bom::create([
-                'product_id' => $validated['product_id'],
-                'product_qty' => $validated['product_qty'],
+                'product_id' => $validated['data']['product_id'],
+                'product_qty' => $validated['data']['product_qty'],
             ]);
-    
-            // Simpan setiap bom_component
-            foreach ($validated['bom_components'] as $component) {
+
+            // Save each bom_component
+            foreach ($validated['data']['bom_components'] as $component) {
                 BomsComponent::create([
-                    'bom_id' => $bom->bom_id, // Menggunakan bom_id yang baru dibuat
+                    'bom_id' => $bom->bom_id, // Use the newly created bom_id
                     'material_id' => $component['material_id'],
                     'material_qty' => $component['material_qty'],
                 ]);
             }
-    
-            // Commit transaksi
+
+            // Commit the transaction
             DB::commit();
-    
+
             return response()->json([
                 'success' => true,
-                'message' => 'Data BOM berhasil disimpan',
-                'data' => $bom->load('bom_components.material'), // Load relasi untuk menampilkan hasil lengkap
+                'message' => 'BOM data successfully saved',
+                'data' => $bom->load('bom_components.material'),
             ], 201);
         } catch (\Exception $e) {
-            // Rollback transaksi jika terjadi kesalahan
+            // Rollback the transaction in case of errors
             DB::rollBack();
-    
+
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal menyimpan data BOM',
+                'message' => 'Failed to save BOM data',
                 'error' => $e->getMessage(),
             ], 500);
         }
     }
-    
-    
+
+
 
     /**
      * Display the specified resource.

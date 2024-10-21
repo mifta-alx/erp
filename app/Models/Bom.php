@@ -12,7 +12,8 @@ class Bom extends Model
     protected $primaryKey = 'bom_id';
     protected $fillable = [
         'product_id',
-        'product_qty',
+        'bom_qty',
+        'bom_reference'
     ];
     public function product()
     {

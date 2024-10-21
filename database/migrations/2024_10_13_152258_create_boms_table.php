@@ -15,7 +15,8 @@ return new class extends Migration
             $table->id('bom_id');
             $table->unsignedBigInteger('product_id');
             $table->foreign('product_id')->references('product_id')->on('products')->onDelete('cascade');
-            $table->integer('product_qty');
+            $table->integer('bom_qty')->default(0);;
+            $table->string('bom_reference')->nullable(); 
             $table->timestamps();
         });
     }

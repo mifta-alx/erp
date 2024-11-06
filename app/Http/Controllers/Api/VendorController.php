@@ -15,16 +15,16 @@ class VendorController extends Controller
         $vendors = Vendor::orderBy('created_at', 'ASC')->get();
         $vendorData = $vendors->map(function ($vendor) {
             return [
-                'id' => $vendor->id,
-                'name' => $vendor->name,
+                'vendor_id' => $vendor->id,
+                'vendor_name' => $vendor->name,
                 'vendor_type' => $vendor->vendor_type, 
-                'street' => $vendor->street,
-                'city' => $vendor->city,
-                'state' => $vendor->state,
-                'zip' => $vendor->zip,
-                'phone' => $vendor->phone,
-                'mobile' => $vendor->mobile,
-                'email' => $vendor->email,
+                'vendor_street' => $vendor->street,
+                'vendor_city' => $vendor->city,
+                'vendor_state' => $vendor->state,
+                'vendor_zip' => $vendor->zip,
+                'vendor_phone' => $vendor->phone,
+                'vendor_mobile' => $vendor->mobile,
+                'vendor_email' => $vendor->email,
                 'image_uuid' => $vendor->image_uuid,
                 'image_url' => $vendor->image_url,
                 'created_at' => $vendor->created_at,
@@ -42,16 +42,16 @@ class VendorController extends Controller
     private function validateVendor(Request $request, $id = null)
     {
         return Validator::make($request->all(), [
-            'name' => 'required|string',
+            'vendor_name' => 'required|string',
             'vendor_type' => 'required|string', 
-            'email' => ['required', 'email', 'unique:vendors,email,' . $id],
-            'phone' => 'required|string',
+            'vendor_email' => ['required', 'email', 'unique:vendors,email,' . $id],
+            'vendor_phone' => 'required|string',
             'image_uuid' => 'nullable|string|exists:images,image_uuid',
         ], [
-            'name.required' => 'Vendor Name Must Be Filled',
+            'vendor_name.required' => 'Vendor Name Must Be Filled',
             'vendor_type.required' => 'Vendor Type Must Be Filled',
-            'email.required' => 'Email Must Be Filled',
-            'phone.required' => 'Phone Must Be Filled',
+            'vendor_email.required' => 'Email Must Be Filled',
+            'vendor_phone.required' => 'Phone Must Be Filled',
             'image_uuid.exists' => 'Image Must Be a Valid UUID'
         ]);
     }    
@@ -72,15 +72,15 @@ class VendorController extends Controller
         $imageUrl = $image ? url('/storage/images/' . $image->image) : null;
 
         $vendor = Vendor::create([
-            'name' => $data['name'],
+            'name' => $data['vendor_name'],
             'vendor_type' => $data['vendor_type'],
-            'street' => $data['street'],
-            'city' => $data['city'],
-            'state' => $data['state'],
-            'zip' => $data['zip'],
-            'phone' => $data['phone'],
-            'mobile' => $data['mobile'],
-            'email' => $data['email'],
+            'street' => $data['vendor_street'],
+            'city' => $data['vendor_city'],
+            'state' => $data['vendor_state'],
+            'zip' => $data['vendor_zip'],
+            'phone' => $data['vendor_phone'],
+            'mobile' => $data['vendor_mobile'],
+            'email' => $data['vendor_email'],
             'image_uuid' => $image ? $image->image_uuid : null,
             'image_url' => $imageUrl,
         ]);
@@ -88,7 +88,22 @@ class VendorController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Vendor Data Successfully Added',
-            'data' => $vendor
+            'data' => [
+                'vendor_id' => $vendor->id,
+                'vendor_name' => $vendor->name,
+                'vendor_type' => $vendor->vendor_type,
+                'vendor_street' => $vendor->street,
+                'vendor_city' => $vendor->city,
+                'vendor_state' => $vendor->state,
+                'vendor_zip' => $vendor->zip,
+                'vendor_phone' => $vendor->phone,
+                'vendor_mobile' => $vendor->mobile,
+                'vendor_email' => $vendor->email,
+                'image_uuid' => $vendor->image_uuid,
+                'image_url' => $vendor->image_url,
+                'created_at' => $vendor->created_at,
+                'updated_at' => $vendor->updated_at
+            ]
         ]);
     }
 
@@ -105,7 +120,22 @@ class VendorController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Vendor Data',
-            'data' => $vendor
+            'data' => [
+                'vendor_id' => $vendor->id,
+                'vendor_name' => $vendor->name,
+                'vendor_type' => $vendor->vendor_type,
+                'vendor_street' => $vendor->street,
+                'vendor_city' => $vendor->city,
+                'vendor_state' => $vendor->state,
+                'vendor_zip' => $vendor->zip,
+                'vendor_phone' => $vendor->phone,
+                'vendor_mobile' => $vendor->mobile,
+                'vendor_email' => $vendor->email,
+                'image_uuid' => $vendor->image_uuid,
+                'image_url' => $vendor->image_url,
+                'created_at' => $vendor->created_at,
+                'updated_at' => $vendor->updated_at
+            ]
         ]);
     }
 
@@ -133,15 +163,15 @@ class VendorController extends Controller
         $imageUrl = $image ? url('/storage/images/' . $image->image) : $vendor->image_url;
 
         $vendor->update([
-            'name' => $data['name'],
+            'name' => $data['vendor_name'],
             'vendor_type' => $data['vendor_type'], 
-            'street' => $data['street'],
-            'city' => $data['city'],
-            'state' => $data['state'],
-            'zip' => $data['zip'],
-            'phone' => $data['phone'],
-            'mobile' => $data['mobile'],
-            'email' => $data['email'],
+            'street' => $data['vendor_street'],
+            'city' => $data['vendor_city'],
+            'state' => $data['vendor_state'],
+            'zip' => $data['vendor_zip'],
+            'phone' => $data['vendor_phone'],
+            'mobile' => $data['vendor_mobile'],
+            'email' => $data['vendor_email'],
             'image_uuid' => $image ? $image->image_uuid : $vendor->image_uuid,
             'image_url' => $imageUrl,
         ]);
@@ -149,7 +179,22 @@ class VendorController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Vendor Data Successfully Updated',
-            'data' => $vendor
+            'data' => [
+                'vendor_id' => $vendor->id,
+                'vendor_name' => $vendor->name,
+                'vendor_type' => $vendor->vendor_type,
+                'vendor_street' => $vendor->street,
+                'vendor_city' => $vendor->city,
+                'vendor_state' => $vendor->state,
+                'vendor_zip' => $vendor->zip,
+                'vendor_phone' => $vendor->phone,
+                'vendor_mobile' => $vendor->mobile,
+                'vendor_email' => $vendor->email,
+                'image_uuid' => $vendor->image_uuid,
+                'image_url' => $vendor->image_url,
+                'created_at' => $vendor->created_at,
+                'updated_at' => $vendor->updated_at
+            ]
         ]);
     }
 

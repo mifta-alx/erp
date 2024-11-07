@@ -23,6 +23,7 @@ return new class extends Migration
             $table->text('notes')->nullable();
             $table->string('image_url');
             $table->string('image_uuid');
+            $table->double('stock_material');
             // $table->foreign('image_uuid')->references('image_uuid')->on('images')->onDelete('set null');
             $table->timestamps();
         });

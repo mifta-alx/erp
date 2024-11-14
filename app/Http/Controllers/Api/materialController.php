@@ -35,6 +35,7 @@ class MaterialController extends Controller
                 'notes' => $material->notes,
                 'image_uuid' => $material->image_uuid,
                 'image_url' => $material->image_url,
+                'stock_material' => $material->stock_material,
                 'created_at' => $material->created_at,
                 'updated_at' => $material->updated_at
             ];
@@ -57,8 +58,8 @@ class MaterialController extends Controller
             [
                 'material_name.required' => 'Material Name Must Be Filled',
                 'category_id.required' => 'Category Must Be Filled',
-                'sales_price.required' => 'Sales Price Must Be Filled',
-                'cost.required' => 'Cost Must Be Filled',
+                'sales_price.required' => 'Sales Price Must Be filled',
+                'cost.required' => 'Cost Must Be filled',
                 'image_uuid.required' => 'Image Must Be Filled',
             ]
         );
@@ -66,63 +67,73 @@ class MaterialController extends Controller
 
     public function store(Request $request)
     {
-        $data = $request->json()->all();
-        $validator = $this->validateMaterial($request);
-        if ($validator->fails()) {
+        try {
+            $data = $request->json()->all();
+            $validator = $this->validateMaterial($request);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation Failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $image = Image::where('image_uuid', $data['image_uuid'])->first();
+            if (!$image) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Image not found'
+                ], 404);
+            }
+
+            $imageUrl = url('/storage/images/' . $image->image);
+
+            $material = Material::create([
+                'material_name' => $data['material_name'],
+                'category_id' => $data['category_id'],
+                'sales_price' => $data['sales_price'],
+                'cost' => $data['cost'],
+                'barcode' => $data['barcode'],
+                'internal_reference' => $data['internal_reference'],
+                'notes' => $data['notes'],
+                'image_uuid' => $image->image_uuid,
+                'image_url' => $imageUrl,
+                'stock_material' => $data['stock_material'] ?? 0,
+            ]);
+
+            $material->tag()->sync($data['tags']);
+
+            $materialWithTag = Material::with('tag')->find($material->material_id);
+
+            return new MaterialResource(true, 'Material Data Successfully Added', [
+                'material_id' => $materialWithTag->material_id,
+                'material_name' => $materialWithTag->material_name,
+                'category_id' => $materialWithTag->category_id,
+                'sales_price' => $materialWithTag->sales_price,
+                'cost' => $materialWithTag->cost,
+                'barcode' => $materialWithTag->barcode,
+                'internal_reference' => $materialWithTag->internal_reference,
+                'notes' => $materialWithTag->notes,
+                'tags' => $materialWithTag->tag->map(function ($tag) {
+                    return [
+                        'id' => $tag->tag_id,
+                        'name' => $tag->name_tag,
+                    ];
+                }),
+                'image_uuid' => $materialWithTag->image_uuid,
+                'image_url' => $materialWithTag->image_url,
+                'stock_material' => $materialWithTag->stock_material,
+            ]);
+        } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Validation Failed',
-                'errors' => $validator->errors()
-            ], 422);
+                'message' => 'An error occurred',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        $image = Image::where('image_uuid', $data['image_uuid'])->first();
-        if (!$image) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Image not found'
-            ], 404);
-        }
-
-        $imageUrl = url('/storage/images/' . $image->image);
-
-        $material = Material::create([
-            'material_name' => $data['material_name'],
-            'category_id' => $data['category_id'],
-            'sales_price' => $data['sales_price'],
-            'cost' => $data['cost'],
-            'barcode' => $data['barcode'],
-            'internal_reference' => $data['internal_reference'],
-            'notes' => $data['notes'],
-            'image_uuid' => $image->image_uuid,
-            'image_url' => $imageUrl,
-        ]);
-
-        $material->tag()->sync($data['tags']);
-
-        $materialWithTag = Material::with('tag')->find($material->material_id);
-
-        return new MaterialResource(true, 'Material Data Successfully Added', [
-            'material_id' => $materialWithTag->material_id,
-            'material_name' => $materialWithTag->material_name,
-            'category_id' => $materialWithTag->category_id,
-            // 'sales_price' => number_format($materialWithTag->sales_price, 2),
-            // 'cost' => number_format($materialWithTag->cost, 2),
-            'sales_price' => $materialWithTag->sales_price,
-            'cost' => $materialWithTag->cost,
-            'barcode' => $materialWithTag->barcode,
-            'internal_reference' => $materialWithTag->internal_reference,
-            'notes' => $materialWithTag->notes,
-            'tags' => $materialWithTag->tag->map(function ($tag) {
-                return [
-                    'id' => $tag->tag_id,
-                    'name' => $tag->name_tag,
-                ];
-            }),
-            'image_uuid' => $materialWithTag->image_uuid,
-            'image_url' => $materialWithTag->image_url,
-        ]);
     }
+
 
     public function show($id)
     {
@@ -153,6 +164,7 @@ class MaterialController extends Controller
             'notes' => $material->notes,
             'image_uuid' => $material->image_uuid,
             'image_url' => $material->image_url,
+            'stock_material' => $material->stock_material,
             'created_at' => $material->created_at,
             'updated_at' => $material->updated_at
         ]);
@@ -160,68 +172,72 @@ class MaterialController extends Controller
 
     public function update(Request $request, $id)
     {
-        $data = $request->json()->all();
-        $validator = $this->validateMaterial($request);
-        if ($validator->fails()) {
+        try {
+            $data = $request->json()->all();
+            $validator = $this->validateMaterial($request);
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation Failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $material = Material::find($id);
+            if (!$material) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Material not found'
+                ], 404);
+            }
+
+            $imageUuid = $data['image_uuid'] ?? $material->image_uuid;
+
+            $material->update([
+                'material_name' => $data['material_name'],
+                'category_id' => $data['category_id'],
+                'sales_price' => $data['sales_price'],
+                'cost' => $data['cost'],
+                'barcode' => $data['barcode'],
+                'internal_reference' => $data['internal_reference'],
+                'notes' => $data['notes'],
+                'image_uuid' => $imageUuid,
+                'image_url' => $data['image_url'],
+                'stock_material' => $data['stock_material'] ?? 0,
+            ]);
+
+            $material->tag()->sync($data['tags']);
+
+            $materialWithTag = Material::with('tag')->find($material->material_id);
+
+            return new MaterialResource(true, 'Material Data Successfully Updated', [
+                'material_id' => $materialWithTag->material_id,
+                'material_name' => $materialWithTag->material_name,
+                'category_id' => $materialWithTag->category_id,
+                // 'sales_price' => number_format($materialWithTag->sales_price, 2),
+                // 'cost' => number_format($materialWithTag->cost, 2),
+                'sales_price' => $materialWithTag->sales_price,
+                'cost' => $materialWithTag->cost,
+                'barcode' => $materialWithTag->barcode,
+                'internal_reference' => $materialWithTag->internal_reference,
+                'notes' => $materialWithTag->notes,
+                'tags' => $materialWithTag->tag->map(function ($tag) {
+                    return [
+                        'id' => $tag->tag_id,
+                        'name' => $tag->name_tag,
+                    ];
+                }),
+                'image_uuid' => $materialWithTag->image_uuid,
+                'image_url' => $materialWithTag->image_url,
+                'stock_material' => $materialWithTag->stock_material,
+            ]);
+        } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Validation Failed',
-                'errors' => $validator->errors()
-            ], 422);
+                'message' => 'An error occurred',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        $material = Material::find($id);
-        if (!$material) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Material not found'
-            ], 404);
-        }
-
-        $imageUuid = $data['image_uuid'] ?? $material->image_uuid;
-        // $image = Image::where('image_uuid', $imageUuid)->first();
-        // if ($image) {
-        //     $imageUrl = url('/storage/images/' . $image->image);
-        // } else {
-        //     $imageUrl = $material->image_url;
-        // }
-
-        $material->update([
-            'material_name' => $data['material_name'],
-            'category_id' => $data['category_id'],
-            'sales_price' => $data['sales_price'],
-            'cost' => $data['cost'],
-            'barcode' => $data['barcode'],
-            'internal_reference' => $data['internal_reference'],
-            'notes' => $data['notes'],
-            'image_uuid' => $imageUuid,
-            'image_url' => $data['image_url'],
-        ]);
-
-        $material->tag()->sync($data['tags']);
-
-        $materialWithTag = Material::with('tag')->find($material->material_id);
-
-        return new MaterialResource(true, 'Material Data Successfully Updated', [
-            'material_id' => $materialWithTag->material_id,
-            'material_name' => $materialWithTag->material_name,
-            'category_id' => $materialWithTag->category_id,
-            // 'sales_price' => number_format($materialWithTag->sales_price, 2),
-            // 'cost' => number_format($materialWithTag->cost, 2),
-            'sales_price' => $materialWithTag->sales_price,
-            'cost' => $materialWithTag->cost,
-            'barcode' => $materialWithTag->barcode,
-            'internal_reference' => $materialWithTag->internal_reference,
-            'notes' => $materialWithTag->notes,
-            'tags' => $materialWithTag->tag->map(function ($tag) {
-                return [
-                    'id' => $tag->tag_id,
-                    'name' => $tag->name_tag,
-                ];
-            }),
-            'image_uuid' => $materialWithTag->image_uuid,
-            'image_url' => $materialWithTag->image_url,
-        ]);
     }
 
     public function destroy($id)

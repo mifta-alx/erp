@@ -21,3 +21,4 @@ Route::apiResource('/tags', App\Http\Controllers\Api\TagController::class);
 Route::apiResource('/manufacturing-orders', App\Http\Controllers\Api\MoController::class);
 Route::apiResource('/all-data', App\Http\Controllers\Api\DashboardController::class);
 Route::apiResource('/vendors', App\Http\Controllers\Api\VendorController::class);
+Route::apiResource('/init', App\Http\Controllers\Api\GetDataController::class);

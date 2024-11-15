@@ -30,27 +30,27 @@ class GetDataController extends Controller
         ];
 
         if ($includeProducts) {
-            $response['data']['product'] = Product::all();
+            $response['data']['products'] = Product::all();
         }
 
         if ($includeMaterials) {
-            $response['data']['material'] = Material::all();
+            $response['data']['materials'] = Material::all();
         }
 
         if ($includeCategories) {
-            $response['data']['category'] = Category::all();
+            $response['data']['categories'] = Category::all();
         }
 
         if ($includeTags) {
-            $response['data']['tag'] = Tag::all();
+            $response['data']['tags'] = Tag::all();
         }
 
         if ($includeBoms) {
-            $response['data']['bom'] = Bom::all();
+            $response['data']['boms'] = Bom::all();
         }
 
         if ($includeVendors) {
-            $response['data']['vendor'] = Vendor::all();
+            $response['data']['vendors'] = Vendor::all();
         }
 
         return response()->json($response);

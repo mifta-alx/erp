@@ -23,6 +23,126 @@ class GetDataController extends Controller
         $includeBoms = $request->has('boms');
         $includeVendors = $request->has('vendors');
 
+        $products = Product::with('category', 'tag')->orderBy('created_at', 'ASC')->get();
+        $productData = $products->map(function ($product) {
+            return [
+                'product_id' => $product->product_id,
+                'product_name' => $product->product_name,
+                'category_id' => $product->category_id,
+                'category_name' => $product->category->category,
+                'sales_price' => $product->sales_price,
+                'cost' => $product->cost,
+                'barcode' => $product->barcode,
+                'internal_reference' => $product->internal_reference,
+                'tags' => $product->tag->map(function ($tag) {
+                    return [
+                        'id' => $tag->tag_id,
+                        'name' => $tag->name_tag
+                    ];
+                }),
+                'notes' => $product->notes,
+                'image_uuid' => $product->image_uuid,
+                'image_url' => $product->image_url,
+                'stock_product' => $product->stock_product,
+                'created_at' => $product->created_at,
+                'updated_at' => $product->updated_at
+            ];
+        });
+
+        $materials = Material::with('category', 'tag')->orderBy('created_at', 'ASC')->get();
+        $materialData = $materials->map(function ($material) {
+            return [
+                'material_id' => $material->material_id,
+                'material_name' => $material->material_name,
+                'category_id' => $material->category_id,
+                'category_name' => $material->category->category,
+                'sales_price' => $material->sales_price,
+                'cost' => $material->cost,
+                'barcode' => $material->barcode,
+                'internal_reference' => $material->internal_reference,
+                'tags' => $material->tag->map(function ($tag) {
+                    return [
+                        'id' => $tag->tag_id,
+                        'name' => $tag->name_tag
+                    ];
+                }),
+                'notes' => $material->notes,
+                'image_uuid' => $material->image_uuid,
+                'image_url' => $material->image_url,
+                'stock_material' => $material->stock_material,
+                'created_at' => $material->created_at,
+                'updated_at' => $material->updated_at
+            ];
+        });
+
+        $tags = Tag::orderBy('tag_id', 'ASC')->get();
+        $formattedTags = $tags->map(function ($tag) {
+            return [
+                'id' => $tag->tag_id,
+                'name' => $tag->name_tag,
+            ];
+        });
+
+        $boms = Bom::with(['product', 'bom_components.material'])->get();
+        $bomData = $boms->map(function ($bom) {
+            $bom_components = $bom->bom_components->map(function ($component) {
+                $material = $component->material;
+                $material_total_cost = $material->cost * $component->material_qty;
+                return [
+                    'material' => [
+                        'id' => $material->material_id,
+                        'name' => $material->material_name,
+                        'cost' => $material->cost,
+                        'sales_price' => $material->sales_price,
+                        'barcode' => $material->barcode,
+                        'internal_reference' => $material->internal_reference,
+                    ],
+                    'material_qty' => $component->material_qty,
+                    'material_total_cost' => $material_total_cost,
+                ];
+            });
+
+            $product = [
+                'id' => $bom->product->product_id,
+                'name' => $bom->product->product_name,
+                'cost' => $bom->product->cost,
+                'sales_price' => $bom->product->sales_price,
+                'barcode' => $bom->product->barcode,
+                'internal_reference' => $bom->product->internal_reference,
+            ];
+
+            $bom_cost = $bom_components->sum('material_total_cost');
+
+            return [
+                'bom_id' => $bom->bom_id,
+                'product' => $product,
+                'bom_reference' => $bom->bom_reference,
+                'bom_qty' => $bom->bom_qty,
+                'bom_components' => $bom_components,
+                'bom_cost' => $bom_cost,
+            ];
+        });
+
+        $vendors = Vendor::orderBy('created_at', 'ASC')->get();
+        $vendorData = $vendors->map(function ($vendor) {
+            return [
+                'vendor_id' => $vendor->id,
+                'vendor_name' => $vendor->name,
+                'vendor_type' => $vendor->vendor_type,
+                'vendor_street' => $vendor->street,
+                'vendor_city' => $vendor->city,
+                'vendor_state' => $vendor->state,
+                'vendor_zip' => $vendor->zip,
+                'vendor_phone' => $vendor->phone,
+                'vendor_mobile' => $vendor->mobile,
+                'vendor_email' => $vendor->email,
+                'image_uuid' => $vendor->image_uuid,
+                'image_url' => $vendor->image_url,
+                'created_at' => $vendor->created_at,
+                'updated_at' => $vendor->updated_at
+            ];
+        });
+
         $response = [
             'success' => true,
             'message' => 'Data fetched successfully',
@@ -30,11 +150,11 @@ class GetDataController extends Controller
         ];
 
         if ($includeProducts) {
-            $response['data']['products'] = Product::all();
+            $response['data']['products'] = $productData;
         }
 
         if ($includeMaterials) {
-            $response['data']['materials'] = Material::all();
+            $response['data']['materials'] = $materialData;
         }
 
         if ($includeCategories) {
@@ -42,15 +162,15 @@ class GetDataController extends Controller
         }
 
         if ($includeTags) {
-            $response['data']['tags'] = Tag::all();
+            $response['data']['tags'] = $formattedTags;
         }
 
         if ($includeBoms) {
-            $response['data']['boms'] = Bom::all();
+            $response['data']['boms'] = $bomData;
         }
 
         if ($includeVendors) {
-            $response['data']['vendors'] = Vendor::all();
+            $response['data']['vendors'] = $vendorData;
         }
 
         return response()->json($response);

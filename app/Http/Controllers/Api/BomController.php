@@ -84,7 +84,7 @@ class BomController extends Controller
             'product_id.exists' => 'Product not found',
             'bom_qty.required' => 'Quantity is required',
             'bom_qty.numeric' => 'Quantity must be a number',
-            'bom_qty.min' => 'Quantity must be at least 1',
+            'bom_qty.min' => 'Quantity must be positive',
             'bom_components.array' => 'BOM components must be an array',
             'bom_components.*.material_id.required' => 'Material is required',
             'bom_components.*.material_id.exists' => 'Material not found',

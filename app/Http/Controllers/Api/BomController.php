@@ -75,7 +75,7 @@ class BomController extends Controller
         if ($request->has('bom_components') && count($request->bom_components) > 0) {
             $rules['bom_components'] = 'array';
             $rules['bom_components.*.material_id'] = 'required|exists:materials,material_id';
-            $rules['bom_components.*.material_qty'] = 'required|numeric|min:1';
+            $rules['bom_components.*.material_qty'] = 'required|numeric';
         }
 
         // Jalankan validasi
@@ -90,7 +90,6 @@ class BomController extends Controller
             'bom_components.*.material_id.exists' => 'Material not found',
             'bom_components.*.material_qty.required' => 'Material quantity is required',
             'bom_components.*.material_qty.numeric' => 'Material quantity must be a number',
-            'bom_components.*.material_qty.min' => 'Material quantity must be at least 1',
         ]);
 
         if ($validator->fails()) {

@@ -32,4 +32,9 @@ class ManufacturingOrder extends Model
     {
         return $this->belongsTo(Bom::class, 'bom_id', 'bom_id');
     }
+
+    public function mo()
+    {
+        return $this->hasMany(MoComponent::class,'mo_id','mo_id');
+    }
 }

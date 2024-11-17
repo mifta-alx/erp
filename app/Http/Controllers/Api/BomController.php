@@ -14,9 +14,17 @@ class BomController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $boms = Bom::with(['product', 'bom_components.material'])->get();
+        $product_id = $request->input('product_id');
+        $query = Bom::with(['product', 'bom_components.material']);
+
+        if ($product_id) {
+            $query->where('product_id', $product_id);
+        }
+
+        $boms = $query->get();
+        // $boms = Bom::with(['product', 'bom_components.material'])->get();
         $data = $boms->map(function ($bom) {
             $bom_components = $bom->bom_components->map(function ($component) {
                 $material = $component->material;
@@ -84,12 +92,13 @@ class BomController extends Controller
             'product_id.exists' => 'Product not found',
             'bom_qty.required' => 'Quantity is required',
             'bom_qty.numeric' => 'Quantity must be a number',
-            'bom_qty.min' => 'Quantity must be positive',
+            'bom_qty.min' => 'Quantity must be at positive',
             'bom_components.array' => 'BOM components must be an array',
             'bom_components.*.material_id.required' => 'Material is required',
             'bom_components.*.material_id.exists' => 'Material not found',
             'bom_components.*.material_qty.required' => 'Material quantity is required',
             'bom_components.*.material_qty.numeric' => 'Material quantity must be a number',
+            // 'bom_components.*.material_qty.min' => 'Material quantity must be at least 1',
         ]);
 
         if ($validator->fails()) {

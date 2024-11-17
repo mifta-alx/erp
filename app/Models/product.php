@@ -21,20 +21,21 @@ class Product extends Model
         'notes',
         'image_url',
         'image_uuid',
+        'stock_product'
     ];
 
     public function category()
     {
         return $this->belongsTo(Category::class, 'category_id', 'category_id');
-    }
-
-    // public function image()
-    // {
-    //     return $this->belongsTo(Image::class, 'image_uuid', 'image_uuid');
-    // }    
+    }   
 
     public function tag()
     {
         return $this->belongsToMany(Tag::class, 'pivot_product_tags', 'product_id', 'tag_id')->withTimestamps();
+    }
+
+    public function ManufacturingOrder()
+    {
+        return $this->hasMany(ManufacturingOrder::class, 'product_id', 'product_id');
     }
 }

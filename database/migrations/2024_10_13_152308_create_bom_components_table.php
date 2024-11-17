@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreign('bom_id')->references('bom_id')->on('boms')->onDelete('cascade');
             $table->unsignedBigInteger('material_id');
             $table->foreign('material_id')->references('material_id')->on('materials')->onDelete('cascade');
-            $table->integer('material_qty');
+            $table->double('material_qty');
             $table->timestamps();
         });
     }

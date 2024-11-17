@@ -14,9 +14,17 @@ class BomController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $boms = Bom::with(['product', 'bom_components.material'])->get();
+        $product_id = $request->input('product_id');
+        $query = Bom::with(['product', 'bom_components.material']);
+
+        if ($product_id) {
+            $query->where('product_id', $product_id);
+        }
+    
+        $boms = $query->get();
+        // $boms = Bom::with(['product', 'bom_components.material'])->get();
         $data = $boms->map(function ($bom) {
             $bom_components = $bom->bom_components->map(function ($component) {
                 $material = $component->material;

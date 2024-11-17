@@ -15,8 +15,8 @@ class MoComponent extends Model
         'to_consume',
         'material_id',
         'consumed',
+        'reserved',
     ];
-
     public function material(){
         return $this->belongsTo(Material::class, 'material_id', 'material_id');
     }

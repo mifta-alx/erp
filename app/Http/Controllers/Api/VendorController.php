@@ -46,13 +46,21 @@ class VendorController extends Controller
             'vendor_type' => 'required|string', 
             'vendor_email' => ['required', 'email', 'unique:vendors,email,' . $id],
             'vendor_phone' => 'required|string',
-            'image_uuid' => 'nullable|string|exists:images,image_uuid',
+            'vendor_mobile' => 'required',
+            'vendor_street' => 'required',
+            'vendor_city' => 'required',
+            'vendor_state' => 'required',
+            'vendor_zip' => 'required',
+
         ], [
             'vendor_name.required' => 'Vendor Name Must Be Filled',
             'vendor_type.required' => 'Vendor Type Must Be Filled',
             'vendor_email.required' => 'Email Must Be Filled',
             'vendor_phone.required' => 'Phone Must Be Filled',
-            'image_uuid.exists' => 'Image Must Be a Valid UUID'
+            'vendor_street.required' => 'Street Must Be Filled',
+            'vendor_city.required' => 'City Must Be Filled',
+            'vendor_state.required' => 'State Must Be Filled',
+            'vendor_zip.required' => 'Zip Must Be Filled',
         ]);
     }    
 

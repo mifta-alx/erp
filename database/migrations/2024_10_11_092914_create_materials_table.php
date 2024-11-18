@@ -23,7 +23,7 @@ return new class extends Migration
             $table->text('notes')->nullable();
             $table->string('image_url');
             $table->string('image_uuid');
-            $table->double('stock_material')->default(0);
+            $table->double('stock')->default(0);
             $table->timestamps();
         });
     }

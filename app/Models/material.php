@@ -21,7 +21,7 @@ class Material extends Model
         'notes',
         'image_url',
         'image_uuid',
-        'stock_material'
+        'stock'
     ];
 
     public function category()

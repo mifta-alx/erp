@@ -18,11 +18,6 @@ class ManufacturingOrder extends Model
         'state',
     ];
 
-    public function state()
-    {
-        return $this->belongsTo(state::class, 'state_id', 'state_id');
-    }
-
     public function product()
     {
         return $this->belongsTo(Product::class, 'product_id', 'product_id');

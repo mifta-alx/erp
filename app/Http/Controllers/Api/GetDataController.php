@@ -26,8 +26,8 @@ class GetDataController extends Controller
         $products = Product::with('category', 'tag')->orderBy('created_at', 'ASC')->get();
         $productData = $products->map(function ($product) {
             return [
-                'product_id' => $product->product_id,
-                'product_name' => $product->product_name,
+                'id' => $product->product_id,
+                'name' => $product->product_name,
                 'category_id' => $product->category_id,
                 'category_name' => $product->category->category,
                 'sales_price' => $product->sales_price,
@@ -43,7 +43,7 @@ class GetDataController extends Controller
                 'notes' => $product->notes,
                 'image_uuid' => $product->image_uuid,
                 'image_url' => $product->image_url,
-                'stock_product' => $product->stock_product,
+                'stock' => $product->stock,
                 'created_at' => $product->created_at,
                 'updated_at' => $product->updated_at
             ];
@@ -52,8 +52,8 @@ class GetDataController extends Controller
         $materials = Material::with('category', 'tag')->orderBy('created_at', 'ASC')->get();
         $materialData = $materials->map(function ($material) {
             return [
-                'material_id' => $material->material_id,
-                'material_name' => $material->material_name,
+                'id' => $material->material_id,
+                'name' => $material->material_name,
                 'category_id' => $material->category_id,
                 'category_name' => $material->category->category,
                 'sales_price' => $material->sales_price,
@@ -69,7 +69,7 @@ class GetDataController extends Controller
                 'notes' => $material->notes,
                 'image_uuid' => $material->image_uuid,
                 'image_url' => $material->image_url,
-                'stock_material' => $material->stock_material,
+                'stock' => $material->stock,
                 'created_at' => $material->created_at,
                 'updated_at' => $material->updated_at
             ];
@@ -82,7 +82,8 @@ class GetDataController extends Controller
                 'name' => $tag->name_tag,
             ];
         });
-
+        
+        //boms
         $boms = Bom::with(['product', 'bom_components.material'])->get();
         $bomData = $boms->map(function ($bom) {
             $bom_components = $bom->bom_components->map(function ($component) {

@@ -146,7 +146,7 @@ class MoController extends Controller
             foreach ($components as $component) {
                 $material = Material::find($component->material_id);
                 $toConsume = $manufacturing->qty * $component->material_qty;
-                $reserved = min($material->stock_material ?? 0, $toConsume);
+                $reserved = min($material->stock ?? 0, $toConsume);
 
                 MoComponent::create([
                     'mo_id' => $manufacturing->mo_id,
@@ -213,11 +213,12 @@ class MoController extends Controller
                 $request->all(),
                 [
                     'state' => 'required|integer',
-                    'bom_id' => 'required|integer',
+                    'bom_id' => 'required|integer|exists:boms,bom_id',
                 ],
                 [
-                    'state' => 'State ID must be a filled',
-                    'bom_id' => 'required|integer',
+                    'state.required' => 'State ID must be filled.',
+                    'bom_id.required' => 'BOM ID must be filled.',
+                    'bom_id.exists' => 'BoM not found.',
                 ]
             );
             if ($validator->fails()) {
@@ -249,14 +250,14 @@ class MoController extends Controller
                     'material_id' => $component->material_id,
                 ])->first();
 
-                if ($manufacturing->state == 5 && (!$moComponent || !$moComponent->consumed)) {
+                if ($manufacturing->state == 5 && (!$moComponent || $moComponent->consumed <= $toConsume)) {
                     $reserved = $toConsume;
-                    if ($moComponent && $moComponent->consumed) {
-                        $material->stock_material -= $reserved;
+                    if ($moComponent && $moComponent->consumed == $toConsume) {
+                        $material->stock -= $reserved;
                         $material->save();
                     }
                 } else {
-                    $reserved = min($material->stock_material, $toConsume);
+                    $reserved = min($material->stock, $toConsume);
                 }
 
                 MoComponent::updateOrCreate(
@@ -267,16 +268,15 @@ class MoController extends Controller
                     [
                         'to_consume' => $toConsume,
                         'reserved' => $reserved,
-                        'consumed' => $reserved == $toConsume ? true : false,
+                        'consumed' => $reserved == $toConsume ? $toConsume : $reserved,
                     ]
                 );
             }
 
-            $allConsumed = MoComponent::where('mo_id', $manufacturing->mo_id)->where('consumed', false)->doesntExist();
-
+            $allConsumed = MoComponent::where('mo_id', $manufacturing->mo_id)->whereColumn('consumed', '<', 'to_consume')->doesntExist();
             if ($manufacturing->state == 5 && $allConsumed) {
                 $product = $manufacturing->product;
-                $product->stock_product += $manufacturing->qty;
+                $product->stock += $manufacturing->qty;
                 $product->save();
             }
             DB::commit();

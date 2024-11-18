@@ -19,7 +19,7 @@ return new class extends Migration
             $table->unsignedBigInteger('material_id');
             $table->foreign('material_id')->references('material_id')->on('materials')->onDelete('cascade');
             $table->double('reserved');
-            $table->boolean('consumed');
+            $table->double('consumed');
             $table->timestamps();
         });
     }

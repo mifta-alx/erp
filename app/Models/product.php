@@ -21,7 +21,7 @@ class Product extends Model
         'notes',
         'image_url',
         'image_uuid',
-        'stock_product'
+        'stock'
     ];
 
     public function category()

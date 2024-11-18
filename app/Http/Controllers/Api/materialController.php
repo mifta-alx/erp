@@ -35,7 +35,7 @@ class MaterialController extends Controller
                 'notes' => $material->notes,
                 'image_uuid' => $material->image_uuid,
                 'image_url' => $material->image_url,
-                'stock_material' => $material->stock_material,
+                'stock' => $material->stock,
                 'created_at' => $material->created_at,
                 'updated_at' => $material->updated_at
             ];
@@ -99,7 +99,7 @@ class MaterialController extends Controller
                 'notes' => $data['notes'],
                 'image_uuid' => $image->image_uuid,
                 'image_url' => $imageUrl,
-                'stock_material' => $data['stock_material'] ?? 0,
+                'stock' => $data['stock'] ?? 0,
             ]);
 
             $material->tag()->sync($data['tags']);
@@ -123,7 +123,7 @@ class MaterialController extends Controller
                 }),
                 'image_uuid' => $materialWithTag->image_uuid,
                 'image_url' => $materialWithTag->image_url,
-                'stock_material' => $materialWithTag->stock_material,
+                'stock' => $materialWithTag->stock,
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -164,7 +164,7 @@ class MaterialController extends Controller
             'notes' => $material->notes,
             'image_uuid' => $material->image_uuid,
             'image_url' => $material->image_url,
-            'stock_material' => $material->stock_material,
+            'stock' => $material->stock,
             'created_at' => $material->created_at,
             'updated_at' => $material->updated_at
         ]);
@@ -203,7 +203,7 @@ class MaterialController extends Controller
                 'notes' => $data['notes'],
                 'image_uuid' => $imageUuid,
                 'image_url' => $data['image_url'],
-                'stock_material' => $data['stock_material'] ?? 0,
+                'stock' => $data['stock'] ?? 0,
             ]);
 
             $material->tag()->sync($data['tags']);
@@ -229,7 +229,7 @@ class MaterialController extends Controller
                 }),
                 'image_uuid' => $materialWithTag->image_uuid,
                 'image_url' => $materialWithTag->image_url,
-                'stock_material' => $materialWithTag->stock_material,
+                'stock' => $materialWithTag->stock,
             ]);
         } catch (\Exception $e) {
             return response()->json([

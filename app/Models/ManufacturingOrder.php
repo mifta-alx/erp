@@ -13,9 +13,9 @@ class ManufacturingOrder extends Model
     protected $fillable = [
         'reference',
         'product_id',
-        'quantity',
+        'qty',
         'bom_id',
-        'state_id',
+        'state',
     ];
 
     public function state()

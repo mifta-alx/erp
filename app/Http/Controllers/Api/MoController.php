@@ -28,10 +28,7 @@ class MoController extends Controller
                     'id' => $order->product->product_id,
                     'name' => $order->product->product_name,
                 ],
-                'state' => [
-                    'id' => $order->state_id,
-                    'name' => $order->state->name,
-                ],
+                'state' => $order->state,
                 'mo_components' => $order->mo ? $order->mo->unique('material_id')->map(function ($component) {
                     return [
                         'material' => [
@@ -60,16 +57,13 @@ class MoController extends Controller
         return new MoResource(true, 'List Manufacturing Order Data', [
             'mo_id' => $mo->mo_id,
             'reference' => $mo->reference,
-            'quantity' => $mo->quantity,
+            'qty' => $mo->quantity,
             'bom_id' => $mo->bom_id,
             'product' => [
                 'id' => $mo->product->product_id,
                 'name' => $mo->product->product_name,
             ],
-            'state' => [
-                'id' => $mo->state_id,
-                'name' => $mo->state->name,
-            ],
+            'state' => $mo->state,
             'mo_components' => $mo->mo->unique('material_id')->map(function ($component) {
                 return [
                     'material' => [
@@ -88,14 +82,13 @@ class MoController extends Controller
     {
         return Validator::make($request->all(), [
             'product_id' => 'required|exists:products,product_id',
-            'reference' => 'required',
-            'quantity' => 'required|numeric',
+            'reference' => 'nullable',
+            'qty' => 'required|numeric',
             'bom_id' => 'required|exists:boms,bom_id'
         ], [
             'product_id.required' => 'Product ID must be filled',
             'product_id.exists' => 'Product ID does not exist',
-            'reference' => 'Reference must be filled',
-            'quantity' => 'Quantity must be filled',
+            'qty' => 'Quantity must be filled',
             'bom_id.required' => 'BOM ID must be filled',
         ]);
     }
@@ -113,13 +106,33 @@ class MoController extends Controller
                     'errors' => $validator->errors()
                 ], 422);
             }
+
             $manufacturing = ManufacturingOrder::create([
                 'product_id' => $data['product_id'],
-                'reference' => $data['reference'],
-                'quantity' => $data['quantity'],
+                'reference' => null,
+                'qty' => $data['qty'],
                 'bom_id' => $data['bom_id'],
-                'state_id' => $data['state_id'],
+                'state' => $data['state'],
             ]);
+
+            $filePath = storage_path('app/reference_counter.txt');
+
+            if (!file_exists($filePath)) {
+                file_put_contents($filePath, 1);
+            }
+
+            $lastReferenceNumber = (int) file_get_contents($filePath);
+
+            $referenceNumber = $lastReferenceNumber + 1;
+
+            $referenceNumberPadded = str_pad($referenceNumber, 5, '0', STR_PAD_LEFT);
+            
+            $reference = "MO/{$referenceNumberPadded}";
+
+            file_put_contents($filePath, $referenceNumber);
+
+            $manufacturing->update(['reference' => $reference]);
+
             $components = BomsComponent::where('bom_id', $data['bom_id'])->get();
             foreach ($components as $component) {
                 $material = Material::find($component->material_id);
@@ -143,16 +156,13 @@ class MoController extends Controller
                 'data' => [
                     'mo_id' => $manufacturing->mo_id,
                     'reference' => $manufacturing->reference,
-                    'quantity' => $manufacturing->quantity,
+                    'qty' => $manufacturing->quantity,
                     'bom_id' => $manufacturing->bom_id,
                     'product' => [
                         'id' => $manufacturing->product->product_id,
                         'name' => $manufacturing->product->product_name,
                     ],
-                    'state' => [
-                        'id' => $manufacturing->state_id,
-                        'name' => $manufacturing->state->name,
-                    ],
+                    'state' => $manufacturing->state,
                     'mo_components' => $manufacturing->mo->map(function ($component) {
                         return [
                             'material' => [
@@ -185,11 +195,11 @@ class MoController extends Controller
             $validator = Validator::make(
                 $request->all(),
                 [
-                    'state_id' => 'required|integer',
+                    'state' => 'required|integer',
                     'bom_id' => 'required|integer',
                 ],
                 [
-                    'state_id' => 'State ID must be a filled',
+                    'state' => 'State ID must be a filled',
                     'bom_id' => 'required|integer',
                 ]
             );
@@ -210,7 +220,7 @@ class MoController extends Controller
             }
 
             $manufacturing->update([
-                'state_id' => $data['state_id'],
+                'state' => $data['state'],
             ]);
             $components = BomsComponent::where('bom_id', $data['bom_id'])->get();
             foreach ($components as $component) {
@@ -222,14 +232,14 @@ class MoController extends Controller
                     'material_id' => $component->material_id,
                 ])->first();
 
-                if ($manufacturing->state_id == 3 && (!$moComponent || !$moComponent->consumed)) {
+                if ($manufacturing->state == 5 && (!$moComponent || !$moComponent->consumed)) {
                     $reserved = $toConsume;
-                } else {
-                    $reserved = min($material->stock_material, $toConsume);
                     if ($moComponent && $moComponent->consumed) {
                         $material->stock_material -= $reserved;
                         $material->save();
                     }
+                } else {
+                    $reserved = min($material->stock_material, $toConsume);
                 }
 
                 MoComponent::updateOrCreate(
@@ -247,7 +257,7 @@ class MoController extends Controller
 
             $allConsumed = MoComponent::where('mo_id', $manufacturing->mo_id)->where('consumed', false)->doesntExist();
 
-            if ($manufacturing->state_id == 3 && $allConsumed) {
+            if ($manufacturing->state == 5 && $allConsumed) {
                 $product = $manufacturing->product;
                 $product->stock_product += $manufacturing->quantity;
                 $product->save();
@@ -259,16 +269,13 @@ class MoController extends Controller
                 'data' => [
                     'mo_id' => $manufacturing->mo_id,
                     'reference' => $manufacturing->reference,
-                    'quantity' => $manufacturing->quantity,
+                    'qty' => $manufacturing->quantity,
                     'bom_id' => $manufacturing->bom_id,
                     'product' => [
                         'id' => $manufacturing->product->product_id,
                         'name' => $manufacturing->product->product_name,
                     ],
-                    'state' => [
-                        'id' => $manufacturing->state_id,
-                        'name' => $manufacturing->state->name,
-                    ],
+                    'state' => $manufacturing->state,
                     $moComponents = $manufacturing->mo->unique('material_id')->map(function ($component) {
                         return [
                             'material' => [
@@ -292,7 +299,6 @@ class MoController extends Controller
             ], 500);
         }
     }
-
     public function destroy($id)
     {
         $mo = ManufacturingOrder::find($id);

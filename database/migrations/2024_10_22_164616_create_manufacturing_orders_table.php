@@ -13,14 +13,14 @@ return new class extends Migration
     {
         Schema::create('manufacturing_orders', function (Blueprint $table) {
             $table->id('mo_id');
-            $table->string('reference');
+            $table->string('reference')->nullable();
             $table->unsignedBigInteger('product_id');
             $table->foreign('product_id')->references('product_id')->on('products')->onDelete('cascade');
-            $table->integer('quantity');
+            $table->double('qty');
             $table->unsignedBigInteger('bom_id');
             $table->foreign('bom_id')->references('bom_id')->on('boms')->onDelete('cascade');
-            $table->unsignedBigInteger('state_id');
-            $table->foreign('state_id')->references('state_id')->on('states')->onDelete('cascade');
+            $table->integer('state');
+            // $table->foreign('state_id')->references('state_id')->on('states')->onDelete('cascade');
             $table->timestamps();
         });
     }

@@ -17,7 +17,7 @@ class VendorController extends Controller
             return [
                 'id' => $vendor->id,
                 'name' => $vendor->name,
-                'vendor_type' => $vendor->vendor_type, 
+                'type' => $vendor->vendor_type, 
                 'street' => $vendor->street,
                 'city' => $vendor->city,
                 'state' => $vendor->state,
@@ -43,7 +43,7 @@ class VendorController extends Controller
     {
         return Validator::make($request->all(), [
             'name' => 'required|string',
-            'vendor_type' => 'required|string', 
+            'type' => 'required|string', 
             'email' => ['required', 'email', 'unique:vendors,email,' . $id],
             'phone' => 'required|string',
             'mobile' => 'required',
@@ -54,7 +54,7 @@ class VendorController extends Controller
 
         ], [
             'name.required' => 'Vendor Name Must Be Filled',
-            'vendor_type.required' => 'Vendor Type Must Be Filled',
+            'type.required' => 'Vendor Type Must Be Filled',
             'email.required' => 'Email Must Be Filled',
             'phone.required' => 'Phone Must Be Filled',
             'street.required' => 'Street Must Be Filled',
@@ -81,7 +81,7 @@ class VendorController extends Controller
 
         $vendor = Vendor::create([
             'name' => $data['name'],
-            'vendor_type' => $data['vendor_type'],
+            'type' => $data['vendor_type'],
             'street' => $data['street'],
             'city' => $data['city'],
             'state' => $data['state'],
@@ -99,7 +99,7 @@ class VendorController extends Controller
             'data' => [
                 'id' => $vendor->id,
                 'name' => $vendor->name,
-                'vendor_type' => $vendor->vendor_type,
+                'type' => $vendor->vendor_type,
                 'street' => $vendor->street,
                 'city' => $vendor->city,
                 'state' => $vendor->state,
@@ -131,7 +131,7 @@ class VendorController extends Controller
             'data' => [
                 'id' => $vendor->id,
                 'name' => $vendor->name,
-                'vendor_type' => $vendor->vendor_type,
+                'type' => $vendor->vendor_type,
                 'street' => $vendor->street,
                 'city' => $vendor->city,
                 'state' => $vendor->state,
@@ -172,7 +172,7 @@ class VendorController extends Controller
 
         $vendor->update([
             'name' => $data['name'],
-            'vendor_type' => $data['vendor_type'], 
+            'type' => $data['vendor_type'], 
             'street' => $data['street'],
             'city' => $data['city'],
             'state' => $data['state'],
@@ -190,7 +190,7 @@ class VendorController extends Controller
             'data' => [
                 'id' => $vendor->id,
                 'name' => $vendor->name,
-                'vendor_type' => $vendor->vendor_type,
+                'type' => $vendor->vendor_type,
                 'street' => $vendor->street,
                 'city' => $vendor->city,
                 'state' => $vendor->state,

@@ -15,7 +15,7 @@ class VendorController extends Controller
         $vendors = Vendor::orderBy('created_at', 'ASC')->get();
         $vendorData = $vendors->map(function ($vendor) {
             return [
-                'vendor_id' => $vendor->id,
+                'id' => $vendor->id,
                 'name' => $vendor->name,
                 'vendor_type' => $vendor->vendor_type, 
                 'street' => $vendor->street,
@@ -97,7 +97,7 @@ class VendorController extends Controller
             'success' => true,
             'message' => 'Vendor Data Successfully Added',
             'data' => [
-                'vendor_id' => $vendor->id,
+                'id' => $vendor->id,
                 'name' => $vendor->name,
                 'vendor_type' => $vendor->vendor_type,
                 'street' => $vendor->street,
@@ -129,7 +129,7 @@ class VendorController extends Controller
             'success' => true,
             'message' => 'Vendor Data',
             'data' => [
-                'vendor_id' => $vendor->id,
+                'id' => $vendor->id,
                 'name' => $vendor->name,
                 'vendor_type' => $vendor->vendor_type,
                 'street' => $vendor->street,
@@ -188,7 +188,7 @@ class VendorController extends Controller
             'success' => true,
             'message' => 'Vendor Data Successfully Updated',
             'data' => [
-                'vendor_id' => $vendor->id,
+                'id' => $vendor->id,
                 'name' => $vendor->name,
                 'vendor_type' => $vendor->vendor_type,
                 'street' => $vendor->street,

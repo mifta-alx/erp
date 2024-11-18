@@ -37,7 +37,7 @@ class ProductController extends Controller
                 'notes' => $product->notes,
                 'image_uuid' => $product->image_uuid,
                 'image_url' => $product->image_url,
-                'stock_product' => $product->stock_product,
+                'stock' => $product->stock,
                 'created_at' => $product->created_at,
                 'updated_at' => $product->updated_at
             ];
@@ -96,7 +96,7 @@ class ProductController extends Controller
                 'notes' => $data['notes'],
                 'image_uuid' => $image->image_uuid,
                 'image_url' => $imageUrl,
-                'stock_product' => $data['stock_product']??0,
+                'stock' => $data['stock']??0,
             ]);
 
             $product->tag()->sync($data['tags']);
@@ -122,7 +122,7 @@ class ProductController extends Controller
                 }),
                 'image_uuid' => $productWithTag->image_uuid,
                 'image_url' => $productWithTag->image_url,
-                'stock_product' => $productWithTag->stock_product,
+                'stock' => $productWithTag->stock,
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -161,7 +161,7 @@ class ProductController extends Controller
             }),
             'image_uuid' => $product->image_uuid,
             'image_url' => $product->image_url,
-            'stock_product' => $product->stock_product,
+            'stock' => $product->stock,
         ]);
     }
 
@@ -198,7 +198,7 @@ class ProductController extends Controller
                 'notes' => $data['notes'],
                 'image_uuid' => $imageUuid,
                 'image_url' => $data['image_url'],
-                'stock_product' => $data['stock_product']??0,
+                'stock' => $data['stock']??0,
             ]);
 
             $product->tag()->sync($data['tags']);
@@ -224,7 +224,7 @@ class ProductController extends Controller
                 }),
                 'image_uuid' => $productWithTag->image_uuid,
                 'image_url' => $productWithTag->image_url,
-                'stock_product' => $productWithTag->stock_product,
+                'stock' => $productWithTag->stock,
             ]);
         } catch (\Exception $e) {
             return response()->json([

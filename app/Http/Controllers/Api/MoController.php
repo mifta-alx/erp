@@ -177,7 +177,7 @@ class MoController extends Controller
                     'status' => $manufacturing->status,
                     'mo_component' => $manufacturing->mo->unique('material_id')->map(function ($component) {
                         return [
-                           'material' => [
+                            'material' => [
                                 'id' => $component->material->material_id,
                                 'name' => $component->material->material_name,
                                 'cost' => $component->material->cost,
@@ -294,23 +294,21 @@ class MoController extends Controller
 
             if (!$material || $material->stock < $requiredQty) {
                 $hasInsufficientStock = true;
-                break;
-            } else {
-                $toConsume = $requiredQty;
-                $reserved = min($material->stock, $toConsume);
-
-                MoComponent::updateOrCreate(
-                    [
-                        'mo_id' => $manufacturing->mo_id,
-                        'material_id' => $component->material_id,
-                    ],
-                    [
-                        'to_consume' => $toConsume,
-                        'reserved' => $reserved,
-                        'consumed' => 0,
-                    ]
-                );
             }
+            $toConsume = $requiredQty;
+            $reserved = min($material->stock, $toConsume);
+
+            MoComponent::updateOrCreate(
+                [
+                    'mo_id' => $manufacturing->mo_id,
+                    'material_id' => $component->material_id,
+                ],
+                [
+                    'to_consume' => $toConsume,
+                    'reserved' => $reserved,
+                    'consumed' => 0,
+                ]
+            );
         }
 
         $status = $hasInsufficientStock ? 'failed' : 'process';
@@ -378,7 +376,11 @@ class MoController extends Controller
                 }
 
                 if ($moComponent->consumed == $toConsume) {
-                    $material->stock -= $toConsume;
+                    if ($material->stock >= $toConsume) {
+                        $material->stock -= $toConsume;
+                    } else {
+                        $material->stock = 0; // Set to zero if not enough stock
+                    }
                     $material->save();
                 }
             }

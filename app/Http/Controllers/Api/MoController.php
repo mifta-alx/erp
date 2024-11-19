@@ -342,6 +342,9 @@ class MoController extends Controller
                     'consumed' => $consumed,
                 ]
             );
+            $manufacturing->update([
+                'state' => $data['state']
+            ]);
         }
     }
 

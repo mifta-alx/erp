@@ -33,6 +33,7 @@ class MoController extends Controller
                     'internal_reference' => $order->product->internal_reference,
                 ],
                 'state' => $order->state,
+                'status' => $order->status,
                 'mo_components' => $order->mo ? $order->mo->unique('material_id')->map(function ($component) {
                     return [
                         'material' => [
@@ -76,6 +77,7 @@ class MoController extends Controller
                 'internal_reference' => $mo->product->internal_reference,
             ],
             'state' => $mo->state,
+            'status' => $mo->status,
             'mo_components' => $mo->mo->unique('material_id')->map(function ($component) {
                 return [
                     'material' => [
@@ -139,9 +141,9 @@ class MoController extends Controller
                 'qty' => $data['qty'],
                 'bom_id' => $data['bom_id'],
                 'state' => $data['state'],
+                'status' => $data['status'],
             ]);
 
-            // Tambahkan komponen dari BOM
             $components = BomsComponent::where('bom_id', $data['bom_id'])->get();
             foreach ($components as $component) {
                 $material = Material::find($component->material_id);
@@ -175,6 +177,7 @@ class MoController extends Controller
                         'internal_reference' => $manufacturing->product->internal_reference,
                     ],
                     'state' => $manufacturing->state,
+                    'status' => $manufacturing->status,
                     $moComponents = $manufacturing->mo->unique('material_id')->map(function ($component) {
                         return [
                             'material' => [
@@ -238,7 +241,11 @@ class MoController extends Controller
             }
 
             $manufacturing->update([
+                'product_id' => $data['product_id'],
+                'qty' => $data['qty'],
+                'bom_id' => $data['bom_id'],
                 'state' => $data['state'],
+                'status' => $data['status'],
             ]);
             $components = BomsComponent::where('bom_id', $data['bom_id'])->get();
             foreach ($components as $component) {
@@ -297,6 +304,7 @@ class MoController extends Controller
                         'internal_reference' => $manufacturing->product->internal_reference,
                     ],
                     'state' => $manufacturing->state,
+                    'status' => $manufacturing->status,
                     $moComponents = $manufacturing->mo->unique('material_id')->map(function ($component) {
                         return [
                             'material' => [
@@ -324,6 +332,7 @@ class MoController extends Controller
             ], 500);
         }
     }
+    
     public function destroy($id)
     {
         $mo = ManufacturingOrder::find($id);

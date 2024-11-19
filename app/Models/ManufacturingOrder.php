@@ -16,6 +16,7 @@ class ManufacturingOrder extends Model
         'qty',
         'bom_id',
         'state',
+        'status'
     ];
 
     public function product()

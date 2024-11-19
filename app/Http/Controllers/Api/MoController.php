@@ -17,7 +17,7 @@ class MoController extends Controller
 {
     public function index()
     {
-        $mo = ManufacturingOrder::orderBy('mo_id', 'ASC')->get();
+        $mo = ManufacturingOrder::orderBy('created_at', 'DESC')->get();
         return new MoResource(true, 'List Data Manufacturing Order', $mo->map(function ($order) {
             return [
                 'id' => $order->mo_id,

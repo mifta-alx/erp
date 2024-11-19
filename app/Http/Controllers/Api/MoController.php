@@ -177,16 +177,14 @@ class MoController extends Controller
                     'status' => $manufacturing->status,
                     'mo_component' => $manufacturing->mo->unique('material_id')->map(function ($component) {
                         return [
-                            'material' => [
-                                'id' => $component->material->material_id,
-                                'name' => $component->material->material_name,
-                                'cost' => $component->material->cost,
-                                'sales_price' => $component->material->sales_price,
-                                'barcode' => $component->material->barcode,
-                                'internal_reference' => $component->material->internal_reference,
-                            ],
-                            'to_consume' => $component->to_consume,
-                            'reserved' => $component->reserved,
+                            'id' => $component->material->material_id,
+                            'name' => $component->material->material_name,
+                            'cost' => $component->material->cost,
+                            'sales_price' => $component->material->sales_price,
+                            'barcode' => $component->material->barcode,
+                            'internal_reference' => $component->material->internal_reference,
+                            'to_consume' => $component->to_consume,  // Move to_consume inside material
+                            'reserved' => $component->reserved,      // Move reserved inside material
                             'consumed' => $component->consumed,
                         ];
                     })
@@ -208,7 +206,6 @@ class MoController extends Controller
     {
         DB::beginTransaction();
         try {
-            // Validate input data
             $data = $request->json()->all();
             $validator = Validator::make(
                 $request->all(),
@@ -223,7 +220,6 @@ class MoController extends Controller
                 ]
             );
 
-            // Validation failure response
             if ($validator->fails()) {
                 return response()->json([
                     'success' => false,
@@ -232,7 +228,6 @@ class MoController extends Controller
                 ], 422);
             }
 
-            // Retrieve manufacturing order
             $manufacturing = ManufacturingOrder::find($id);
             if (!$manufacturing) {
                 return response()->json([
@@ -241,8 +236,17 @@ class MoController extends Controller
                 ], 404);
             }
 
-            // Process based on manufacturing order state
             switch ($data['state']) {
+                case 1:
+                    $manufacturing->update([
+                        'state' => $data['state'],
+                    ]);
+                    break;
+                case 2:
+                    $manufacturing->update([
+                        'state' => $data['state'],
+                    ]);
+                    break;
                 case 3:
                     $this->processState3($manufacturing, $data);
                     break;
@@ -262,7 +266,6 @@ class MoController extends Controller
                     return $this->successResponse($manufacturing);
             }
 
-            // Commit transaction after successful processing
             DB::commit();
             return $this->successResponse($manufacturing);
         } catch (\Exception $e) {
@@ -406,16 +409,14 @@ class MoController extends Controller
                 'status' => $manufacturing->status,
                 'mo_components' => $manufacturing->mo->unique('material_id')->map(function ($component) {
                     return [
-                        'material' => [
-                            'id' => $component->material->material_id,
-                            'name' => $component->material->material_name,
-                            'cost' => $component->material->cost,
-                            'sales_price' => $component->material->sales_price,
-                            'barcode' => $component->material->barcode,
-                            'internal_reference' => $component->material->internal_reference,
-                        ],
-                        'to_consume' => $component->to_consume,
-                        'reserved' => $component->reserved,
+                        'id' => $component->material->material_id,
+                        'name' => $component->material->material_name,
+                        'cost' => $component->material->cost,
+                        'sales_price' => $component->material->sales_price,
+                        'barcode' => $component->material->barcode,
+                        'internal_reference' => $component->material->internal_reference,
+                        'to_consume' => $component->to_consume,  // Move to_consume inside material
+                        'reserved' => $component->reserved,      // Move reserved inside material
                         'consumed' => $component->consumed,
                     ];
                 })

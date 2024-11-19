@@ -141,21 +141,18 @@ class MoController extends Controller
                 'qty' => $data['qty'],
                 'bom_id' => $data['bom_id'],
                 'state' => $data['state'],
-                'status' => $data['status'],
+                'status' => $data['status'] ?? 'process',
             ]);
 
             $components = BomsComponent::where('bom_id', $data['bom_id'])->get();
             foreach ($components as $component) {
                 $material = Material::find($component->material_id);
-                $toConsume = $manufacturing->qty * $component->material_qty;
-                $reserved = min($material->stock ?? 0, $toConsume);
-
                 MoComponent::create([
                     'mo_id' => $manufacturing->mo_id,
                     'material_id' => $component->material_id,
-                    'to_consume' => $toConsume,
-                    'reserved' => $reserved,
-                    'consumed' => $reserved == $toConsume
+                    'to_consume' => $component->material_qty,
+                    'reserved' => 0,
+                    'consumed' => 0
                 ]);
             }
 
@@ -178,7 +175,7 @@ class MoController extends Controller
                     ],
                     'state' => $manufacturing->state,
                     'status' => $manufacturing->status,
-                    $moComponents = $manufacturing->mo->unique('material_id')->map(function ($component) {
+                    'mo_component' => $manufacturing->mo->unique('material_id')->map(function ($component) {
                         return [
                             'material' => [
                                 'id' => $component->material->material_id,
@@ -211,6 +208,7 @@ class MoController extends Controller
     {
         DB::beginTransaction();
         try {
+            // Validate input data
             $data = $request->json()->all();
             $validator = Validator::make(
                 $request->all(),
@@ -224,6 +222,8 @@ class MoController extends Controller
                     'bom_id.exists' => 'BoM not found.',
                 ]
             );
+
+            // Validation failure response
             if ($validator->fails()) {
                 return response()->json([
                     'success' => false,
@@ -232,6 +232,7 @@ class MoController extends Controller
                 ], 422);
             }
 
+            // Retrieve manufacturing order
             $manufacturing = ManufacturingOrder::find($id);
             if (!$manufacturing) {
                 return response()->json([
@@ -240,32 +241,56 @@ class MoController extends Controller
                 ], 404);
             }
 
-            $manufacturing->update([
-                'product_id' => $data['product_id'],
-                'qty' => $data['qty'],
-                'bom_id' => $data['bom_id'],
-                'state' => $data['state'],
-                'status' => $data['status'],
-            ]);
-            $components = BomsComponent::where('bom_id', $data['bom_id'])->get();
-            foreach ($components as $component) {
-                $material = Material::find($component->material_id);
-                $toConsume = $manufacturing->qty * $component->material_qty;
+            // Process based on manufacturing order state
+            switch ($data['state']) {
+                case 3:
+                    $this->processState3($manufacturing, $data);
+                    break;
 
-                $moComponent = MoComponent::where([
-                    'mo_id' => $manufacturing->mo_id,
-                    'material_id' => $component->material_id,
-                ])->first();
+                case 4:
+                    $this->processState4($manufacturing, $data);
+                    break;
 
-                if ($manufacturing->state == 5 && (!$moComponent || $moComponent->consumed <= $toConsume)) {
-                    $reserved = $toConsume;
-                    if ($moComponent && $moComponent->consumed == $toConsume) {
-                        $material->stock -= $reserved;
-                        $material->save();
-                    }
-                } else {
-                    $reserved = min($material->stock, $toConsume);
-                }
+                case 5:
+                    $this->processState5($manufacturing, $data);
+                    break;
+
+                default:
+                    $manufacturing->update([
+                        'state' => $data['state'],
+                    ]);
+                    return $this->successResponse($manufacturing);
+            }
+
+            // Commit transaction after successful processing
+            DB::commit();
+            return $this->successResponse($manufacturing);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Manufacturing Order Update Failed: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to Update Manufacturing Order',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    private function processState3($manufacturing, $data)
+    {
+        $components = BomsComponent::where('bom_id', $data['bom_id'])->get();
+        $hasInsufficientStock = false;
+
+        foreach ($components as $component) {
+            $requiredQty = $component->material_qty * $data['qty'];
+            $material = Material::find($component->material_id);
+
+            if (!$material || $material->stock < $requiredQty) {
+                $hasInsufficientStock = true;
+                break;
+            } else {
+                $toConsume = $requiredQty;
+                $reserved = min($material->stock, $toConsume);
 
                 MoComponent::updateOrCreate(
                     [
@@ -275,64 +300,130 @@ class MoController extends Controller
                     [
                         'to_consume' => $toConsume,
                         'reserved' => $reserved,
-                        'consumed' => $reserved == $toConsume ? $toConsume : $reserved,
+                        'consumed' => 0,
                     ]
                 );
             }
+        }
 
-            $allConsumed = MoComponent::where('mo_id', $manufacturing->mo_id)->whereColumn('consumed', '<', 'to_consume')->doesntExist();
-            if ($manufacturing->state == 5 && $allConsumed) {
-                $product = $manufacturing->product;
-                $product->stock += $manufacturing->qty;
-                $product->save();
-            }
-            DB::commit();
-            return response()->json([
-                'success' => true,
-                'message' => 'Manufacturing Order Successfully Updated',
-                'data' => [
-                    'id' => $manufacturing->mo_id,
-                    'reference' => $manufacturing->reference,
-                    'qty' => $manufacturing->qty,
-                    'bom_id' => $manufacturing->bom_id,
-                    'product' => [
-                        'id' => $manufacturing->product->product_id,
-                        'name' => $manufacturing->product->product_name,
-                        'cost' => $manufacturing->product->cost,
-                        'sales_price' => $manufacturing->product->sales_price,
-                        'barcode' => $manufacturing->product->barcode,
-                        'internal_reference' => $manufacturing->product->internal_reference,
-                    ],
-                    'state' => $manufacturing->state,
-                    'status' => $manufacturing->status,
-                    $moComponents = $manufacturing->mo->unique('material_id')->map(function ($component) {
-                        return [
-                            'material' => [
-                                'id' => $component->material->material_id,
-                                'name' => $component->material->material_name,
-                                'cost' => $component->material->cost,
-                                'sales_price' => $component->material->sales_price,
-                                'barcode' => $component->material->barcode,
-                                'internal_reference' => $component->material->internal_reference,
-                            ],
-                            'to_consume' => $component->to_consume,
-                            'reserved' => $component->reserved,
-                            'consumed' => $component->consumed,
-                        ];
-                    })
+        $status = $hasInsufficientStock ? 'failed' : 'process';
+        $manufacturing->update([
+            'state' => $data['state'],
+            'status' => $status
+        ]);
+    }
+
+    private function processState4($manufacturing, $data)
+    {
+        $components = BomsComponent::where('bom_id', $data['bom_id'])->get();
+
+        foreach ($components as $component) {
+            $material = Material::find($component->material_id);
+            $toConsume = $manufacturing->qty * $component->material_qty;
+
+            $moComponent = MoComponent::where([
+                'mo_id' => $manufacturing->mo_id,
+                'material_id' => $component->material_id,
+            ])->first();
+
+            $consumed = ($moComponent && $moComponent->reserved >= $toConsume) ? $toConsume : $moComponent->reserved;
+
+            MoComponent::updateOrCreate(
+                [
+                    'mo_id' => $manufacturing->mo_id,
+                    'material_id' => $component->material_id,
+                ],
+                [
+                    'consumed' => $consumed,
                 ]
-            ], 201);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Manufacturing Order Creation Failed: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to Update Manufacturing Order',
-                'error' => $e->getMessage()
-            ], 500);
+            );
         }
     }
-    
+
+    private function processState5($manufacturing, $data)
+    {
+        $manufacturing->update([
+            'product_id' => $data['product_id'],
+            'qty' => $data['qty'],
+            'bom_id' => $data['bom_id'],
+            'state' => $data['state'],
+            'status' => 'success',
+        ]);
+
+        $components = BomsComponent::where('bom_id', $data['bom_id'])->get();
+        foreach ($components as $component) {
+            $material = Material::find($component->material_id);
+            $moComponent = MoComponent::where([
+                'mo_id' => $manufacturing->mo_id,
+                'material_id' => $component->material_id,
+            ])->first();
+
+            if ($moComponent) {
+                $toConsume = $moComponent->to_consume;
+                if ($moComponent->consumed < $toConsume) {
+                    $reserved = min($toConsume, $moComponent->reserved);
+                    $moComponent->consumed = $reserved;
+                    $moComponent->save();
+                }
+
+                if ($moComponent->consumed == $toConsume) {
+                    $material->stock -= $toConsume;
+                    $material->save();
+                }
+            }
+        }
+
+        $allConsumed = MoComponent::where('mo_id', $manufacturing->mo_id)
+            ->whereColumn('consumed', '<', 'to_consume')
+            ->doesntExist();
+
+        if ($allConsumed) {
+            $product = $manufacturing->product;
+            $product->stock += $manufacturing->qty;
+            $product->save();
+        }
+    }
+
+    private function successResponse($manufacturing)
+    {
+        return response()->json([
+            'success' => true,
+            'message' => 'Manufacturing Order Successfully Updated',
+            'data' => [
+                'id' => $manufacturing->mo_id,
+                'reference' => $manufacturing->reference,
+                'qty' => $manufacturing->qty,
+                'bom_id' => $manufacturing->bom_id,
+                'product' => [
+                    'id' => $manufacturing->product->product_id,
+                    'name' => $manufacturing->product->product_name,
+                    'cost' => $manufacturing->product->cost,
+                    'sales_price' => $manufacturing->product->sales_price,
+                    'barcode' => $manufacturing->product->barcode,
+                    'internal_reference' => $manufacturing->product->internal_reference,
+                ],
+                'state' => $manufacturing->state,
+                'status' => $manufacturing->status,
+                'mo_components' => $manufacturing->mo->unique('material_id')->map(function ($component) {
+                    return [
+                        'material' => [
+                            'id' => $component->material->material_id,
+                            'name' => $component->material->material_name,
+                            'cost' => $component->material->cost,
+                            'sales_price' => $component->material->sales_price,
+                            'barcode' => $component->material->barcode,
+                            'internal_reference' => $component->material->internal_reference,
+                        ],
+                        'to_consume' => $component->to_consume,
+                        'reserved' => $component->reserved,
+                        'consumed' => $component->consumed,
+                    ];
+                })
+            ]
+        ], 201);
+    }
+
+
     public function destroy($id)
     {
         $mo = ManufacturingOrder::find($id);

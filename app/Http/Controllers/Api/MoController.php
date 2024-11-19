@@ -289,7 +289,7 @@ class MoController extends Controller
             DB::commit();
             return response()->json([
                 'success' => true,
-                'message' => 'Manufacturing Order Created Successfully',
+                'message' => 'Manufacturing Order Successfully Updated',
                 'data' => [
                     'id' => $manufacturing->mo_id,
                     'reference' => $manufacturing->reference,
@@ -327,7 +327,7 @@ class MoController extends Controller
             Log::error('Manufacturing Order Creation Failed: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to create Manufacturing Order',
+                'message' => 'Failed to Update Manufacturing Order',
                 'error' => $e->getMessage()
             ], 500);
         }

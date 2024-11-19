@@ -177,14 +177,16 @@ class MoController extends Controller
                     'status' => $manufacturing->status,
                     'mo_component' => $manufacturing->mo->unique('material_id')->map(function ($component) {
                         return [
-                            'id' => $component->material->material_id,
-                            'name' => $component->material->material_name,
-                            'cost' => $component->material->cost,
-                            'sales_price' => $component->material->sales_price,
-                            'barcode' => $component->material->barcode,
-                            'internal_reference' => $component->material->internal_reference,
-                            'to_consume' => $component->to_consume,  // Move to_consume inside material
-                            'reserved' => $component->reserved,      // Move reserved inside material
+                           'material' => [
+                                'id' => $component->material->material_id,
+                                'name' => $component->material->material_name,
+                                'cost' => $component->material->cost,
+                                'sales_price' => $component->material->sales_price,
+                                'barcode' => $component->material->barcode,
+                                'internal_reference' => $component->material->internal_reference,
+                            ],
+                            'to_consume' => $component->to_consume,
+                            'reserved' => $component->reserved,
                             'consumed' => $component->consumed,
                         ];
                     })
@@ -409,14 +411,16 @@ class MoController extends Controller
                 'status' => $manufacturing->status,
                 'mo_components' => $manufacturing->mo->unique('material_id')->map(function ($component) {
                     return [
-                        'id' => $component->material->material_id,
-                        'name' => $component->material->material_name,
-                        'cost' => $component->material->cost,
-                        'sales_price' => $component->material->sales_price,
-                        'barcode' => $component->material->barcode,
-                        'internal_reference' => $component->material->internal_reference,
-                        'to_consume' => $component->to_consume,  // Move to_consume inside material
-                        'reserved' => $component->reserved,      // Move reserved inside material
+                        'material' => [
+                            'id' => $component->material->material_id,
+                            'name' => $component->material->material_name,
+                            'cost' => $component->material->cost,
+                            'sales_price' => $component->material->sales_price,
+                            'barcode' => $component->material->barcode,
+                            'internal_reference' => $component->material->internal_reference,
+                        ],
+                        'to_consume' => $component->to_consume,
+                        'reserved' => $component->reserved,
                         'consumed' => $component->consumed,
                     ];
                 })

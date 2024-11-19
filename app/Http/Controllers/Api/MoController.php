@@ -242,11 +242,13 @@ class MoController extends Controller
                 case 1:
                     $manufacturing->update([
                         'state' => $data['state'],
+                        'status' => $data['status'] ?? 'process'
                     ]);
                     break;
                 case 2:
                     $manufacturing->update([
                         'state' => $data['state'],
+                        'status' => $data['status'] ?? 'process'
                     ]);
                     break;
                 case 3:
@@ -343,7 +345,8 @@ class MoController extends Controller
                 ]
             );
             $manufacturing->update([
-                'state' => $data['state']
+                'state' => $data['state'],
+                'status' => $data['status'] ?? 'process'
             ]);
         }
     }

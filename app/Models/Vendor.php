@@ -10,7 +10,7 @@ class Vendor extends Model
     use HasFactory;
     protected $table = 'vendors';
     protected $fillable = [
-        'vendor_type',
+        'type',
         'name',
         'street',
         'city',

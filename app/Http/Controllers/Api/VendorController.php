@@ -17,7 +17,7 @@ class VendorController extends Controller
             return [
                 'id' => $vendor->id,
                 'name' => $vendor->name,
-                'type' => $vendor->vendor_type, 
+                'type' => $vendor->type, 
                 'street' => $vendor->street,
                 'city' => $vendor->city,
                 'state' => $vendor->state,
@@ -81,7 +81,7 @@ class VendorController extends Controller
 
         $vendor = Vendor::create([
             'name' => $data['name'],
-            'type' => $data['vendor_type'],
+            'type' => $data['type'],
             'street' => $data['street'],
             'city' => $data['city'],
             'state' => $data['state'],
@@ -99,7 +99,7 @@ class VendorController extends Controller
             'data' => [
                 'id' => $vendor->id,
                 'name' => $vendor->name,
-                'type' => $vendor->vendor_type,
+                'type' => $vendor->type,
                 'street' => $vendor->street,
                 'city' => $vendor->city,
                 'state' => $vendor->state,
@@ -131,7 +131,7 @@ class VendorController extends Controller
             'data' => [
                 'id' => $vendor->id,
                 'name' => $vendor->name,
-                'type' => $vendor->vendor_type,
+                'type' => $vendor->type,
                 'street' => $vendor->street,
                 'city' => $vendor->city,
                 'state' => $vendor->state,
@@ -172,7 +172,7 @@ class VendorController extends Controller
 
         $vendor->update([
             'name' => $data['name'],
-            'type' => $data['vendor_type'], 
+            'type' => $data['type'], 
             'street' => $data['street'],
             'city' => $data['city'],
             'state' => $data['state'],
@@ -190,7 +190,7 @@ class VendorController extends Controller
             'data' => [
                 'id' => $vendor->id,
                 'name' => $vendor->name,
-                'type' => $vendor->vendor_type,
+                'type' => $vendor->type,
                 'street' => $vendor->street,
                 'city' => $vendor->city,
                 'state' => $vendor->state,

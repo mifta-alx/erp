@@ -19,6 +19,7 @@ return new class extends Migration
             $table->foreign('rfq_section_id')->references('rfq_section_id')->on('rfq_sections')->onDelete('cascade');
             $table->unsignedBigInteger('material_id');
             $table->foreign('material_id')->references('material_id')->on('materials')->onDelete('cascade');
+            $table->string('description')->nullable();
             $table->double('qty');
             $table->double('unit_price');
             $table->double('tax');

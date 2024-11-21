@@ -13,17 +13,17 @@ return new class extends Migration
     {
         Schema::create('vendors', function (Blueprint $table) {
             $table->id('vendor_id');
-            $table->string('type');
+            $table->integer('type')->default(1);
             $table->string('name');
             $table->string('street');
             $table->string('city');
             $table->string('state');
             $table->string('zip', 10);
             $table->string('phone', 15);
-            $table->string('mobile', 15)->nullable();
+            $table->string('mobile', 15);
             $table->string('email')->unique();
-            $table->string('image_url')->nullable();
-            $table->string('image_uuid')->nullable();
+            $table->string('image_url');
+            $table->string('image_uuid');
             $table->timestamps();
         });
     }

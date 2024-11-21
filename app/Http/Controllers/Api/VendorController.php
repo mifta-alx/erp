@@ -7,6 +7,8 @@ use App\Models\Image;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class VendorController extends Controller
@@ -44,28 +46,23 @@ class VendorController extends Controller
     {
         return Validator::make($request->all(), [
             'name' => 'required|string',
-            'type' => 'required|string',
             'email' => [
-            'required',
-            'email',
-            Rule::unique('vendors', 'email')->ignore($id, 'vendor_id'),
-        ],
-            'phone' => 'required|string',
-            'mobile' => 'required',
+                'required',
+                'email',
+                Rule::unique('vendors', 'email')->ignore($id, 'vendor_id'),
+            ],
             'street' => 'required',
             'city' => 'required',
             'state' => 'required',
-            'zip' => 'required',
+            'image_uuid' => 'required|string|exists:images,image_uuid',
 
         ], [
             'name.required' => 'Vendor Name Must Be Filled',
-            'type.required' => 'Vendor Type Must Be Filled',
             'email.required' => 'Email Must Be Filled',
-            'phone.required' => 'Phone Must Be Filled',
             'street.required' => 'Street Must Be Filled',
             'city.required' => 'City Must Be Filled',
             'state.required' => 'State Must Be Filled',
-            'zip.required' => 'Zip Must Be Filled',
+            'image_uuid.required' => 'Image Must Be Filled',
         ]);
     }
 
@@ -220,6 +217,13 @@ class VendorController extends Controller
                 'message' => 'Vendor not found'
             ], 404);
         }
+
+        $imageUuid = $vendor->image_uuid;
+        $image = Image::where('image_uuid', $imageUuid)->first();
+        if ($image) {
+            Storage::delete('public/images/' . $image->image);
+        }
+        DB::table('images')->where('image_uuid', $imageUuid)->delete();
         $vendor->delete();
 
         return response()->json([

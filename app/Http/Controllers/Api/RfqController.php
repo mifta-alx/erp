@@ -26,8 +26,10 @@ class RfqController extends Controller
                     'rfq' => [
                         'id' => $item->rfq_id,
                         'reference' => $item->reference,
-                        'vendor_id' => $item->vendor_id,
-                        'vendor_reference' => $item->vendor_reference,
+                        'vendor' => [
+                            'id' => $item->vendor_id,
+                            'reference' => $item->vendor_reference,
+                        ],
                         'order_date' => $item->order_date,
                         'state' => $item->state,
                         'taxes' => $item->taxes,
@@ -77,8 +79,10 @@ class RfqController extends Controller
                 'rfq' => [
                     'id' => $rfq->rfq_id,
                     'reference' => $rfq->reference,
-                    'vendor_id' => $rfq->vendor_id,
-                    'vendor_reference' => $rfq->vendor_reference,
+                    'vendor' => [
+                        'id' => $rfq->vendor_id,
+                        'reference' => $rfq->vendor_reference,
+                    ],
                     'order_date' => $rfq->order_date,
                     'state' => $rfq->state,
                     'taxes' => $rfq->taxes,
@@ -145,7 +149,7 @@ class RfqController extends Controller
             $referenceNumberPadded = str_pad($referenceNumber, 5, '0', STR_PAD_LEFT);
             $reference = "P{$referenceNumberPadded}";
 
-            $orderDate = Carbon::parse($data['order_date'])->timezone('Asia/Jakarta'); 
+            $orderDate = Carbon::parse($data['order_date'])->timezone('UTC')->toIso8601String();
             $rfq = Rfq::create([
                 'vendor_id' => $data['vendor_id'],
                 'reference' => $reference,
@@ -175,7 +179,7 @@ class RfqController extends Controller
                 $sections[] = $rfqSection;
             }
             foreach ($data['rfq_components'] as $component) {
-                $sectionId = $component['section_id'] ?? $sections[0]->rfq_section_id; 
+                $sectionId = $component['section_id'] ?? $sections[0]->rfq_section_id;
                 RfqComponent::create([
                     'rfq_id' => $rfq->rfq_id,
                     'rfq_section_id' => $sectionId,
@@ -196,8 +200,10 @@ class RfqController extends Controller
                     'rfq' => [
                         'id' => $rfq->rfq_id,
                         'reference' => $rfq->reference,
-                        'vendor_id' => $rfq->vendor_id,
-                        'vendor_reference' => $rfq->vendor_reference,
+                        'vendor' => [
+                            'id' => $rfq->vendor_id,
+                            'reference' => $rfq->vendor_reference,
+                        ],
                         'order_date' => $rfq->order_date,
                         'state' => $rfq->state,
                         'taxes' => $rfq->taxes,

@@ -54,9 +54,9 @@ class VendorController extends Controller
             'street' => 'required',
             'city' => 'required',
             'state' => 'required',
-            'zip' => 'numeric',
-            'phone' => 'numeric',
-            'mobile' => 'numeric',
+            'zip' => 'nullable|numeric',
+            'phone' => 'nullable|numeric',
+            'mobile' => 'nullable|numeric',
             'image_uuid' => 'required|string|exists:images,image_uuid',
 
         ], [
@@ -65,9 +65,9 @@ class VendorController extends Controller
             'street.required' => 'Street Must Be Filled',
             'city.required' => 'City Must Be Filled',
             'state.required' => 'State Must Be Filled',
-            'zip' => 'Zip must be a numeric',
-            'phone' => 'Phone must be a numeric',
-            'mobile' => 'Mobile must be a numeric',
+            'zip.numeric' => 'Zip must be a numeric',
+            'phone.numeric' => 'Phone must be a numeric',
+            'mobile.numeric' => 'Mobile must be a numeric',
             'image_uuid.required' => 'Image Must Be Filled',
         ]);
     }

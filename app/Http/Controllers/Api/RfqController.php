@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Rfq;
 use App\Models\RfqComponent;
 use App\Models\RfqSection;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -144,12 +145,12 @@ class RfqController extends Controller
             $referenceNumberPadded = str_pad($referenceNumber, 5, '0', STR_PAD_LEFT);
             $reference = "P{$referenceNumberPadded}";
 
-            // Buat RFQ terlebih dahulu
+            $orderDate = Carbon::parse($data['order_date'])->timezone('Asia/Jakarta'); 
             $rfq = Rfq::create([
                 'vendor_id' => $data['vendor_id'],
                 'reference' => $reference,
                 'vendor_reference' => $data['vendor_reference'],
-                'order_date' => $data['order_date'],
+                'order_date' => $orderDate,
                 'state' => $data['state'],
                 'taxes' => 0,
                 'total' => 0,

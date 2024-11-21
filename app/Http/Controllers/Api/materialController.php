@@ -8,6 +8,8 @@ use App\Http\Resources\MaterialResource;
 use App\Models\Image;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class MaterialController extends Controller
 {
@@ -249,6 +251,14 @@ class MaterialController extends Controller
                 'message' => 'Material not found'
             ], 404);
         }
+
+        $imageUuid = $material->image_uuid;  
+        $image = Image::where('image_uuid', $imageUuid)->first();
+        if($image){
+            Storage::delete('public/images/'. $image->image);
+        }
+        DB::table('images')->where('image_uuid', $imageUuid)->delete();
+
         $material->delete();
         return new MaterialResource(true, 'Data Deleted Successfully', []);
     }

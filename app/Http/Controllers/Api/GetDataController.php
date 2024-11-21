@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Bom;
 use App\Models\Category;
+use App\Models\ManufacturingOrder;
 use App\Models\Material;
 use App\Models\Product;
 use App\Models\Tag;
@@ -22,6 +23,8 @@ class GetDataController extends Controller
         $includeTags = $request->has('tags');
         $includeBoms = $request->has('boms');
         $includeVendors = $request->has('vendors');
+        $includeMo = $request->has('mos');
+        // $includeRfq = $request->has('rfqs');
 
         $products = Product::with('category', 'tag')->orderBy('created_at', 'ASC')->get();
         $productData = $products->map(function ($product) {
@@ -127,20 +130,55 @@ class GetDataController extends Controller
         $vendors = Vendor::orderBy('created_at', 'ASC')->get();
         $vendorData = $vendors->map(function ($vendor) {
             return [
-                'vendor_id' => $vendor->id,
-                'vendor_name' => $vendor->name,
-                'vendor_type' => $vendor->vendor_type,
-                'vendor_street' => $vendor->street,
-                'vendor_city' => $vendor->city,
-                'vendor_state' => $vendor->state,
-                'vendor_zip' => $vendor->zip,
-                'vendor_phone' => $vendor->phone,
-                'vendor_mobile' => $vendor->mobile,
-                'vendor_email' => $vendor->email,
+                'id' => $vendor->vendor_id,
+                'name' => $vendor->name,
+                'type' => $vendor->vendor_type,
+                'street' => $vendor->street,
+                'city' => $vendor->city,
+                'state' => $vendor->state,
+                'zip' => $vendor->zip,
+                'phone' => $vendor->phone,
+                'mobile' => $vendor->mobile,
+                'email' => $vendor->email,
                 'image_uuid' => $vendor->image_uuid,
                 'image_url' => $vendor->image_url,
                 'created_at' => $vendor->created_at,
                 'updated_at' => $vendor->updated_at
+            ];
+        });
+
+        $mo = ManufacturingOrder::orderBy('created_at', 'DESC')->get();
+        $MoData = $mo->map(function ($order) {
+            return [
+                'id' => $order->mo_id,
+                'reference' => $order->reference,
+                'qty' => $order->qty,
+                'bom_id' => $order->bom_id,
+                'product' => [
+                    'id' => $order->product->product_id,
+                    'name' => $order->product->product_name,
+                    'cost' => $order->product->cost,
+                    'sales_price' => $order->product->sales_price,
+                    'barcode' => $order->product->barcode,
+                    'internal_reference' => $order->product->internal_reference,
+                ],
+                'state' => $order->state,
+                'status' => $order->status,
+                'mo_components' => $order->mo ? $order->mo->unique('material_id')->map(function ($component) {
+                    return [
+                        'material' => [
+                            'id' => $component->material->material_id,
+                            'name' => $component->material->material_name,
+                            'cost' => $component->material->cost,
+                            'sales_price' => $component->material->sales_price,
+                            'barcode' => $component->material->barcode,
+                            'internal_reference' => $component->material->internal_reference,
+                        ],
+                        'to_consume' => $component->to_consume,
+                        'reserved' => $component->reserved,
+                        'consumed' => $component->consumed,
+                    ];
+                }) : [],
             ];
         });
 
@@ -173,6 +211,14 @@ class GetDataController extends Controller
         if ($includeVendors) {
             $response['data']['vendors'] = $vendorData;
         }
+
+        if ($includeMo){
+            $response['data']['manufacturing_orders'] = $MoData;
+        }
+
+        // if ($includeRfq){
+        //     $response['data']['rfq'] = $rfqData;
+        // }
 
         return response()->json($response);
     }

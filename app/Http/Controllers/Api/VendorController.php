@@ -15,7 +15,7 @@ class VendorController extends Controller
         $vendors = Vendor::orderBy('created_at', 'ASC')->get();
         $vendorData = $vendors->map(function ($vendor) {
             return [
-                'id' => $vendor->id,
+                'id' => $vendor->vendor_id,
                 'name' => $vendor->name,
                 'type' => $vendor->type, 
                 'street' => $vendor->street,
@@ -39,12 +39,12 @@ class VendorController extends Controller
         ]);
     }
 
-    private function validateVendor(Request $request, $id = null)
+    private function validateVendor(Request $request)
     {
         return Validator::make($request->all(), [
             'name' => 'required|string',
             'type' => 'required|string', 
-            'email' => ['required', 'email', 'unique:vendors,email,' . $id],
+            'email' => ['required', 'email', 'unique:vendors,email,'.',vendor_id'], 
             'phone' => 'required|string',
             'mobile' => 'required',
             'street' => 'required',
@@ -97,7 +97,7 @@ class VendorController extends Controller
             'success' => true,
             'message' => 'Vendor Data Successfully Added',
             'data' => [
-                'id' => $vendor->id,
+                'id' => $vendor->vendor_id,
                 'name' => $vendor->name,
                 'type' => $vendor->type,
                 'street' => $vendor->street,
@@ -129,7 +129,7 @@ class VendorController extends Controller
             'success' => true,
             'message' => 'Vendor Data',
             'data' => [
-                'id' => $vendor->id,
+                'id' => $vendor->vendor_id,
                 'name' => $vendor->name,
                 'type' => $vendor->type,
                 'street' => $vendor->street,
@@ -188,7 +188,7 @@ class VendorController extends Controller
             'success' => true,
             'message' => 'Vendor Data Successfully Updated',
             'data' => [
-                'id' => $vendor->id,
+                'id' => $vendor->vendor_id,
                 'name' => $vendor->name,
                 'type' => $vendor->type,
                 'street' => $vendor->street,

@@ -14,6 +14,7 @@ class RfqComponent extends Model
         'rfq_id',
         'rfq_section_id',
         'material_id',
+        'description',
         'qty',
         'unit_price',
         'tax',

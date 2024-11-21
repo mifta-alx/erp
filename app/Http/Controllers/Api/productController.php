@@ -9,6 +9,8 @@ use App\Models\Image;
 use App\Models\Tag;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Number;
 
 class ProductController extends Controller
@@ -96,7 +98,7 @@ class ProductController extends Controller
                 'notes' => $data['notes'],
                 'image_uuid' => $image->image_uuid,
                 'image_url' => $imageUrl,
-                'stock' => $data['stock']??0,
+                'stock' => $data['stock'] ?? 0,
             ]);
 
             $product->tag()->sync($data['tags']);
@@ -198,7 +200,7 @@ class ProductController extends Controller
                 'notes' => $data['notes'],
                 'image_uuid' => $imageUuid,
                 'image_url' => $data['image_url'],
-                'stock' => $data['stock']??0,
+                'stock' => $data['stock'] ?? 0,
             ]);
 
             $product->tag()->sync($data['tags']);
@@ -244,7 +246,16 @@ class ProductController extends Controller
                 'message' => 'Product not found'
             ], 404);
         }
+
+        $imageUuid = $product->image_uuid;  
+        $image = Image::where('image_uuid', $imageUuid)->first();
+        if($image){
+            Storage::delete('public/images/'. $image->image);
+        }
+        DB::table('images')->where('image_uuid', $imageUuid)->delete();
+
         $product->delete();
+
         return new ProductResource(true, 'Data Deleted Successfully', []);
     }
 }

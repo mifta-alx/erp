@@ -7,6 +7,7 @@ use App\Models\Image;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class VendorController extends Controller
 {
@@ -17,7 +18,7 @@ class VendorController extends Controller
             return [
                 'id' => $vendor->vendor_id,
                 'name' => $vendor->name,
-                'type' => $vendor->type, 
+                'type' => $vendor->type,
                 'street' => $vendor->street,
                 'city' => $vendor->city,
                 'state' => $vendor->state,
@@ -39,12 +40,16 @@ class VendorController extends Controller
         ]);
     }
 
-    private function validateVendor(Request $request)
+    private function validateVendor(Request $request, $id = null)
     {
         return Validator::make($request->all(), [
             'name' => 'required|string',
-            'type' => 'required|string', 
-            'email' => ['required', 'email', 'unique:vendors,email,'.',vendor_id'], 
+            'type' => 'required|string',
+            'email' => [
+            'required',
+            'email',
+            Rule::unique('vendors', 'email')->ignore($id, 'vendor_id'),
+        ],
             'phone' => 'required|string',
             'mobile' => 'required',
             'street' => 'required',
@@ -62,7 +67,7 @@ class VendorController extends Controller
             'state.required' => 'State Must Be Filled',
             'zip.required' => 'Zip Must Be Filled',
         ]);
-    }    
+    }
 
     public function store(Request $request)
     {
@@ -158,7 +163,7 @@ class VendorController extends Controller
                 'message' => 'Vendor not found'
             ], 404);
         }
-        $validator = $this->validateVendor($request, $id);
+        $validator = $this->validateVendor($request, $vendor->vendor_id);
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
@@ -172,7 +177,7 @@ class VendorController extends Controller
 
         $vendor->update([
             'name' => $data['name'],
-            'type' => $data['type'], 
+            'type' => $data['type'],
             'street' => $data['street'],
             'city' => $data['city'],
             'state' => $data['state'],

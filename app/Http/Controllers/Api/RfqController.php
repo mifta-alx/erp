@@ -16,55 +16,44 @@ class RfqController extends Controller
 {
     public function index()
     {
-        $rfq = Rfq::orderBy('created_at', 'DESC')->get();
+        $rfq = Rfq::with(['vendor', 'rfqSection.rfqComponent.material'])->orderBy('created_at', 'DESC')->get();
 
         return response()->json([
             'success' => true,
-            'message' => 'List Data RFQ',
+            'message' => 'RFQ Data List',
             'data' => $rfq->map(function ($item) {
                 return [
-                    'rfq' => [
-                        'id' => $item->rfq_id,
-                        'reference' => $item->reference,
-                        'vendor' => [
-                            'id' => $item->vendor_id,
-                            'name' => $item->vendor->name,
-                        ],
-                        'vendor_reference' => $item->vendor_reference,
-                        'order_date' => $item->order_date,
-                        'order_date' => $item->order_date,
-                        'state' => $item->state,
-                        'taxes' => $item->taxes,
-                        'total' => $item->total,
-                    ],
-                    'rfq_section' => $item->rfqSection->map(function ($section) {
+                    'id' => $item->rfq_id,
+                    'reference' =>  $item->reference,
+                    'vendor_id' => $item->vendor_id,
+                    'vendor_reference' => $item->vendor_reference,
+                    'order_date' => $item->order_date,
+                    'state' => $item->state,
+                    'taxes' => $item->taxes,
+                    'total' => $item->total,
+                    'items' => $item->rfqSection->map(function ($section) {
                         return [
-                            'id' => $section->rfq_section_id,
-                            'rfq_id' => $section->rfq_id,
-                            'description' => $section->description,
-                        ];
-                    }),
-                    'rfq_components' => $item->rfqComponent->map(function ($component) {
-                        return [
-                            'id' => $component->rfq_component_id,
-                            'rfq_id' => $component->rfq_id,
-                            'section_id' => $component->rfq_section_id,
-                            'material' => [
-                                'id' => $component->material_id,
-                                'reference' => $component->material->internal_reference,
-                                'name' => $component->material->material_name,
-                                'description' => $component->description,
-                                'qty' => $component->qty,
-                                'unit_price' => $component->unit_price,
-                                'tax' => $component->tax,
-                                'subtotal' => $component->subtotal,
-                            ],
+                            'section_id' => $section->rfq_section_id,
+                            'section_description' => $section->description,
+                            'materials' => $section->rfqComponent->map(function ($component) {
+                                return [
+                                    'material_id' => $component->material_id,
+                                    'material_reference' => $component->material->internal_reference,
+                                    'material_name' => $component->material->material_name,
+                                    'material_description' => $component->description,
+                                    'qty' => $component->qty,
+                                    'unit_price' => $component->unit_price,
+                                    'tax' => $component->tax,
+                                    'subtotal' => $component->subtotal,
+                                ];
+                            }),
                         ];
                     }),
                 ];
             }),
         ]);
     }
+
     public function show($id)
     {
         $rfq = Rfq::with(['rfqSection', 'rfqComponent.material'])->find($id);
@@ -78,47 +67,35 @@ class RfqController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'RFQ Details',
+            'message' => 'RFQ Data List',
             'data' => [
-                'rfq' => [
-                    'id' => $rfq->rfq_id,
-                    'reference' => $rfq->reference,
-                    'vendor' => [
-                            'id' => $rfq->vendor_id,
-                            'name' => $rfq->vendor->name,
-                        ],
-                        'vendor_reference' => $rfq->vendor_reference,
-                        'order_date' => $rfq->order_date,
-                    'order_date' => $rfq->order_date,
-                    'state' => $rfq->state,
-                    'taxes' => $rfq->taxes,
-                    'total' => $rfq->total,
-                ],
-                'rfq_section' => $rfq->rfqSection->map(function ($section) {
+                'id' => $rfq->rfq_id,
+                'reference' =>  $rfq->reference,
+                'vendor_id' => $rfq->vendor_id,
+                'vendor_reference' => $rfq->vendor_reference,
+                'order_date' => $rfq->order_date,
+                'state' => $rfq->state,
+                'taxes' => $rfq->taxes,
+                'total' => $rfq->total,
+                'items' => $rfq->rfqSection->map(function ($section) {
                     return [
-                        'id' => $section->rfq_section_id,
-                        'rfq_id' => $section->rfq_id,
-                        'description' => $section->description,
+                        'section_id' => $section->rfq_section_id,
+                        'section_description' => $section->description,
+                        'materials' => $section->rfqComponent->map(function ($component) {
+                            return [
+                                'material_id' => $component->material_id,
+                                'material_reference' => $component->material->internal_reference,
+                                'material_name' => $component->material->material_name,
+                                'material_description' => $component->description,
+                                'qty' => $component->qty,
+                                'unit_price' => $component->unit_price,
+                                'tax' => $component->tax,
+                                'subtotal' => $component->subtotal,
+                            ];
+                        }),
                     ];
                 }),
-                'rfq_components' => $rfq->rfqComponent->map(function ($component) {
-                    return [
-                        'id' => $component->rfq_component_id,
-                        'rfq_id' => $component->rfq_id,
-                        'section_id' => $component->rfq_section_id,
-                        'material' => [
-                            'id' => $component->material_id,
-                            'reference' => $component->material->internal_reference,
-                            'name' => $component->material->material_name,
-                            'description' => $component->description,
-                            'qty' => $component->qty,
-                            'unit_price' => $component->unit_price,
-                            'tax' => $component->tax,
-                            'subtotal' => $component->subtotal,
-                        ],
-                    ];
-                }),
-            ],
+            ]
         ]);
     }
 
@@ -204,46 +181,35 @@ class RfqController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'RFQ Created Successfully',
+                'message' => 'RFQ Data List',
                 'data' => [
-                    'rfq' => [
-                        'id' => $rfq->rfq_id,
-                        'reference' => $rfq->reference,
-                        'vendor' => [
-                            'id' => $rfq->vendor_id,
-                            'name' => $rfq->vendor->name,
-                        ],
-                        'vendor_reference' => $rfq->vendor_reference,
-                        'order_date' => $rfq->order_date,
-                        'state' => $rfq->state,
-                        'taxes' => $rfq->taxes,
-                        'total' => $rfq->total,
-                    ],
-                    'rfq_section' => $rfq->rfqSection->map(function ($section) {
+                    'id' => $rfq->rfq_id,
+                    'reference' =>  $rfq->reference,
+                    'vendor_id' => $rfq->vendor_id,
+                    'vendor_reference' => $rfq->vendor_reference,
+                    'order_date' => $rfq->order_date,
+                    'state' => $rfq->state,
+                    'taxes' => $rfq->taxes,
+                    'total' => $rfq->total,
+                    'items' => $rfq->rfqSection->map(function ($section) {
                         return [
-                            'id' => $section->rfq_section_id,
-                            'rfq_id' => $section->rfq_id,
-                            'description' => $section->description,
+                            'section_id' => $section->rfq_section_id,
+                            'section_description' => $section->description,
+                            'materials' => $section->rfqComponent->map(function ($component) {
+                                return [
+                                    'material_id' => $component->material_id,
+                                    'material_reference' => $component->material->internal_reference,
+                                    'material_name' => $component->material->material_name,
+                                    'material_description' => $component->description,
+                                    'qty' => $component->qty,
+                                    'unit_price' => $component->unit_price,
+                                    'tax' => $component->tax,
+                                    'subtotal' => $component->subtotal,
+                                ];
+                            }),
                         ];
                     }),
-                    'rfq_components' => $rfq->rfqComponent->map(function ($component) {
-                        return [
-                            'id' => $component->rfq_component_id,
-                            'rfq_id' => $component->rfq_id,
-                            'section_id' => $component->rfq_section_id,
-                            'material' => [
-                                'id' => $component->material_id,
-                                'reference' => $component->material->internal_reference,
-                                'name' => $component->material->material_name,
-                                'description' => $component->description,
-                                'qty' => $component->qty,
-                                'unit_price' => $component->unit_price,
-                                'tax' => $component->tax,
-                                'subtotal' => $component->subtotal,
-                            ],
-                        ];
-                    }),
-                ],
+                ]
             ]);
         } catch (\Exception $e) {
             DB::rollBack();

@@ -16,7 +16,12 @@ class RfqSection extends Model
         'description',
     ];
 
-    public function rfq(){
+    public function rfq()
+    {
         return $this->belongsTo(Rfq::class, 'rfq_id', 'rfq_id');
+    }
+    public function rfqComponent()
+    {
+        return $this->hasMany(RfqComponent::class, 'rfq_section_id', 'rfq_section_id');
     }
 }

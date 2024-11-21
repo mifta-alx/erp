@@ -22,3 +22,4 @@ Route::apiResource('/manufacturing-orders', App\Http\Controllers\Api\MoControlle
 Route::apiResource('/all-data', App\Http\Controllers\Api\DashboardController::class);
 Route::apiResource('/vendors', App\Http\Controllers\Api\VendorController::class);
 Route::apiResource('/init', App\Http\Controllers\Api\GetDataController::class);
+Route::apiResource('/rfqs', App\Http\Controllers\Api\RfqController::class);

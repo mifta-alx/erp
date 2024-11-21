@@ -9,6 +9,7 @@ class Vendor extends Model
 {
     use HasFactory;
     protected $table = 'vendors';
+    protected $primaryKey = 'vendor_id';
     protected $fillable = [
         'type',
         'name',
@@ -22,4 +23,8 @@ class Vendor extends Model
         'image_url',
         'image_uuid',
     ];
+
+    public function rfq(){
+        return $this->hasMany(Rfq::class, 'vendor_id', 'vendor_id');
+    }
 }

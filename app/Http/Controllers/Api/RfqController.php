@@ -38,10 +38,10 @@ class RfqController extends Controller
                             'section_description' => $section->description,
                             'materials' => $section->rfqComponent->map(function ($component) {
                                 return [
-                                    'material_id' => $component->material_id,
-                                    'material_reference' => $component->material->internal_reference,
-                                    'material_name' => $component->material->material_name,
-                                    'material_description' => $component->description,
+                                    'id' => $component->material_id,
+                                    'reference' => $component->material->internal_reference,
+                                    'name' => $component->material->material_name,
+                                    'description' => $component->description,
                                     'qty' => $component->qty,
                                     'unit_price' => $component->unit_price,
                                     'tax' => $component->tax,
@@ -85,10 +85,10 @@ class RfqController extends Controller
                         'section_description' => $section->description,
                         'materials' => $section->rfqComponent->map(function ($component) {
                             return [
-                                'material_id' => $component->material_id,
-                                'material_reference' => $component->material->internal_reference,
-                                'material_name' => $component->material->material_name,
-                                'material_description' => $component->description,
+                                'id' => $component->material_id,
+                                'reference' => $component->material->internal_reference,
+                                'name' => $component->material->material_name,
+                                'description' => $component->description,
                                 'qty' => $component->qty,
                                 'unit_price' => $component->unit_price,
                                 'tax' => $component->tax,
@@ -125,7 +125,6 @@ class RfqController extends Controller
                 ], 422);
             }
 
-            // Menangani penomoran referensi RFQ
             $lastOrder = Rfq::orderBy('created_at', 'desc')->first();
             if ($lastOrder && $lastOrder->reference) {
                 $lastReferenceNumber = (int) substr($lastOrder->reference, 3);
@@ -200,10 +199,10 @@ class RfqController extends Controller
                             'section_description' => $section->description,
                             'materials' => $section->rfqComponent->map(function ($component) {
                                 return [
-                                    'material_id' => $component->material_id,
-                                    'material_reference' => $component->material->internal_reference,
-                                    'material_name' => $component->material->material_name,
-                                    'material_description' => $component->description,
+                                    'id' => $component->material_id,
+                                    'reference' => $component->material->internal_reference,
+                                    'name' => $component->material->material_name,
+                                    'description' => $component->description,
                                     'qty' => $component->qty,
                                     'unit_price' => $component->unit_price,
                                     'tax' => $component->tax,

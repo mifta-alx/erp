@@ -137,8 +137,8 @@ class RfqController extends Controller
                 'vendor_reference' => $data['vendor_reference'],
                 'order_date' => $orderDate,
                 'state' => $data['state'],
-                'taxes' => 0,
-                'total' => 0,
+                'taxes' => $data['taxes'],
+                'total' => $data['total'],
             ]);
 
             foreach ($data['items'] as $component) {
@@ -174,7 +174,6 @@ class RfqController extends Controller
             }
 
             DB::commit();
-
             return response()->json([
                 'success' => true,
                 'message' => 'RFQ Successfully Added',

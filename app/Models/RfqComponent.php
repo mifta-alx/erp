@@ -12,18 +12,17 @@ class RfqComponent extends Model
     protected $primaryKey = 'rfq_component_id';
     protected $fillable = [
         'rfq_id',
-        'rfq_section_id',
+        'display_type',
         'material_id',
         'description',
         'qty',
         'unit_price',
         'tax',
         'subtotal',
+        'qty_received',
+        'qty_to_invoice',
+        'qty_invoiced',
     ];
-
-    public function section(){
-        return $this->belongsTo(RfqSection::class, 'section_id', 'section_id');
-    }
 
     public function material(){
         return $this->belongsTo(Material::class, 'material_id', 'material_id');

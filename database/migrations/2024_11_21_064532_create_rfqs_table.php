@@ -17,10 +17,11 @@ return new class extends Migration
             $table->unsignedBigInteger('vendor_id');
             $table->foreign('vendor_id')->references('vendor_id')->on('vendors')->onDelete('cascade');
             $table->string('vendor_reference')->nullable();
-            $table->timestamp('order_date');
             $table->integer('state');
             $table->double('taxes');
             $table->double('total');
+            $table->timestamp('order_date');
+            $table->timestamp('confirmation_date')->nullable();
             $table->timestamps();
         });
     }

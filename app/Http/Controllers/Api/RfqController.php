@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Rfq;
 use App\Models\RfqComponent;
-use App\Models\RfqSection;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -16,11 +15,11 @@ class RfqController extends Controller
 {
     public function index()
     {
-        $rfq = Rfq::with(['vendor', 'rfqSection.rfqComponent.material'])->orderBy('created_at', 'DESC')->get();
+        $rfq = Rfq::orderBy('created_at', 'DESC')->get();
 
         return response()->json([
             'success' => true,
-            'message' => 'RFQ Data List',
+            'message' => 'List RFQ Data',
             'data' => $rfq->map(function ($item) {
                 return [
                     'id' => $item->rfq_id,
@@ -32,22 +31,20 @@ class RfqController extends Controller
                     'state' => $item->state,
                     'taxes' => $item->taxes,
                     'total' => $item->total,
-                    'items' => $item->rfqSection->map(function ($section) {
+                    'items' => $item->rfqComponent->map(function ($component) {
                         return [
-                            'section_id' => $section->rfq_section_id,
-                            'section_description' => $section->description,
-                            'materials' => $section->rfqComponent->map(function ($component) {
-                                return [
-                                    'id' => $component->material_id,
-                                    'reference' => $component->material->internal_reference,
-                                    'name' => $component->material->material_name,
-                                    'description' => $component->description,
-                                    'qty' => $component->qty,
-                                    'unit_price' => $component->unit_price,
-                                    'tax' => $component->tax,
-                                    'subtotal' => $component->subtotal,
-                                ];
-                            }),
+                            'type' => $component->display_type,
+                            'id' => $component->material_id,
+                            'reference' => $component->material->internal_reference ?? null,
+                            'name' => $component->material->material_name ?? null,
+                            'description' => $component->description,
+                            'qty' => $component->qty,
+                            'unit_price' => $component->unit_price,
+                            'tax' => $component->tax,
+                            'subtotal' => $component->subtotal,
+                            'qty_received' => $component->qty_received,
+                            'qty_to_invoice' =>  $component->qty_to_invoice,
+                            'qty_invoiced' =>  $component->qty_invoiced,
                         ];
                     }),
                 ];
@@ -57,7 +54,7 @@ class RfqController extends Controller
 
     public function show($id)
     {
-        $rfq = Rfq::with(['rfqSection', 'rfqComponent.material'])->find($id);
+        $rfq = Rfq::find($id);
 
         if (!$rfq) {
             return response()->json([
@@ -68,7 +65,7 @@ class RfqController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'RFQ Data List',
+            'message' => 'List RFQ Data',
             'data' => [
                 'id' => $rfq->rfq_id,
                 'reference' =>  $rfq->reference,
@@ -79,22 +76,20 @@ class RfqController extends Controller
                 'state' => $rfq->state,
                 'taxes' => $rfq->taxes,
                 'total' => $rfq->total,
-                'items' => $rfq->rfqSection->map(function ($section) {
+                'items' => $rfq->rfqComponent->map(function ($component) {
                     return [
-                        'section_id' => $section->rfq_section_id,
-                        'section_description' => $section->description,
-                        'materials' => $section->rfqComponent->map(function ($component) {
-                            return [
-                                'id' => $component->material_id,
-                                'reference' => $component->material->internal_reference,
-                                'name' => $component->material->material_name,
-                                'description' => $component->description,
-                                'qty' => $component->qty,
-                                'unit_price' => $component->unit_price,
-                                'tax' => $component->tax,
-                                'subtotal' => $component->subtotal,
-                            ];
-                        }),
+                        'type' => $component->display_type,
+                        'id' => $component->material_id,
+                        'reference' => $component->material->internal_reference ?? null,
+                        'name' => $component->material->material_name ?? null,
+                        'description' => $component->description,
+                        'qty' => $component->qty,
+                        'unit_price' => $component->unit_price,
+                        'tax' => $component->tax,
+                        'subtotal' => $component->subtotal,
+                        'qty_received' => $component->qty_received,
+                        'qty_to_invoice' =>  $component->qty_to_invoice,
+                        'qty_invoiced' =>  $component->qty_invoiced,
                     ];
                 }),
             ]
@@ -146,43 +141,43 @@ class RfqController extends Controller
                 'total' => 0,
             ]);
 
-            $rfqSections = $data['rfq_section'] ?? null;
-            $sections = [];
-
-            if ($rfqSections) {
-                foreach ($rfqSections as $section) {
-                    $rfqSection = RfqSection::create([
+            foreach ($data['items'] as $component) {
+                if ($component['type'] == 'material') {
+                    RfqComponent::create([
                         'rfq_id' => $rfq->rfq_id,
-                        'description' => $section['description'] ?? null,
+                        'display_type' => $component['type'],
+                        'material_id' => $component['material_id'],
+                        'description' => $component['description'],
+                        'qty' => $component['qty'],
+                        'unit_price' => $component['unit_price'],
+                        'tax' => $component['tax'],
+                        'subtotal' => $component['subtotal'],
+                        'qty_received' => $component['qty_received'] ?? 0,
+                        'qty_to_invoice' => $component['qty_to_invoice'] ?? 0,
+                        'qty_invoiced' => $component['qty_invoiced'] ?? 0,
                     ]);
-                    $sections[] = $rfqSection;
+                } else {
+                    RfqComponent::create([
+                        'rfq_id' => $rfq->rfq_id,
+                        'display_type' => $component['type'],
+                        'material_id' => null,
+                        'description' => $component['description'],
+                        'qty' => 0,
+                        'unit_price' => 0,
+                        'tax' => 0,
+                        'subtotal' => 0,
+                        'qty_received' => 0,
+                        'qty_to_invoice' => 0,
+                        'qty_invoiced' => 0,
+                    ]);
                 }
-            } else {
-                $rfqSection = RfqSection::create([
-                    'rfq_id' => $rfq->rfq_id,
-                    'description' => null,
-                ]);
-                $sections[] = $rfqSection;
-            }
-            foreach ($data['rfq_components'] as $component) {
-                $sectionId = $component['section_id'] ?? $sections[0]->rfq_section_id;
-                RfqComponent::create([
-                    'rfq_id' => $rfq->rfq_id,
-                    'rfq_section_id' => $sectionId,
-                    'material_id' => $component['material_id'],
-                    'description' => $component['description'],
-                    'qty' => $component['qty'],
-                    'unit_price' => $component['unit_price'],
-                    'tax' => $component['tax'],
-                    'subtotal' => $component['subtotal'],
-                ]);
             }
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
-                'message' => 'RFQ Data List',
+                'message' => 'RFQ Successfully Added',
                 'data' => [
                     'id' => $rfq->rfq_id,
                     'reference' =>  $rfq->reference,
@@ -193,22 +188,20 @@ class RfqController extends Controller
                     'state' => $rfq->state,
                     'taxes' => $rfq->taxes,
                     'total' => $rfq->total,
-                    'items' => $rfq->rfqSection->map(function ($section) {
+                    'items' => $rfq->rfqComponent->map(function ($component) {
                         return [
-                            'section_id' => $section->rfq_section_id,
-                            'section_description' => $section->description,
-                            'materials' => $section->rfqComponent->map(function ($component) {
-                                return [
-                                    'id' => $component->material_id,
-                                    'reference' => $component->material->internal_reference,
-                                    'name' => $component->material->material_name,
-                                    'description' => $component->description,
-                                    'qty' => $component->qty,
-                                    'unit_price' => $component->unit_price,
-                                    'tax' => $component->tax,
-                                    'subtotal' => $component->subtotal,
-                                ];
-                            }),
+                            'type' => $component->display_type,
+                            'id' => $component->material_id,
+                            'reference' => $component->material->internal_reference ?? null,
+                            'name' => $component->material->material_name ?? null,
+                            'description' => $component->description,
+                            'qty' => $component->qty,
+                            'unit_price' => $component->unit_price,
+                            'tax' => $component->tax,
+                            'subtotal' => $component->subtotal,
+                            'qty_received' => $component->qty_received,
+                            'qty_to_invoice' =>  $component->qty_to_invoice,
+                            'qty_invoiced' =>  $component->qty_invoiced,
                         ];
                     }),
                 ]
@@ -224,12 +217,26 @@ class RfqController extends Controller
         }
     }
 
-
-
     public function update(Request $request, $id)
     {
         DB::beginTransaction();
         try {
+            $data = $request->json()->all();
+            $validator = $this->validateRfq($request);
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation Failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+            $rfq = Rfq::find($id);
+            if (!$rfq) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'RFQ not found'
+                ], 404);
+            }
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('RFQ Update Failed: ' . $e->getMessage());

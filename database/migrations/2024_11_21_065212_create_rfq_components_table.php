@@ -15,15 +15,17 @@ return new class extends Migration
             $table->id('rfq_component_id');
             $table->unsignedBigInteger('rfq_id');
             $table->foreign('rfq_id')->references('rfq_id')->on('rfqs')->onDelete('cascade');
-            $table->unsignedBigInteger('rfq_section_id');
-            $table->foreign('rfq_section_id')->references('rfq_section_id')->on('rfq_sections')->onDelete('cascade');
-            $table->unsignedBigInteger('material_id');
+            $table->unsignedBigInteger('material_id')->nullable();
             $table->foreign('material_id')->references('material_id')->on('materials')->onDelete('cascade');
             $table->string('description')->nullable();
+            $table->string('display_type')->nullable();
             $table->double('qty');
             $table->double('unit_price');
             $table->double('tax');
             $table->double('subtotal');
+            $table->double('qty_received')->default(0);
+            $table->double('qty_to_invoice')->default(0);
+            $table->double('qty_invoiced')->default(0);
             $table->timestamps();
         });
     }

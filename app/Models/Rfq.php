@@ -25,11 +25,6 @@ class Rfq extends Model
         return $this->belongsTo(Vendor::class, 'vendor_id', 'vendor_id');
     }
 
-    public function rfqSection()
-    {
-        return $this->hasMany(RfqSection::class, 'rfq_id', 'rfq_id');
-    }
-
     public function rfqComponent(){
         return $this->hasMany(RfqComponent::class, 'rfq_id', 'rfq_id');
     }

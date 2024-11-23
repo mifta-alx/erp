@@ -19,7 +19,6 @@ class Rfq extends Model
         'taxes',
         'total',
         'confirmation_date'
-        ,
     ];
 
     public function vendor()

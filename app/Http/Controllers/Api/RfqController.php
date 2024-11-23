@@ -31,11 +31,12 @@ class RfqController extends Controller
                     'state' => $item->state,
                     'taxes' => $item->taxes,
                     'total' => $item->total,
+                    'confirmation_date' => $item->confirmation_date,
                     'items' => $item->rfqComponent->map(function ($component) {
                         return [
                             'type' => $component->display_type,
                             'id' => $component->material_id,
-                            'reference' => $component->material->internal_reference ?? null,
+                            'internal_reference' => $component->material->internal_reference ?? null,
                             'name' => $component->material->material_name ?? null,
                             'description' => $component->description,
                             'qty' => $component->qty,
@@ -76,11 +77,12 @@ class RfqController extends Controller
                 'state' => $rfq->state,
                 'taxes' => $rfq->taxes,
                 'total' => $rfq->total,
+                'confirmation_date' => $rfq->confirmation_date,
                 'items' => $rfq->rfqComponent->map(function ($component) {
                     return [
                         'type' => $component->display_type,
                         'id' => $component->material_id,
-                        'reference' => $component->material->internal_reference ?? null,
+                        'internal_reference' => $component->material->internal_reference ?? null,
                         'name' => $component->material->material_name ?? null,
                         'description' => $component->description,
                         'qty' => $component->qty,
@@ -131,11 +133,13 @@ class RfqController extends Controller
             $reference = "P{$referenceNumberPadded}";
 
             $orderDate = Carbon::parse($data['order_date'])->timezone('UTC')->toIso8601String();
+            $confirmDate = isset($data['confirmation_date']) ? Carbon::parse($data['confirmation_date'])->timezone('UTC')->toIso8601String() : null;
             $rfq = Rfq::create([
                 'vendor_id' => $data['vendor_id'],
                 'reference' => $reference,
                 'vendor_reference' => $data['vendor_reference'],
                 'order_date' => $orderDate,
+                'confirmation_date' => $confirmDate,
                 'state' => $data['state'],
                 'taxes' => $data['taxes'],
                 'total' => $data['total'],
@@ -187,11 +191,12 @@ class RfqController extends Controller
                     'state' => $rfq->state,
                     'taxes' => $rfq->taxes,
                     'total' => $rfq->total,
+                    'confirmation_date' => $rfq->confirmation_date,
                     'items' => $rfq->rfqComponent->map(function ($component) {
                         return [
                             'type' => $component->display_type,
                             'id' => $component->material_id,
-                            'reference' => $component->material->internal_reference ?? null,
+                            'internal_reference' => $component->material->internal_reference ?? null,
                             'name' => $component->material->material_name ?? null,
                             'description' => $component->description,
                             'qty' => $component->qty,

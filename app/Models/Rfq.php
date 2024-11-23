@@ -17,7 +17,8 @@ class Rfq extends Model
         'order_date',
         'state',
         'taxes',
-        'total'
+        'total',
+        'confirmation_date'
     ];
 
     public function vendor()

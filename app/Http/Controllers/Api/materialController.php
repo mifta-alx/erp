@@ -18,12 +18,10 @@ class MaterialController extends Controller
         $materials = Material::with('category', 'tag')->orderBy('created_at', 'ASC')->get();
         $materialData = $materials->map(function ($material) {
             return [
-                'material_id' => $material->material_id,
-                'material_name' => $material->material_name,
+                'id' => $material->material_id,
+                'name' => $material->material_name,
                 'category_id' => $material->category_id,
                 'category_name' => $material->category->category,
-                // 'sales_price' => number_format($material->sales_price, 2),
-                // 'cost' => number_format($material->cost, 2),
                 'sales_price' => $material->sales_price,
                 'cost' => $material->cost,
                 'barcode' => $material->barcode,
@@ -107,11 +105,11 @@ class MaterialController extends Controller
             $material->tag()->sync($data['tags']);
 
             $materialWithTag = Material::with('tag')->find($material->material_id);
-
             return new MaterialResource(true, 'Material Data Successfully Added', [
-                'material_id' => $materialWithTag->material_id,
-                'material_name' => $materialWithTag->material_name,
+                'id' => $materialWithTag->material_id,
+                'name' => $materialWithTag->material_name,
                 'category_id' => $materialWithTag->category_id,
+                'category_name' => $materialWithTag->category->category,
                 'sales_price' => $materialWithTag->sales_price,
                 'cost' => $materialWithTag->cost,
                 'barcode' => $materialWithTag->barcode,
@@ -147,12 +145,10 @@ class MaterialController extends Controller
             ], 404);
         }
         return new MaterialResource(true, 'Detail Material Data', [
-            'material_id' => $material->material_id,
-            'material_name' => $material->material_name,
+            'id' => $material->material_id,
+            'name' => $material->material_name,
             'category_id' => $material->category_id,
             'category_name' => $material->category->category,
-            // 'sales_price' => number_format($material->sales_price, 2),
-            // 'cost' => number_format($material->cost, 2),
             'sales_price' => $material->sales_price,
             'cost' => $material->cost,
             'barcode' => $material->barcode,
@@ -213,11 +209,10 @@ class MaterialController extends Controller
             $materialWithTag = Material::with('tag')->find($material->material_id);
 
             return new MaterialResource(true, 'Material Data Successfully Updated', [
-                'material_id' => $materialWithTag->material_id,
-                'material_name' => $materialWithTag->material_name,
+                'id' => $materialWithTag->material_id,
+                'name' => $materialWithTag->material_name,
                 'category_id' => $materialWithTag->category_id,
-                // 'sales_price' => number_format($materialWithTag->sales_price, 2),
-                // 'cost' => number_format($materialWithTag->cost, 2),
+                'category_name' => $materialWithTag->category->category,
                 'sales_price' => $materialWithTag->sales_price,
                 'cost' => $materialWithTag->cost,
                 'barcode' => $materialWithTag->barcode,

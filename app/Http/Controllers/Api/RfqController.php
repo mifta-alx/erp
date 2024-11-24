@@ -32,6 +32,7 @@ class RfqController extends Controller
                     'taxes' => $item->taxes,
                     'total' => $item->total,
                     'confirmation_date' => $item->confirmation_date,
+                    'invoice_status' => $item->invoice_status,
                     'items' => $item->rfqComponent->map(function ($component) {
                         return [
                             'type' => $component->display_type,
@@ -78,6 +79,7 @@ class RfqController extends Controller
                 'taxes' => $rfq->taxes,
                 'total' => $rfq->total,
                 'confirmation_date' => $rfq->confirmation_date,
+                'invoice_status' => $rfq->invoice_status,
                 'items' => $rfq->rfqComponent->map(function ($component) {
                     return [
                         'type' => $component->display_type,
@@ -143,6 +145,7 @@ class RfqController extends Controller
                 'state' => $data['state'],
                 'taxes' => $data['taxes'],
                 'total' => $data['total'],
+                'invoice_status' => $data['invoice_status'],
             ]);
 
             foreach ($data['items'] as $component) {
@@ -192,6 +195,7 @@ class RfqController extends Controller
                     'taxes' => $rfq->taxes,
                     'total' => $rfq->total,
                     'confirmation_date' => $rfq->confirmation_date,
+                    'invoice_status' => $rfq->invoice_status,
                     'items' => $rfq->rfqComponent->map(function ($component) {
                         return [
                             'type' => $component->display_type,

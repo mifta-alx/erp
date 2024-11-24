@@ -22,6 +22,7 @@ return new class extends Migration
             $table->double('total');
             $table->timestamp('order_date');
             $table->timestamp('confirmation_date')->nullable();
+            $table->integer('invoice_status');
             $table->timestamps();
         });
     }

@@ -13,10 +13,13 @@ use Illuminate\Support\Facades\Validator;
 
 class RfqController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $rfq = Rfq::orderBy('created_at', 'DESC')->get();
-
+        $query = Rfq::query();
+        if ($request->has('purchase_order') && $request->purchase_order == 'true') {
+            $query->where('state', 3);
+        }
+        $rfq = $query->orderBy('created_at', 'DESC')->get();
         return response()->json([
             'success' => true,
             'message' => 'List RFQ Data',

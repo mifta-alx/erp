@@ -108,7 +108,7 @@ class RfqController extends Controller
         return Validator::make($request->all(), [
             'vendor_id' => 'required|exists:vendors,vendor_id',
         ], [
-            'vendor_id.required' => 'Product ID must be filled',
+            'vendor_id.required' => 'Vendor ID must be filled',
             'vendor_id.exists' => 'Vendor ID does not exist',
         ]);
     }
@@ -228,6 +228,8 @@ class RfqController extends Controller
                 'total' => $data['total'],
                 'invoice_status' => $data['invoice_status'],
             ]);
+            $componentIds = [];
+            $rfq->rfqComponent()->delete();
             foreach ($data['items'] as $component) {
                 if ($component['type'] == 'material') {
                     RfqComponent::updateOrCreate([

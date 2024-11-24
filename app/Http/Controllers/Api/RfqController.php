@@ -13,10 +13,13 @@ use Illuminate\Support\Facades\Validator;
 
 class RfqController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $rfq = Rfq::orderBy('created_at', 'DESC')->get();
-
+        $query = Rfq::query();
+        if ($request->has('purchase_order') && $request->purchase_order == 'true') {
+            $query->where('state', 3);
+        }
+        $rfq = $query->orderBy('created_at', 'DESC')->get();
         return response()->json([
             'success' => true,
             'message' => 'List RFQ Data',
@@ -32,6 +35,7 @@ class RfqController extends Controller
                     'taxes' => $item->taxes,
                     'total' => $item->total,
                     'confirmation_date' => $item->confirmation_date,
+                    'invoice_status' => $item->invoice_status,
                     'items' => $item->rfqComponent->map(function ($component) {
                         return [
                             'type' => $component->display_type,
@@ -78,6 +82,7 @@ class RfqController extends Controller
                 'taxes' => $rfq->taxes,
                 'total' => $rfq->total,
                 'confirmation_date' => $rfq->confirmation_date,
+                'invoice_status' => $rfq->invoice_status,
                 'items' => $rfq->rfqComponent->map(function ($component) {
                     return [
                         'type' => $component->display_type,
@@ -143,6 +148,7 @@ class RfqController extends Controller
                 'state' => $data['state'],
                 'taxes' => $data['taxes'],
                 'total' => $data['total'],
+                'invoice_status' => $data['invoice_status'],
             ]);
 
             foreach ($data['items'] as $component) {
@@ -178,38 +184,7 @@ class RfqController extends Controller
             }
 
             DB::commit();
-            return response()->json([
-                'success' => true,
-                'message' => 'RFQ Successfully Added',
-                'data' => [
-                    'id' => $rfq->rfq_id,
-                    'reference' =>  $rfq->reference,
-                    'vendor_id' => $rfq->vendor_id,
-                    'vendor_name' => $rfq->vendor->name,
-                    'vendor_reference' => $rfq->vendor_reference,
-                    'order_date' => $rfq->order_date,
-                    'state' => $rfq->state,
-                    'taxes' => $rfq->taxes,
-                    'total' => $rfq->total,
-                    'confirmation_date' => $rfq->confirmation_date,
-                    'items' => $rfq->rfqComponent->map(function ($component) {
-                        return [
-                            'type' => $component->display_type,
-                            'id' => $component->material_id,
-                            'internal_reference' => $component->material->internal_reference ?? null,
-                            'name' => $component->material->material_name ?? null,
-                            'description' => $component->description,
-                            'qty' => $component->qty,
-                            'unit_price' => $component->unit_price,
-                            'tax' => $component->tax,
-                            'subtotal' => $component->subtotal,
-                            'qty_received' => $component->qty_received,
-                            'qty_to_invoice' =>  $component->qty_to_invoice,
-                            'qty_invoiced' =>  $component->qty_invoiced,
-                        ];
-                    }),
-                ]
-            ]);
+            return $this->successResponse($rfq, $message = 'RFQ Successfully Added');
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('RFQ Creation Failed: ' . $e->getMessage());
@@ -241,6 +216,51 @@ class RfqController extends Controller
                     'message' => 'RFQ not found'
                 ], 404);
             }
+            $orderDate = Carbon::parse($data['order_date'])->timezone('UTC')->toIso8601String();
+            $confirmDate = isset($data['confirmation_date']) ? Carbon::parse($data['confirmation_date'])->timezone('UTC')->toIso8601String() : null;
+            $rfq->update([
+                'vendor_id' => $data['vendor_id'],
+                'vendor_reference' => $data['vendor_reference'],
+                'order_date' => $orderDate,
+                'confirmation_date' => $confirmDate,
+                'state' => $data['state'],
+                'taxes' => $data['taxes'],
+                'total' => $data['total'],
+                'invoice_status' => $data['invoice_status'],
+            ]);
+            foreach ($data['items'] as $component) {
+                if ($component['type'] == 'material') {
+                    RfqComponent::updateOrCreate([
+                        'rfq_id' => $rfq->rfq_id,
+                        'display_type' => $component['type'],
+                        'material_id' => $component['material_id'],
+                        'description' => $component['description'],
+                        'qty' => $component['qty'],
+                        'unit_price' => $component['unit_price'],
+                        'tax' => $component['tax'],
+                        'subtotal' => $component['subtotal'],
+                        'qty_received' => $component['qty_received'] ?? 0,
+                        'qty_to_invoice' => $component['qty_to_invoice'] ?? 0,
+                        'qty_invoiced' => $component['qty_invoiced'] ?? 0,
+                    ]);
+                } else {
+                    RfqComponent::updateOrCreate([
+                        'rfq_id' => $rfq->rfq_id,
+                        'display_type' => $component['type'],
+                        'material_id' => null,
+                        'description' => $component['description'],
+                        'qty' => 0,
+                        'unit_price' => 0,
+                        'tax' => 0,
+                        'subtotal' => 0,
+                        'qty_received' => 0,
+                        'qty_to_invoice' => 0,
+                        'qty_invoiced' => 0,
+                    ]);
+                }
+            }
+            DB::commit();
+            return $this->successResponse($rfq, $message = 'RFQ Updated Successfully');
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('RFQ Update Failed: ' . $e->getMessage());
@@ -250,6 +270,43 @@ class RfqController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    private function successResponse($rfq, $message)
+    {
+        return response()->json([
+            'success' => true,
+            'message' => $message,
+            'data' => [
+                'id' => $rfq->rfq_id,
+                'reference' =>  $rfq->reference,
+                'vendor_id' => $rfq->vendor_id,
+                'vendor_name' => $rfq->vendor->name,
+                'vendor_reference' => $rfq->vendor_reference,
+                'order_date' => $rfq->order_date,
+                'state' => $rfq->state,
+                'taxes' => $rfq->taxes,
+                'total' => $rfq->total,
+                'confirmation_date' => $rfq->confirmation_date,
+                'invoice_status' => $rfq->invoice_status,
+                'items' => $rfq->rfqComponent->map(function ($component) {
+                    return [
+                        'type' => $component->display_type,
+                        'id' => $component->material_id,
+                        'internal_reference' => $component->material->internal_reference ?? null,
+                        'name' => $component->material->material_name ?? null,
+                        'description' => $component->description,
+                        'qty' => $component->qty,
+                        'unit_price' => $component->unit_price,
+                        'tax' => $component->tax,
+                        'subtotal' => $component->subtotal,
+                        'qty_received' => $component->qty_received,
+                        'qty_to_invoice' =>  $component->qty_to_invoice,
+                        'qty_invoiced' =>  $component->qty_invoiced,
+                    ];
+                }),
+            ]
+        ]);
     }
 
     public function destroy($id) {}

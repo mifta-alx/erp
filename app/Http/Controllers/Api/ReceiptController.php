@@ -193,8 +193,8 @@ class ReceiptController extends Controller
                         if ($rfqComponent) {
                             $rfqComponent->update([
                                 'material_id' => $component['material_id'],
-                                'qty_received' => $component['qty_received'] ? $component['qty_received'] : $rfqComponent->qty,
-                                'qty_to_invoice' => $component['qty_received'] ? $component['qty_received'] : $rfqComponent->qty,
+                                'qty_received' => $component['qty_received'],
+                                'qty_to_invoice' => $component['qty_received'],
                             ]);
                         }
                         $material = Material::find($component['material_id']);

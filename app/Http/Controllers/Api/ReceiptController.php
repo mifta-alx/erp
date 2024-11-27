@@ -30,6 +30,7 @@ class ReceiptController extends Controller
                     'source_document' => $receipt->source_document,
                     'rfq_id' => $receipt->rfq_id,
                     'invoice_status' => $receipt->rfq->invoice_status,
+                    'scheduled_date' => $receipt->scheduled_date,
                     'items' =>  $receipt->rfq->rfqComponent->filter(function ($component) {
                         return $component->display_type !== 'line_section';
                     })->map(function ($component) {
@@ -69,6 +70,7 @@ class ReceiptController extends Controller
                 'source_document' => $receipt->source_document,
                 'rfq_id' => $receipt->rfq_id,
                 'invoice_status' => $receipt->rfq->invoice_status,
+                'scheduled_date' => $receipt->scheduled_date,
                 'items' =>  $receipt->rfq->rfqComponent->filter(function ($component) {
                     return $component->display_type !== 'line_section';
                 })->map(function ($component) {

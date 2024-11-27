@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Receipt;
 use App\Models\Rfq;
 use App\Models\RfqComponent;
 use Carbon\Carbon;
@@ -36,6 +37,11 @@ class RfqController extends Controller
                     'total' => $item->total,
                     'confirmation_date' => $item->confirmation_date,
                     'invoice_status' => $item->invoice_status,
+                    'receipt' => $item->receipts->map(function ($receipt) {
+                        return [
+                            'id' => $receipt->receipt_id,
+                        ];
+                    }),
                     'items' => $item->rfqComponent->map(function ($component) {
                         return [
                             'rfq_component_id' => $component->rfq_component_id,
@@ -229,8 +235,32 @@ class RfqController extends Controller
                     ]);
                 }
             }
+
+            if ($data['state'] == 3) {
+                $lastOrder = Receipt::where('transaction_type', 'IN')
+                    ->orderBy('created_at', 'desc')
+                    ->first();
+
+                $lastReferenceNumber = $lastOrder && $lastOrder->reference
+                    ? (int) substr($lastOrder->reference, 4)
+                    : 0;
+
+                $referenceNumber = $lastReferenceNumber + 1;
+                $referenceNumberPadded = str_pad($referenceNumber, 5, '0', STR_PAD_LEFT);
+                $reference = "IN/{$referenceNumberPadded}";
+                $receipt = Receipt::create([
+                    'transaction_type' => 'IN',
+                    'reference' => $reference,
+                    'vendor_id' => $rfq->vendor_id,
+                    'rfq_id' => $rfq->rfq_id,
+                    'source_document' => $rfq->reference,
+                    'scheduled_date' => Carbon::now()->toIso8601String(),
+                    'state' => 1,
+                ]);
+            }
+
             DB::commit();
-            return $this->successResponse($rfq, $message = 'RFQ Updated Successfully');
+            return $this->successResponse($rfq, 'RFQ Updated Successfully');
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('RFQ Update Failed: ' . $e->getMessage());
@@ -259,6 +289,11 @@ class RfqController extends Controller
                 'total' => $rfq->total,
                 'confirmation_date' => $rfq->confirmation_date,
                 'invoice_status' => $rfq->invoice_status,
+                'receipt' => $rfq->receipts->map(function ($receipt) {
+                    return [
+                        'id' => $receipt->receipt_id,
+                    ];
+                }),
                 'items' => $rfq->rfqComponent->map(function ($component) {
                     return [
                         'component_id' => $component->rfq_component_id,

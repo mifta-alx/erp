@@ -27,7 +27,16 @@ class Rfq extends Model
         return $this->belongsTo(Vendor::class, 'vendor_id', 'vendor_id');
     }
 
-    public function rfqComponent(){
+    public function rfqComponent()
+    {
         return $this->hasMany(RfqComponent::class, 'rfq_id', 'rfq_id');
     }
+    public function receipts()
+    {
+        return $this->hasMany(Receipt::class, 'rfq_id', 'rfq_id');
+    }
+    // public function invoices()
+    // {
+    //     return $this->hasMany(Invoice::class, 'rfq_id', 'rfq_id');
+    // }
 }

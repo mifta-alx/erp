@@ -10,7 +10,7 @@ use App\Models\RfqComponent;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 
 class ReceiptController extends Controller
 {
@@ -96,11 +96,28 @@ class ReceiptController extends Controller
         ], 201);
     }
 
+    private function validateRecipt(Request $request)
+    {
+        return Validator::make($request->all(), [
+            'scheduled_date' => 'required',
+        ], [
+            'scheduled_date.required' => 'Scheduled Date must be filled',
+        ]);
+    }
+
     public function store(Request $request)
     {
         DB::beginTransaction();
         try {
             $data = $request->json()->all();
+            $validator = $this->validateRecipt($request);
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation Failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
             if ($data['transaction_type'] == 'IN') {
                 $lastOrder = Receipt::where('transaction_type', 'IN')->orderBy('created_at', 'desc')->first();
             } else {
@@ -159,6 +176,24 @@ class ReceiptController extends Controller
         DB::beginTransaction();
         try {
             $data = $request->json()->all();
+            $validator = Validator::make(
+                $request->all(),
+                [
+                    'scheduled_date' => 'required',
+                    'items.*.qty_received' => 'required|lte:items.*.qty',
+                ],
+                [
+                    'scheduled_date.required' => 'Scheduled Date must be filled',
+                    'items.*.qty_received.lte' => 'Qty received must not exceed the quantity.',
+                ]
+            );
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation Failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
             $receipt = Receipt::find($id);
             if (!$receipt) {
                 return response()->json([
@@ -179,6 +214,16 @@ class ReceiptController extends Controller
                         'scheduled_date' => $scheduled_date,
                         'state' => $data['state']
                     ]);
+                    foreach ($data['items'] as $component) {
+                        $rfqComponent = RfqComponent::where('rfq_id', $rfq->rfq_id)->where('rfq_component_id', $component['component_id'])->first();
+                        if ($rfqComponent) {
+                            $rfqComponent->update([
+                                'material_id' => $component['material_id'],
+                                'qty_received' => $component['qty_received'],
+                                'qty_to_invoice' => $component['qty_received'],
+                            ]);
+                        }
+                    }
                 } else if ($data['state'] == 3) {
                     $receipt->update([
                         'transaction_type' => $data['transaction_type'],
@@ -191,6 +236,13 @@ class ReceiptController extends Controller
                     foreach ($data['items'] as $component) {
                         $rfqComponent = RfqComponent::where('rfq_id', $rfq->rfq_id)->where('rfq_component_id', $component['component_id'])->first();
                         if ($rfqComponent) {
+                            if ($component['qty_received'] > $rfqComponent->qty) {
+                                return response()->json([
+                                    'success' => false,
+                                    'message' => 'Received quantity cannot exceed ordered quantity.',
+                                    'component_id' => $component['component_id'],
+                                ], 400);
+                            }
                             $rfqComponent->update([
                                 'material_id' => $component['material_id'],
                                 'qty_received' => $component['qty_received'],
@@ -215,35 +267,35 @@ class ReceiptController extends Controller
                     ]);
                 }
             } else if ($data['transaction_type'] == 'OUT') {
-                if ($data['state'] == 2) {
-                    $receipt->update([
-                        'transaction_type' => $data['transaction_type'],
-                        'rfq_id' => $rfq->rfq_id,
-                        'vendor_id' => $data['vendor_id'],
-                        'source_document' => $rfqReference,
-                        'scheduled_date' => $scheduled_date,
-                        'state' => $data['state']
-                    ]);
-                } else if ($data['state'] == 3) {
-                    $receipt->update([
-                        'transaction_type' => $data['transaction_type'],
-                        'rfq_id' => $rfq->rfq_id,
-                        'vendor_id' => $data['vendor_id'],
-                        'source_document' => $rfqReference,
-                        'scheduled_date' => $scheduled_date,
-                        'state' => $data['state']
-                    ]);
-                    foreach ($data['items'] as $component) {
-                        $rfqComponent = RfqComponent::where('rfq_id', $rfq->rfq_id)->where('rfq_component_id', $component['component_id'])->first();
-                        if ($rfqComponent) {
-                            $rfqComponent->update([
-                                'material_id' => $component['material_id'],
-                                'qty_received' => $component['qty_received'],
-                                'qty_to_invoice' => $component['qty_to_invoice'],
-                            ]);
-                        }
-                    }
-                }
+                // if ($data['state'] == 2) {
+                //     $receipt->update([
+                //         'transaction_type' => $data['transaction_type'],
+                //         'rfq_id' => $rfq->rfq_id,
+                //         'vendor_id' => $data['vendor_id'],
+                //         'source_document' => $rfqReference,
+                //         'scheduled_date' => $scheduled_date,
+                //         'state' => $data['state']
+                //     ]);
+                // } else if ($data['state'] == 3) {
+                //     $receipt->update([
+                //         'transaction_type' => $data['transaction_type'],
+                //         'rfq_id' => $rfq->rfq_id,
+                //         'vendor_id' => $data['vendor_id'],
+                //         'source_document' => $rfqReference,
+                //         'scheduled_date' => $scheduled_date,
+                //         'state' => $data['state']
+                //     ]);
+                //     foreach ($data['items'] as $component) {
+                //         $rfqComponent = RfqComponent::where('rfq_id', $rfq->rfq_id)->where('rfq_component_id', $component['component_id'])->first();
+                //         if ($rfqComponent) {
+                //             $rfqComponent->update([
+                //                 'material_id' => $component['material_id'],
+                //                 'qty_received' => $component['qty_received'],
+                //                 'qty_to_invoice' => $component['qty_to_invoice'],
+                //             ]);
+                //         }
+                //     }
+                // }
             }
             DB::commit();
             return $this->successResponse($receipt, 'Receipt Successfully Updated');

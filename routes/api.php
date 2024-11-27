@@ -24,4 +24,4 @@ Route::apiResource('/vendors', App\Http\Controllers\Api\VendorController::class)
 Route::apiResource('/init', App\Http\Controllers\Api\GetDataController::class);
 Route::apiResource('/rfqs', App\Http\Controllers\Api\RfqController::class);
 Route::apiResource('/receipts', App\Http\Controllers\Api\ReceiptController::class);
-Route::apiResource('/invoices', App\Http\Controllers\Api\InvoiceController::class);
+// Route::apiResource('/invoices', App\Http\Controllers\Api\InvoiceController::class);

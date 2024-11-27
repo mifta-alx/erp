@@ -26,9 +26,10 @@ class ReceiptController extends Controller
                     'transaction_type' => $receipt->transaction_type,
                     'reference' => $receipt->reference,
                     'vendor_id' => $receipt->vendor_id,
-                    'vendor_name' => $receipt->vendor->name ?? null,
-                    'rfq_id' => $receipt->rfq_id,
+                    'vendor_name' => $receipt->vendor->name,
                     'source_document' => $receipt->source_document,
+                    'rfq_id' => $receipt->rfq_id,
+                    'invoice_status' => $receipt->rfq->invoice_status,
                     'items' =>  $receipt->rfq->rfqComponent->filter(function ($component) {
                         return $component->display_type !== 'line_section';
                     })->map(function ($component) {
@@ -36,10 +37,13 @@ class ReceiptController extends Controller
                             'component_id' => $component->rfq_component_id,
                             'type' => $component->display_type,
                             'id' => $component->material_id,
-                            'internal_reference' => $component->material->internal_reference ?? null,
-                            'name' => $component->material->material_name ?? null,
+                            'internal_reference' => $component->material->internal_reference,
+                            'name' => $component->material->material_name,
                             'description' => $component->description,
                             'qty' => $component->qty,
+                            'unit_price' => $component->unit_price,
+                            'tax' => $component->tax,
+                            'subtotal' => $component->subtotal,
                             'qty_received' => $component->qty_received,
                             'qty_to_invoice' => $component->qty_to_invoice,
                             'qty_invoiced' => $component->qty_invoiced,
@@ -62,8 +66,9 @@ class ReceiptController extends Controller
                 'reference' => $receipt->reference,
                 'vendor_id' => $receipt->vendor_id,
                 'vendor_name' => $receipt->vendor->name,
-                'rfq_id' => $receipt->rfq_id,
                 'source_document' => $receipt->source_document,
+                'rfq_id' => $receipt->rfq_id,
+                'invoice_status' => $receipt->rfq->invoice_status,
                 'items' =>  $receipt->rfq->rfqComponent->filter(function ($component) {
                     return $component->display_type !== 'line_section';
                 })->map(function ($component) {
@@ -75,6 +80,9 @@ class ReceiptController extends Controller
                         'name' => $component->material->material_name,
                         'description' => $component->description,
                         'qty' => $component->qty,
+                        'unit_price' => $component->unit_price,
+                        'tax' => $component->tax,
+                        'subtotal' => $component->subtotal,
                         'qty_received' => $component->qty_received,
                         'qty_to_invoice' => $component->qty_to_invoice,
                         'qty_invoiced' => $component->qty_invoiced,
@@ -192,14 +200,13 @@ class ReceiptController extends Controller
                             ]);
                         }
                     }
-                    if($rfq){
+                    if ($rfq) {
                         $rfq->update([
                             'invoice_status' => $data['invoice_status'],
                         ]);
                     }
                 }
-            }
-            else if ($data['transaction_type'] == 'OUT') {
+            } else if ($data['transaction_type'] == 'OUT') {
                 if ($data['state'] == 2) {
                     $receipt->update([
                         'transaction_type' => $data['transaction_type'],

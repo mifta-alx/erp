@@ -180,11 +180,19 @@ class ReceiptController extends Controller
                 $request->all(),
                 [
                     'scheduled_date' => 'required',
-                    'items.*.qty_received' => 'required|lte:items.*.qty',
+                    'items.*.qty_received' => [
+                        'required',
+                        function ($attribute, $value, $fail) use ($request) {
+                            $componentId = $request->input('items.*.component_id');
+                            $rfqComponent = RfqComponent::where('rfq_component_id', $componentId)->first();
+                            if ($rfqComponent && $value > $rfqComponent->qty) {
+                                $fail('Qty received must not exceed the available qty.');
+                            }
+                        }
+                    ],
                 ],
                 [
                     'scheduled_date.required' => 'Scheduled Date must be filled',
-                    'items.*.qty_received.lte' => 'Qty received must not exceed the quantity.',
                 ]
             );
             if ($validator->fails()) {
@@ -219,7 +227,7 @@ class ReceiptController extends Controller
                         if ($rfqComponent) {
                             $rfqComponent->update([
                                 'material_id' => $component['material_id'],
-                                'qty_received' => $component['qty_received'],
+                                'qty_received' =>  $component['qty_received'],
                                 'qty_to_invoice' => $component['qty_received'],
                             ]);
                         }
@@ -236,17 +244,10 @@ class ReceiptController extends Controller
                     foreach ($data['items'] as $component) {
                         $rfqComponent = RfqComponent::where('rfq_id', $rfq->rfq_id)->where('rfq_component_id', $component['component_id'])->first();
                         if ($rfqComponent) {
-                            if ($component['qty_received'] > $rfqComponent->qty) {
-                                return response()->json([
-                                    'success' => false,
-                                    'message' => 'Received quantity cannot exceed ordered quantity.',
-                                    'component_id' => $component['component_id'],
-                                ], 400);
-                            }
                             $rfqComponent->update([
                                 'material_id' => $component['material_id'],
-                                'qty_received' => $component['qty_received'],
-                                'qty_to_invoice' => $component['qty_received'],
+                                'qty_received' =>  $component['qty_received'] + $rfqComponent->qty_received,
+                                'qty_to_invoice' => $component['qty_received'] + $rfqComponent->qty_to_invoice,
                             ]);
                         }
                         $material = Material::find($component['material_id']);

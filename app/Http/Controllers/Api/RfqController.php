@@ -257,6 +257,16 @@ class RfqController extends Controller
                     'scheduled_date' => null,
                     'state' => 2,
                 ]);
+            } else if ($data['state'] == 4) {
+                $receipts = Receipt::where('rfq_id', $rfq->rfq_id)
+                    ->where('state', '!=', 4)
+                    ->get();
+
+                foreach ($receipts as $receipt) {
+                    $receipt->update([
+                        'state' => 4,
+                    ]);
+                }
             }
 
             DB::commit();

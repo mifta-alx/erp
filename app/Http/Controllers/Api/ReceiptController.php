@@ -31,6 +31,7 @@ class ReceiptController extends Controller
                     'rfq_id' => $receipt->rfq_id,
                     'invoice_status' => $receipt->rfq->invoice_status,
                     'scheduled_date' => $receipt->scheduled_date,
+                    'state' => $receipt->state,
                     'items' =>  $receipt->rfq->rfqComponent->filter(function ($component) {
                         return $component->display_type !== 'line_section';
                     })->map(function ($component) {
@@ -71,6 +72,7 @@ class ReceiptController extends Controller
                 'rfq_id' => $receipt->rfq_id,
                 'invoice_status' => $receipt->rfq->invoice_status,
                 'scheduled_date' => $receipt->scheduled_date,
+                'state' => $receipt->state,
                 'items' =>  $receipt->rfq->rfqComponent->filter(function ($component) {
                     return $component->display_type !== 'line_section';
                 })->map(function ($component) {
@@ -207,6 +209,10 @@ class ReceiptController extends Controller
                             'invoice_status' => $data['invoice_status'],
                         ]);
                     }
+                } else if ($data['state'] == 4) {
+                    $receipt->update([
+                        'state' => $data['state'],
+                    ]);
                 }
             } else if ($data['transaction_type'] == 'OUT') {
                 if ($data['state'] == 2) {

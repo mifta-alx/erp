@@ -23,4 +23,8 @@ class Tag extends Model
     {
         return $this->belongsToMany(Product::class, 'pivot_material_tags', 'tag_id', 'material_id')->withTimestamps();
     } 
+    public function customer()
+    {
+        return $this->belongsToMany(Customer::class, 'pivot_customer_tags', 'tag_id', 'customer_id')->withTimestamps();
+    }
 }

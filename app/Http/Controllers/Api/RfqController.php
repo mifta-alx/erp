@@ -237,26 +237,73 @@ class RfqController extends Controller
             }
 
             if ($data['state'] == 3) {
-                $lastOrder = Receipt::where('transaction_type', 'IN')
-                    ->orderBy('created_at', 'desc')
-                    ->first();
-
-                $lastReferenceNumber = $lastOrder && $lastOrder->reference
-                    ? (int) substr($lastOrder->reference, 4)
-                    : 0;
-
-                $referenceNumber = $lastReferenceNumber + 1;
-                $referenceNumberPadded = str_pad($referenceNumber, 5, '0', STR_PAD_LEFT);
-                $reference = "IN/{$referenceNumberPadded}";
-                $receipt = Receipt::create([
-                    'transaction_type' => 'IN',
-                    'reference' => $reference,
-                    'vendor_id' => $rfq->vendor_id,
-                    'rfq_id' => $rfq->rfq_id,
-                    'source_document' => $rfq->reference,
-                    'scheduled_date' => null,
-                    'state' => 2,
+                $rfq->update([
+                    'vendor_id' => $data['vendor_id'],
+                    'vendor_reference' => $data['vendor_reference'],
+                    'order_date' => $orderDate,
+                    'confirmation_date' => $confirmDate,
+                    'state' => $data['state'],
+                    'taxes' => $data['taxes'],
+                    'total' => $data['total'],
+                    'invoice_status' => $data['invoice_status'],
                 ]);
+                foreach ($data['items'] as $component) {
+                    if (isset($component['component_id'])) {
+                        $rfqComponent = RfqComponent::find($component['component_id']);
+                        if ($rfqComponent && $rfqComponent->rfq_id === $rfq->rfq_id) {
+                            $rfqComponent->update([
+                                'display_type' => $component['type'],
+                                'material_id' => $component['type'] == 'material' ? $component['material_id'] : null,
+                                'description' => $component['description'],
+                                'qty' => $component['qty'] ?? 0,
+                                'unit_price' => $component['unit_price'] ?? 0,
+                                'tax' => $component['tax'] ?? 0,
+                                'subtotal' => $component['subtotal'] ?? 0,
+                                'qty_received' => $component['qty_received'] ?? 0,
+                                'qty_to_invoice' => $component['qty_to_invoice'] ?? 0,
+                                'qty_invoiced' => $component['qty_invoiced'] ?? 0,
+                            ]);
+                        }
+                    } else {
+                        RfqComponent::create([
+                            'rfq_id' => $rfq->rfq_id,
+                            'display_type' => $component['type'],
+                            'material_id' => $component['type'] == 'material' ? $component['material_id'] : null,
+                            'description' => $component['description'],
+                            'qty' => $component['qty'] ?? 0,
+                            'unit_price' => $component['unit_price'] ?? 0,
+                            'tax' => $component['tax'] ?? 0,
+                            'subtotal' => $component['subtotal'] ?? 0,
+                            'qty_received' => $component['qty_received'] ?? 0,
+                            'qty_to_invoice' => $component['qty_to_invoice'] ?? 0,
+                            'qty_invoiced' => $component['qty_invoiced'] ?? 0,
+                        ]);
+                    }
+                }
+                if (empty($data['items']) || array_search('line_section', array_column($data['items'], 'type')) !== false) {
+                    return $this->successResponse($rfq, 'RFQ Updated Successfully');
+                } else {
+                    $lastOrder = Receipt::where('transaction_type', 'IN')
+                        ->orderBy('created_at', 'desc')
+                        ->first();
+
+                    $lastReferenceNumber = $lastOrder && $lastOrder->reference
+                        ? (int) substr($lastOrder->reference, 4)
+                        : 0;
+
+                    $referenceNumber = $lastReferenceNumber + 1;
+                    $referenceNumberPadded = str_pad($referenceNumber, 5, '0', STR_PAD_LEFT);
+                    $reference = "IN/{$referenceNumberPadded}";
+                    $receipt = Receipt::create([
+                        'transaction_type' => 'IN',
+                        'reference' => $reference,
+                        'vendor_id' => $rfq->vendor_id,
+                        'rfq_id' => $rfq->rfq_id,
+                        'source_document' => $rfq->reference,
+                        'scheduled_date' => null,
+                        'state' => 2,
+                    ]);
+                }
             } else if ($data['state'] == 4) {
                 $receipts = Receipt::where('rfq_id', $rfq->rfq_id)
                     ->where('state', '!=', 4)

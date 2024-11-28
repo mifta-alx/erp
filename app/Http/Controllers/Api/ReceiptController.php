@@ -32,25 +32,28 @@ class ReceiptController extends Controller
                     'invoice_status' => $receipt->rfq->invoice_status,
                     'scheduled_date' => $receipt->scheduled_date,
                     'state' => $receipt->state,
-                    'items' =>  $receipt->rfq->rfqComponent->filter(function ($component) {
-                        return $component->display_type !== 'line_section';
-                    })->map(function ($component) {
-                        return [
-                            'component_id' => $component->rfq_component_id,
-                            'type' => $component->display_type,
-                            'id' => $component->material_id,
-                            'internal_reference' => $component->material->internal_reference,
-                            'name' => $component->material->material_name,
-                            'description' => $component->description,
-                            'qty' => $component->qty,
-                            'unit_price' => $component->unit_price,
-                            'tax' => $component->tax,
-                            'subtotal' => $component->subtotal,
-                            'qty_received' => $component->qty_received,
-                            'qty_to_invoice' => $component->qty_to_invoice,
-                            'qty_invoiced' => $component->qty_invoiced,
-                        ];
-                    }),
+                    'items' => $receipt->rfq->rfqComponent
+                        ->filter(function ($component) {
+                            return $component->display_type !== 'line_section';
+                        })
+                        ->values()
+                        ->map(function ($component) {
+                            return [
+                                'component_id' => $component->rfq_component_id,
+                                'type' => $component->display_type,
+                                'id' => $component->material_id,
+                                'internal_reference' => $component->material->internal_reference,
+                                'name' => $component->material->material_name,
+                                'description' => $component->description,
+                                'qty' => $component->qty,
+                                'unit_price' => $component->unit_price,
+                                'tax' => $component->tax,
+                                'subtotal' => $component->subtotal,
+                                'qty_received' => $component->qty_received,
+                                'qty_to_invoice' => $component->qty_to_invoice,
+                                'qty_invoiced' => $component->qty_invoiced,
+                            ];
+                        }),
                 ];
             }),
         ], 200);
@@ -73,25 +76,28 @@ class ReceiptController extends Controller
                 'invoice_status' => $receipt->rfq->invoice_status,
                 'scheduled_date' => $receipt->scheduled_date,
                 'state' => $receipt->state,
-                'items' =>  $receipt->rfq->rfqComponent->filter(function ($component) {
-                    return $component->display_type !== 'line_section';
-                })->map(function ($component) {
-                    return [
-                        'component_id' => $component->rfq_component_id,
-                        'type' => $component->display_type,
-                        'id' => $component->material_id,
-                        'internal_reference' => $component->material->internal_reference,
-                        'name' => $component->material->material_name,
-                        'description' => $component->description,
-                        'qty' => $component->qty,
-                        'unit_price' => $component->unit_price,
-                        'tax' => $component->tax,
-                        'subtotal' => $component->subtotal,
-                        'qty_received' => $component->qty_received,
-                        'qty_to_invoice' => $component->qty_to_invoice,
-                        'qty_invoiced' => $component->qty_invoiced,
-                    ];
-                }),
+                'items' => $receipt->rfq->rfqComponent
+                    ->filter(function ($component) {
+                        return $component->display_type !== 'line_section';
+                    })
+                    ->values()
+                    ->map(function ($component) {
+                        return [
+                            'component_id' => $component->rfq_component_id,
+                            'type' => $component->display_type,
+                            'id' => $component->material_id,
+                            'internal_reference' => $component->material->internal_reference,
+                            'name' => $component->material->material_name,
+                            'description' => $component->description,
+                            'qty' => $component->qty,
+                            'unit_price' => $component->unit_price,
+                            'tax' => $component->tax,
+                            'subtotal' => $component->subtotal,
+                            'qty_received' => $component->qty_received,
+                            'qty_to_invoice' => $component->qty_to_invoice,
+                            'qty_invoiced' => $component->qty_invoiced,
+                        ];
+                    }),
             ],
         ], 201);
     }
@@ -271,16 +277,6 @@ class ReceiptController extends Controller
                         'scheduled_date' => $scheduled_date,
                         'state' => $data['state']
                     ]);
-                    foreach ($data['items'] as $component) {
-                        $rfqComponent = RfqComponent::where('rfq_id', $rfq->rfq_id)->where('rfq_component_id', $component['component_id'])->first();
-                        if ($rfqComponent) {
-                            $rfqComponent->update([
-                                'material_id' => $component['material_id'],
-                                'qty_received' =>  $component['qty_received'],
-                                'qty_to_invoice' => $component['qty_received'],
-                            ]);
-                        }
-                    }
                     if ($rfq) {
                         $rfq->update([
                             'invoice_status' => $data['invoice_status'],

@@ -53,7 +53,7 @@ class CustomerController extends Controller
     {
         return Validator::make($request->all(), [
             'company' => 'required|string',
-            'type' => 'required|string',
+            'type' => 'required',
             'name' => 'required|string',
             'street' => 'required|string',
             'city' => 'required|string',

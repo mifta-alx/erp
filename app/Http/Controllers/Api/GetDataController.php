@@ -195,10 +195,7 @@ class GetDataController extends Controller
             $queryRfq->where('state', 3);
         }
         $rfq = $queryRfq->orderBy('created_at', 'DESC')->get();
-        return response()->json([
-            'success' => true,
-            'message' => 'List RFQ Data',
-            'data' => $rfq->map(function ($item) {
+            $rfqData = $rfq->map(function ($item) {
                 return [
                     'id' => $item->rfq_id,
                     'reference' =>  $item->reference,
@@ -234,8 +231,7 @@ class GetDataController extends Controller
                         ];
                     }),
                 ];
-            }),
-        ]);
+            });
 
         $receipts = Receipt::orderBy('created_at', 'DESC')->get();
         $receiptData = $receipts->map(function ($receipt) {

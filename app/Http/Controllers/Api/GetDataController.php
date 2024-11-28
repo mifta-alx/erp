@@ -8,6 +8,8 @@ use App\Models\Category;
 use App\Models\ManufacturingOrder;
 use App\Models\Material;
 use App\Models\Product;
+use App\Models\Receipt;
+use App\Models\Rfq;
 use App\Models\Tag;
 use App\Models\Vendor;
 use Illuminate\Http\JsonResponse;
@@ -24,7 +26,8 @@ class GetDataController extends Controller
         $includeBoms = $request->has('boms');
         $includeVendors = $request->has('vendors');
         $includeMo = $request->has('mos');
-        // $includeRfq = $request->has('rfqs');
+        $includeRfq = $request->has('rfqs');
+        $includeReceipt = $request->has('receipts');
 
         $products = Product::with('category', 'tag')->orderBy('created_at', 'ASC')->get();
         $productData = $products->map(function ($product) {
@@ -78,14 +81,19 @@ class GetDataController extends Controller
             ];
         });
 
-        $tags = Tag::orderBy('tag_id', 'ASC')->get();
+        $queryTag = Tag::query();
+        if ($request->has('type')) {
+            $queryTag->where('type', $request->type);
+        }
+        $tags = $queryTag->orderBy('tag_id', 'ASC')->get();
         $formattedTags = $tags->map(function ($tag) {
             return [
                 'id' => $tag->tag_id,
+                'type' => $tag->type,
                 'name' => $tag->name_tag,
             ];
         });
-        
+
         //boms
         $boms = Bom::with(['product', 'bom_components.material'])->get();
         $bomData = $boms->map(function ($bom) {
@@ -182,6 +190,82 @@ class GetDataController extends Controller
             ];
         });
 
+        $queryRfq = Rfq::query();
+        if ($request->has('purchase_order') && $request->purchase_order == 'true') {
+            $queryRfq->where('state', 3);
+        }
+        $rfq = $queryRfq->orderBy('created_at', 'DESC')->get();
+        return response()->json([
+            'success' => true,
+            'message' => 'List RFQ Data',
+            'data' => $rfq->map(function ($item) {
+                return [
+                    'id' => $item->rfq_id,
+                    'reference' =>  $item->reference,
+                    'vendor_id' => $item->vendor_id,
+                    'vendor_name' => $item->vendor->name,
+                    'vendor_reference' => $item->vendor_reference,
+                    'order_date' => $item->order_date,
+                    'state' => $item->state,
+                    'taxes' => $item->taxes,
+                    'total' => $item->total,
+                    'confirmation_date' => $item->confirmation_date,
+                    'invoice_status' => $item->invoice_status,
+                    'receipt' => $item->receipts->map(function ($receipt) {
+                        return [
+                            'id' => $receipt->receipt_id,
+                        ];
+                    }),
+                    'items' => $item->rfqComponent->map(function ($component) {
+                        return [
+                            'rfq_component_id' => $component->rfq_component_id,
+                            'type' => $component->display_type,
+                            'id' => $component->material_id,
+                            'internal_reference' => $component->material->internal_reference ?? null,
+                            'name' => $component->material->material_name ?? null,
+                            'description' => $component->description,
+                            'qty' => $component->qty,
+                            'unit_price' => $component->unit_price,
+                            'tax' => $component->tax,
+                            'subtotal' => $component->subtotal,
+                            'qty_received' => $component->qty_received,
+                            'qty_to_invoice' =>  $component->qty_to_invoice,
+                            'qty_invoiced' =>  $component->qty_invoiced,
+                        ];
+                    }),
+                ];
+            }),
+        ]);
+
+        $receipts = Receipt::orderBy('created_at', 'DESC')->get();
+        $receiptData = $receipts->map(function ($receipt) {
+            return [
+                'id' => $receipt->receipt_id,
+                'transaction_type' => $receipt->transaction_type,
+                'reference' => $receipt->reference,
+                'vendor_id' => $receipt->vendor_id,
+                'vendor_name' => $receipt->vendor->name ?? null,
+                'rfq_id' => $receipt->rfq_id,
+                'source_document' => $receipt->source_document,
+                'items' =>  $receipt->rfq->rfqComponent->filter(function ($component) {
+                    return $component->display_type !== 'line_section';
+                })->map(function ($component) {
+                    return [
+                        'component_id' => $component->rfq_component_id,
+                        'type' => $component->display_type,
+                        'id' => $component->material_id,
+                        'internal_reference' => $component->material->internal_reference ?? null,
+                        'name' => $component->material->material_name ?? null,
+                        'description' => $component->description,
+                        'qty' => $component->qty,
+                        'qty_received' => $component->qty_received,
+                        'qty_to_invoice' => $component->qty_to_invoice,
+                        'qty_invoiced' => $component->qty_invoiced,
+                    ];
+                }),
+            ];
+        });
+
         $response = [
             'success' => true,
             'message' => 'Data fetched successfully',
@@ -212,13 +296,17 @@ class GetDataController extends Controller
             $response['data']['vendors'] = $vendorData;
         }
 
-        if ($includeMo){
+        if ($includeMo) {
             $response['data']['manufacturing_orders'] = $MoData;
         }
 
-        // if ($includeRfq){
-        //     $response['data']['rfq'] = $rfqData;
-        // }
+        if ($includeRfq) {
+            $response['data']['rfqs'] = $rfqData;
+        }
+
+        if ($includeReceipt) {
+            $response['data']['receipts'] = $receiptData;
+        }
 
         return response()->json($response);
     }

@@ -52,8 +52,7 @@ class CustomerController extends Controller
     private function validateCustomer(Request $request)
     {
         return Validator::make($request->all(), [
-            'company' => 'required|string',
-            'type' => 'required|string',
+            'type' => 'required',
             'name' => 'required|string',
             'street' => 'required|string',
             'city' => 'required|string',
@@ -65,7 +64,6 @@ class CustomerController extends Controller
             'image_uuid' => 'required|string|exists:images,image_uuid',
             'tag_id' => 'array|nullable',
         ], [
-            'company.required' => 'Company Must Be Filled',
             'type.required' => 'Type Must Be Filled',
             'name.required' => 'Name Must Be Filled',
             'street.required' => 'Street Must Be Filled',

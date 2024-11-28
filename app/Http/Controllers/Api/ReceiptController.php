@@ -264,8 +264,28 @@ class ReceiptController extends Controller
                     }
                 } else if ($data['state'] == 4) {
                     $receipt->update([
-                        'state' => $data['state'],
+                        'transaction_type' => $data['transaction_type'],
+                        'rfq_id' => $rfq->rfq_id,
+                        'vendor_id' => $data['vendor_id'],
+                        'source_document' => $rfqReference,
+                        'scheduled_date' => $scheduled_date,
+                        'state' => $data['state']
                     ]);
+                    foreach ($data['items'] as $component) {
+                        $rfqComponent = RfqComponent::where('rfq_id', $rfq->rfq_id)->where('rfq_component_id', $component['component_id'])->first();
+                        if ($rfqComponent) {
+                            $rfqComponent->update([
+                                'material_id' => $component['material_id'],
+                                'qty_received' =>  $component['qty_received'],
+                                'qty_to_invoice' => $component['qty_received'],
+                            ]);
+                        }
+                    }
+                    if ($rfq) {
+                        $rfq->update([
+                            'invoice_status' => $data['invoice_status'],
+                        ]);
+                    }
                 }
             } else if ($data['transaction_type'] == 'OUT') {
                 // if ($data['state'] == 2) {

@@ -36,8 +36,6 @@ class MaterialController extends Controller
                 'image_uuid' => $material->image_uuid,
                 'image_url' => $material->image_url,
                 'stock' => $material->stock,
-                'created_at' => $material->created_at,
-                'updated_at' => $material->updated_at
             ];
         });
 
@@ -63,6 +61,29 @@ class MaterialController extends Controller
                 'image_uuid.required' => 'Image Must Be Filled',
             ]
         );
+    }
+
+    private function successResponse($materialWithTag, $message){
+        return new MaterialResource(true, $message, [
+            'id' => $materialWithTag->material_id,
+            'name' => $materialWithTag->material_name,
+            'category_id' => $materialWithTag->category_id,
+            'category_name' => $materialWithTag->category->category,
+            'sales_price' => $materialWithTag->sales_price,
+            'cost' => $materialWithTag->cost,
+            'barcode' => $materialWithTag->barcode,
+            'internal_reference' => $materialWithTag->internal_reference,
+            'notes' => $materialWithTag->notes,
+            'tags' => $materialWithTag->tag->map(function ($tag) {
+                return [
+                    'id' => $tag->tag_id,
+                    'name' => $tag->name_tag,
+                ];
+            }),
+            'image_uuid' => $materialWithTag->image_uuid,
+            'image_url' => $materialWithTag->image_url,
+            'stock' => $materialWithTag->stock,
+        ]);
     }
 
     public function store(Request $request)
@@ -105,26 +126,7 @@ class MaterialController extends Controller
             $material->tag()->sync($data['tags']);
 
             $materialWithTag = Material::with('tag')->find($material->material_id);
-            return new MaterialResource(true, 'Material Data Successfully Added', [
-                'id' => $materialWithTag->material_id,
-                'name' => $materialWithTag->material_name,
-                'category_id' => $materialWithTag->category_id,
-                'category_name' => $materialWithTag->category->category,
-                'sales_price' => $materialWithTag->sales_price,
-                'cost' => $materialWithTag->cost,
-                'barcode' => $materialWithTag->barcode,
-                'internal_reference' => $materialWithTag->internal_reference,
-                'notes' => $materialWithTag->notes,
-                'tags' => $materialWithTag->tag->map(function ($tag) {
-                    return [
-                        'id' => $tag->tag_id,
-                        'name' => $tag->name_tag,
-                    ];
-                }),
-                'image_uuid' => $materialWithTag->image_uuid,
-                'image_url' => $materialWithTag->image_url,
-                'stock' => $materialWithTag->stock,
-            ]);
+            return $this->successResponse($materialWithTag, 'Product Data Successfully Added');
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -133,7 +135,6 @@ class MaterialController extends Controller
             ], 500);
         }
     }
-
 
     public function show($id)
     {
@@ -144,28 +145,7 @@ class MaterialController extends Controller
                 'message' => 'Material not found'
             ], 404);
         }
-        return new MaterialResource(true, 'Detail Material Data', [
-            'id' => $material->material_id,
-            'name' => $material->material_name,
-            'category_id' => $material->category_id,
-            'category_name' => $material->category->category,
-            'sales_price' => $material->sales_price,
-            'cost' => $material->cost,
-            'barcode' => $material->barcode,
-            'internal_reference' => $material->internal_reference,
-            'tags' => $material->tag->map(function ($tag) {
-                return [
-                    'id' => $tag->tag_id,
-                    'name' => $tag->name_tag
-                ];
-            }),
-            'notes' => $material->notes,
-            'image_uuid' => $material->image_uuid,
-            'image_url' => $material->image_url,
-            'stock' => $material->stock,
-            'created_at' => $material->created_at,
-            'updated_at' => $material->updated_at
-        ]);
+        return $this->successResponse($material, 'Detail Material Data');
     }
 
     public function update(Request $request, $id)
@@ -207,27 +187,7 @@ class MaterialController extends Controller
             $material->tag()->sync($data['tags']);
 
             $materialWithTag = Material::with('tag')->find($material->material_id);
-
-            return new MaterialResource(true, 'Material Data Successfully Updated', [
-                'id' => $materialWithTag->material_id,
-                'name' => $materialWithTag->material_name,
-                'category_id' => $materialWithTag->category_id,
-                'category_name' => $materialWithTag->category->category,
-                'sales_price' => $materialWithTag->sales_price,
-                'cost' => $materialWithTag->cost,
-                'barcode' => $materialWithTag->barcode,
-                'internal_reference' => $materialWithTag->internal_reference,
-                'notes' => $materialWithTag->notes,
-                'tags' => $materialWithTag->tag->map(function ($tag) {
-                    return [
-                        'id' => $tag->tag_id,
-                        'name' => $tag->name_tag,
-                    ];
-                }),
-                'image_uuid' => $materialWithTag->image_uuid,
-                'image_url' => $materialWithTag->image_url,
-                'stock' => $materialWithTag->stock,
-            ]);
+            return $this->successResponse($materialWithTag, 'Material Data Successfully Updated');
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,

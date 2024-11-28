@@ -190,39 +190,52 @@ class GetDataController extends Controller
             ];
         });
 
-        $rfq = Rfq::orderBy('created_at', 'DESC')->get();
-        $rfqData = $rfq->map(function ($item) {
-            return [
-                'id' => $item->rfq_id,
-                'reference' =>  $item->reference,
-                'vendor_id' => $item->vendor_id,
-                'vendor_name' => $item->vendor->name,
-                'vendor_reference' => $item->vendor_reference,
-                'order_date' => $item->order_date,
-                'state' => $item->state,
-                'taxes' => $item->taxes,
-                'total' => $item->total,
-                'confirmation_date' => $item->confirmation_date,
-                'invoice_status' => $item->invoice_status,
-                'items' => $item->rfqComponent->map(function ($component) {
-                    return [
-                        'rfq_component_id' => $component->rfq_component_id,
-                        'type' => $component->display_type,
-                        'id' => $component->material_id,
-                        'internal_reference' => $component->material->internal_reference ?? null,
-                        'name' => $component->material->material_name ?? null,
-                        'description' => $component->description,
-                        'qty' => $component->qty,
-                        'unit_price' => $component->unit_price,
-                        'tax' => $component->tax,
-                        'subtotal' => $component->subtotal,
-                        'qty_received' => $component->qty_received,
-                        'qty_to_invoice' =>  $component->qty_to_invoice,
-                        'qty_invoiced' =>  $component->qty_invoiced,
-                    ];
-                }),
-            ];
-        });
+        $queryRfq = Rfq::query();
+        if ($request->has('purchase_order') && $request->purchase_order == 'true') {
+            $queryRfq->where('state', 3);
+        }
+        $rfq = $queryRfq->orderBy('created_at', 'DESC')->get();
+        return response()->json([
+            'success' => true,
+            'message' => 'List RFQ Data',
+            'data' => $rfq->map(function ($item) {
+                return [
+                    'id' => $item->rfq_id,
+                    'reference' =>  $item->reference,
+                    'vendor_id' => $item->vendor_id,
+                    'vendor_name' => $item->vendor->name,
+                    'vendor_reference' => $item->vendor_reference,
+                    'order_date' => $item->order_date,
+                    'state' => $item->state,
+                    'taxes' => $item->taxes,
+                    'total' => $item->total,
+                    'confirmation_date' => $item->confirmation_date,
+                    'invoice_status' => $item->invoice_status,
+                    'receipt' => $item->receipts->map(function ($receipt) {
+                        return [
+                            'id' => $receipt->receipt_id,
+                        ];
+                    }),
+                    'items' => $item->rfqComponent->map(function ($component) {
+                        return [
+                            'rfq_component_id' => $component->rfq_component_id,
+                            'type' => $component->display_type,
+                            'id' => $component->material_id,
+                            'internal_reference' => $component->material->internal_reference ?? null,
+                            'name' => $component->material->material_name ?? null,
+                            'description' => $component->description,
+                            'qty' => $component->qty,
+                            'unit_price' => $component->unit_price,
+                            'tax' => $component->tax,
+                            'subtotal' => $component->subtotal,
+                            'qty_received' => $component->qty_received,
+                            'qty_to_invoice' =>  $component->qty_to_invoice,
+                            'qty_invoiced' =>  $component->qty_invoiced,
+                        ];
+                    }),
+                ];
+            }),
+        ]);
 
         $receipts = Receipt::orderBy('created_at', 'DESC')->get();
         $receiptData = $receipts->map(function ($receipt) {

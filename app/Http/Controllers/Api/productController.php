@@ -11,7 +11,6 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Number;
 
 class ProductController extends Controller
 {
@@ -38,8 +37,6 @@ class ProductController extends Controller
                 'image_uuid' => $product->image_uuid,
                 'image_url' => $product->image_url,
                 'stock' => $product->stock,
-                'created_at' => $product->created_at,
-                'updated_at' => $product->updated_at
             ];
         });
 
@@ -60,6 +57,30 @@ class ProductController extends Controller
             'sales_price.required' => 'Sales Price Must Be Filled',
             'cost.required' => 'Cost Must Be Filled',
             'image_uuid.required' => 'Image Must Be Filled',
+        ]);
+    }
+
+    private function successResponse($productWithTag, $message)
+    {
+        return new ProductResource(true, $message, [
+            'id' => $productWithTag->product_id,
+            'name' => $productWithTag->product_name,
+            'category_id' => $productWithTag->category_id,
+            'category_name' => $productWithTag->category->category,
+            'sales_price' => $productWithTag->sales_price,
+            'cost' => $productWithTag->cost,
+            'barcode' => $productWithTag->barcode,
+            'internal_reference' => $productWithTag->internal_reference,
+            'notes' => $productWithTag->notes,
+            'tags' => $productWithTag->tag->map(function ($tag) {
+                return [
+                    'id' => $tag->tag_id,
+                    'name' => $tag->name_tag,
+                ];
+            }),
+            'image_uuid' => $productWithTag->image_uuid,
+            'image_url' => $productWithTag->image_url,
+            'stock' => $productWithTag->stock,
         ]);
     }
 
@@ -100,29 +121,8 @@ class ProductController extends Controller
             ]);
 
             $product->tag()->sync($data['tags']);
-
             $productWithTag = Product::with('tag')->find($product->product_id);
-
-            return new ProductResource(true, 'Product Data Successfully Added', [
-                'id' => $productWithTag->product_id,
-                'name' => $productWithTag->product_name,
-                'category_id' => $productWithTag->category_id,
-                'category_name' => $productWithTag->category->category,
-                'sales_price' => $product->sales_price,
-                'cost' => $product->cost,
-                'barcode' => $productWithTag->barcode,
-                'internal_reference' => $productWithTag->internal_reference,
-                'notes' => $productWithTag->notes,
-                'tags' => $productWithTag->tag->map(function ($tag) {
-                    return [
-                        'id' => $tag->tag_id,
-                        'name' => $tag->name_tag,
-                    ];
-                }),
-                'image_uuid' => $productWithTag->image_uuid,
-                'image_url' => $productWithTag->image_url,
-                'stock' => $productWithTag->stock,
-            ]);
+            return $this->successResponse($productWithTag, 'Product Data Successfully Added');
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -141,26 +141,7 @@ class ProductController extends Controller
                 'message' => 'Product not found'
             ], 404);
         }
-        return new ProductResource(true, 'List Product Data', [
-            'id' => $product->product_id,
-            'name' => $product->product_name,
-            'category_id' => $product->category_id,
-            'category_name' => $product->category->category,
-            'sales_price' => $product->sales_price,
-            'cost' => $product->cost,
-            'barcode' => $product->barcode,
-            'internal_reference' => $product->internal_reference,
-            'notes' => $product->notes,
-            'tags' => $product->tag->map(function ($tag) {
-                return [
-                    'id' => $tag->tag_id,
-                    'name' => $tag->name_tag,
-                ];
-            }),
-            'image_uuid' => $product->image_uuid,
-            'image_url' => $product->image_url,
-            'stock' => $product->stock,
-        ]);
+        return $this->successResponse($product, 'List Product Data');
     }
 
     public function update(Request $request, $id)
@@ -202,27 +183,7 @@ class ProductController extends Controller
             $product->tag()->sync($data['tags']);
 
             $productWithTag = Product::with('tag')->find($product->product_id);
-
-            return new ProductResource(true, 'Product Data Successfully Updated', [
-                'id' => $productWithTag->product_id,
-                'name' => $productWithTag->product_name,
-                'category_id' => $productWithTag->category_id,
-                'category_name' => $productWithTag->category->category,
-                'sales_price' => $product->sales_price,
-                'cost' => $product->cost,
-                'barcode' => $productWithTag->barcode,
-                'internal_reference' => $productWithTag->internal_reference,
-                'notes' => $productWithTag->notes,
-                'tags' => $productWithTag->tag->map(function ($tag) {
-                    return [
-                        'id' => $tag->tag_id,
-                        'name' => $tag->name_tag,
-                    ];
-                }),
-                'image_uuid' => $productWithTag->image_uuid,
-                'image_url' => $productWithTag->image_url,
-                'stock' => $productWithTag->stock,
-            ]);
+            return $this->successResponse($productWithTag, 'Product Data Successfully Updated');
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -242,10 +203,10 @@ class ProductController extends Controller
             ], 404);
         }
 
-        $imageUuid = $product->image_uuid;  
+        $imageUuid = $product->image_uuid;
         $image = Image::where('image_uuid', $imageUuid)->first();
-        if($image){
-            Storage::delete('public/images/'. $image->image);
+        if ($image) {
+            Storage::delete('public/images/' . $image->image);
         }
         DB::table('images')->where('image_uuid', $imageUuid)->delete();
 

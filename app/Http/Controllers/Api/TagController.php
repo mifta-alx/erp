@@ -9,12 +9,17 @@ use App\Http\Resources\TagResource;
 
 class TagController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $tags = Tag::orderBy('tag_id', 'ASC')->get();
+        $query = Tag::query();
+        if ($request->has('type')) {
+            $query->where('type', $request->type);
+        }
+        $tags = $query->orderBy('tag_id', 'ASC')->get();
         $formattedTags = $tags->map(function ($tag) {
             return [
                 'id' => $tag->tag_id,
+                'type' => $tag->type,
                 'name' => $tag->name_tag,
             ];
         });
@@ -33,6 +38,7 @@ class TagController extends Controller
         }
         return new TagResource(true, 'Detail Tag Data', [
             'id' => $tag->tag_id,
+            'type' => $tag->type,
             'name' => $tag->name_tag
         ]);
     }
@@ -40,12 +46,15 @@ class TagController extends Controller
     public function store(Request $request)
     {
         $data = $request->json()->all();
+        $type = $request->query('type', $data['type'] ?? null);
         $tag = Tag::create([
+            'type' => $type,
             'name_tag' => $data['name_tag'],
         ]);
         return new TagResource(true, 'Tag Successfully Uploaded', [
-            'id'=>$tag->tag_id,
-            'name'=>$tag->name_tag
+            'id' => $tag->tag_id,
+            'type' => $tag->type,
+            'name' => $tag->name_tag
         ]);
     }
 
@@ -60,11 +69,13 @@ class TagController extends Controller
             ], 404);
         }
         $tag->update([
+            'type' => $data['type'],
             'name_tag' => $data['name_tag'],
         ]);
         return new TagResource(true, 'Product Tag Successfully Updated', [
-            'id'=>$tag->tag_id,
-            'name'=>$tag->name_tag
+            'id' => $tag->tag_id,
+            'type' => $tag->type,
+            'name' => $tag->name_tag
         ]);
     }
 

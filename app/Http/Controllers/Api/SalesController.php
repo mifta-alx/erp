@@ -79,7 +79,6 @@ class SalesController extends Controller
                         'qty_received' => $component['qty_received'],
                         'qty_to_invoice' => $component['qty_to_invoice'],
                         'qty_invoiced' => $component['qty_invoiced'],
-                        'state' => $component['state'],
                     ]);
                 } else {
                     SalesComponent::create([
@@ -94,7 +93,6 @@ class SalesController extends Controller
                         'qty_received' => 0,
                         'qty_to_invoice' => 0,
                         'qty_invoiced' => 0,
-                        'state' => $component['state'],
                     ]);
                 }
             }
@@ -170,7 +168,6 @@ class SalesController extends Controller
                         'qty_received' => $component['qty_received'],
                         'qty_to_invoice' => $component['qty_to_invoice'],
                         'qty_invoiced' => $component['qty_invoiced'],
-                        'state' => $component['state'],
                     ]);
                 } else {
                     SalesComponent::create([
@@ -185,7 +182,6 @@ class SalesController extends Controller
                         'qty_received' => 0,
                         'qty_to_invoice' => 0,
                         'qty_invoiced' => 0,
-                        'state' => $component['state'],
                     ]);
                 }
             }
@@ -268,18 +264,17 @@ private function validateSales($request, $isUpdate = false)
         'invoice_status' => 'required|numeric',
         'state' => 'required|numeric',
         'payment_trem' => 'required',
-        'components' => 'required|array',
-        'components.*.type' => 'required|in:product,service',
-        'components.*.product_id' => 'required_if:components.*.type,product|exists:products,product_id',
-        'components.*.description' => 'required',
-        'components.*.qty' => 'required|numeric',
-        'components.*.unit_price' => 'required|numeric',
-        'components.*.tax' => 'required|numeric',
-        'components.*.subtotal' => 'required|numeric',
-        'components.*.qty_received' => 'required|numeric',
-        'components.*.qty_to_invoice' => 'required|numeric',
-        'components.*.qty_invoiced' => 'required|numeric',
-        'components.*.state' => 'required|numeric',
+        'components' => 'nullable|array',
+        'components.*.type' => 'nullable|in:product,service',
+        'components.*.product_id' => 'nullable:components.*.type,product|exists:products,product_id',
+        'components.*.description' => 'nullable',
+        'components.*.qty' => 'nullable|numeric',
+        'components.*.unit_price' => 'nullable|numeric',
+        'components.*.tax' => 'nullable|numeric',
+        'components.*.subtotal' => 'nullable|numeric',
+        'components.*.qty_received' => 'nullable|numeric',
+        'components.*.qty_to_invoice' => 'nullable|numeric',
+        'components.*.qty_invoiced' => 'nullable|numeric',
     ];
 
     if ($isUpdate) {
@@ -326,7 +321,6 @@ private function validateSales($request, $isUpdate = false)
             'qty_received' => $component->qty_received,
             'qty_to_invoice' => $component->qty_to_invoice,
             'qty_invoiced' => $component->qty_invoiced,
-            'state' => $component->state,
         ];
     }
 }

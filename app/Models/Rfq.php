@@ -35,8 +35,8 @@ class Rfq extends Model
     {
         return $this->hasMany(Receipt::class, 'rfq_id', 'rfq_id');
     }
-    // public function invoices()
-    // {
-    //     return $this->hasMany(Invoice::class, 'rfq_id', 'rfq_id');
-    // }
+    public function invoices()
+    {
+        return $this->hasMany(Invoice::class, 'rfq_id', 'rfq_id');
+    }
 }

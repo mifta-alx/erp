@@ -14,6 +14,8 @@ class Receipt extends Model
         'transaction_type',
         'reference',
         'rfq_id',
+        'sales_id',
+        'customer_id',
         'vendor_id',
         'state',
         'source_document',
@@ -23,7 +25,13 @@ class Receipt extends Model
     public function vendor(){
         return $this->belongsTo(Vendor::class, 'vendor_id', 'vendor_id');
     }
+    public function customer(){
+        return $this->belongsTo(Customer::class, 'customer_id', 'customer_id');
+    }
     public function rfq(){
         return $this->belongsTo(Rfq::class, 'rfq_id', 'rfq_id');
+    }
+    public function sales(){
+        return $this->belongsTo(Sales::class, 'sales_id', 'sales_id');
     }
 }

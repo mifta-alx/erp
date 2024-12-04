@@ -7,6 +7,7 @@ use App\Models\Material;
 use App\Models\Receipt;
 use App\Models\Rfq;
 use App\Models\RfqComponent;
+use App\Models\Sales;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -14,53 +15,90 @@ use Illuminate\Support\Facades\Validator;
 
 class ReceiptController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $receipts = Receipt::orderBy('created_at', 'DESC')->get();
         return response()->json([
             'success' => true,
             'message' => 'List Recipt Data',
             'data' => $receipts->map(function ($receipt) {
-                return [
-                    'id' => $receipt->receipt_id,
-                    'transaction_type' => $receipt->transaction_type,
-                    'reference' => $receipt->reference,
-                    'vendor_id' => $receipt->vendor_id,
-                    'vendor_name' => $receipt->vendor->name,
-                    'source_document' => $receipt->source_document,
-                    'rfq_id' => $receipt->rfq_id,
-                    'invoice_status' => $receipt->rfq->invoice_status,
-                    'scheduled_date' => $receipt->scheduled_date,
-                    'state' => $receipt->state,
-                    'items' => $receipt->rfq->rfqComponent
-                        ->filter(function ($component) {
-                            return $component->display_type !== 'line_section';
-                        })
-                        ->values()
-                        ->map(function ($component) {
-                            return [
-                                'component_id' => $component->rfq_component_id,
-                                'type' => $component->display_type,
-                                'id' => $component->material_id,
-                                'internal_reference' => $component->material->internal_reference,
-                                'name' => $component->material->material_name,
-                                'description' => $component->description,
-                                'qty' => $component->qty,
-                                'unit_price' => $component->unit_price,
-                                'tax' => $component->tax,
-                                'subtotal' => $component->subtotal,
-                                'qty_received' => $component->qty_received,
-                                'qty_to_invoice' => $component->qty_to_invoice,
-                                'qty_invoiced' => $component->qty_invoiced,
-                            ];
-                        }),
-                ];
+                if ($receipt->transaction_type == 'IN') {
+                    return [
+                        'id' => $receipt->receipt_id,
+                        'transaction_type' => $receipt->transaction_type,
+                        'reference' => $receipt->reference,
+                        'vendor_id' => $receipt->vendor_id,
+                        'vendor_name' => $receipt->vendor->name,
+                        'source_document' => $receipt->source_document,
+                        'rfq_id' => $receipt->rfq_id,
+                        'invoice_status' => $receipt->rfq->invoice_status,
+                        'scheduled_date' => $receipt->scheduled_date,
+                        'state' => $receipt->state,
+                        'items' => $receipt->rfq->rfqComponent
+                            ->filter(function ($component) {
+                                return $component->display_type !== 'line_section';
+                            })
+                            ->values()
+                            ->map(function ($component) {
+                                return [
+                                    'component_id' => $component->rfq_component_id,
+                                    'type' => $component->display_type,
+                                    'id' => $component->material_id,
+                                    'internal_reference' => $component->material->internal_reference,
+                                    'name' => $component->material->material_name,
+                                    'description' => $component->description,
+                                    'qty' => $component->qty,
+                                    'unit_price' => $component->unit_price,
+                                    'tax' => $component->tax,
+                                    'subtotal' => $component->subtotal,
+                                    'qty_received' => $component->qty_received,
+                                    'qty_to_invoice' => $component->qty_to_invoice,
+                                    'qty_invoiced' => $component->qty_invoiced,
+                                ];
+                            }),
+                    ];
+                }
+                if ($receipt->transaction_type == 'OUT') {
+                    return [
+                        'id' => $receipt->receipt_id,
+                        'transaction_type' => $receipt->transaction_type,
+                        'reference' => $receipt->reference,
+                        'customer_id' => $receipt->customer_id,
+                        'customer_name' => $receipt->customer->name,
+                        'source_document' => $receipt->source_document,
+                        'sales_id' => $receipt->sales_id,
+                        'invoice_status' => $receipt->sales->invoice_status,
+                        'scheduled_date' => $receipt->scheduled_date,
+                        'state' => $receipt->state,
+                        'items' => $receipt->sales->salesComponents
+                            ->filter(function ($component) {
+                                return $component->display_type !== 'line_section';
+                            })
+                            ->values()
+                            ->map(function ($component) {
+                                return [
+                                    'component_id' => $component->sales_component_id,
+                                    'type' => $component->display_type,
+                                    'id' => $component->product_id,
+                                    'internal_reference' => $component->product->internal_reference,
+                                    'name' => $component->product->product_name,
+                                    'description' => $component->description,
+                                    'qty' => $component->qty,
+                                    'unit_price' => $component->unit_price,
+                                    'tax' => $component->tax,
+                                    'subtotal' => $component->subtotal,
+                                    'qty_received' => $component->qty_received,
+                                    'qty_to_invoice' => $component->qty_to_invoice,
+                                    'qty_invoiced' => $component->qty_invoiced,
+                                ];
+                            }),
+                    ];
+                }
             }),
         ], 200);
     }
 
-
-    private function successResponse($receipt, $message)
+    private function responseIn($receipt, $message)
     {
         return response()->json([
             'success' => true,
@@ -101,6 +139,47 @@ class ReceiptController extends Controller
             ],
         ], 201);
     }
+    private function responseOut($receipt, $message)
+    {
+        return response()->json([
+            'success' => true,
+            'message' => $message,
+            'data' => [
+                'id' => $receipt->receipt_id,
+                'transaction_type' => $receipt->transaction_type,
+                'reference' => $receipt->reference,
+                'customer_id' => $receipt->customer_id,
+                'customer_name' => $receipt->customer->name,
+                'source_document' => $receipt->source_document,
+                'sales_id' => $receipt->sales_id,
+                'invoice_status' => $receipt->sales->invoice_status,
+                'scheduled_date' => $receipt->scheduled_date,
+                'state' => $receipt->state,
+                'items' => $receipt->sales->salesComponents
+                    ->filter(function ($component) {
+                        return $component->display_type !== 'line_section';
+                    })
+                    ->values()
+                    ->map(function ($component) {
+                        return [
+                            'component_id' => $component->sales_component_id,
+                            'type' => $component->display_type,
+                            'id' => $component->product_id,
+                            'internal_reference' => $component->product->internal_reference,
+                            'name' => $component->product->product_name,
+                            'description' => $component->description,
+                            'qty' => $component->qty,
+                            'unit_price' => $component->unit_price,
+                            'tax' => $component->tax,
+                            'subtotal' => $component->subtotal,
+                            'qty_received' => $component->qty_received,
+                            'qty_to_invoice' => $component->qty_to_invoice,
+                            'qty_invoiced' => $component->qty_invoiced,
+                        ];
+                    }),
+            ],
+        ], 201);
+    }
 
     private function validateRecipt(Request $request)
     {
@@ -126,8 +205,12 @@ class ReceiptController extends Controller
             }
             if ($data['transaction_type'] == 'IN') {
                 $lastOrder = Receipt::where('transaction_type', 'IN')->orderBy('created_at', 'desc')->first();
+                $rfq = Rfq::find($data['rfq_id']);
+                $rfqReference = $rfq->reference;
             } else {
                 $lastOrder = Receipt::where('transaction_type', 'OUT')->orderBy('created_at', 'desc')->first();
+                $sales = Sales::findOrFail($data['sales_id']);
+                $salesReference = $sales->reference;
             }
 
             if ($lastOrder && $lastOrder->reference) {
@@ -140,19 +223,23 @@ class ReceiptController extends Controller
             $reference = "{$data['transaction_type']}/{$referenceNumberPadded}";
             $scheduled_date = Carbon::parse($data['scheduled_date'])->timezone('UTC')->toIso8601String();
 
-            $rfq = Rfq::findOrFail($data['rfq_id']);
-            $rfqReference = $rfq->reference;
             $receipt = Receipt::create([
                 'transaction_type' => $data['transaction_type'],
                 'reference' => $reference,
-                'rfq_id' => $rfq->rfq_id,
-                'vendor_id' => $data['vendor_id'],
-                'source_document' => $rfqReference,
+                'rfq_id' => $rfq->rfq_id ?? null,
+                'sales_id' => $sales->sales_id ?? null,
+                'vendor_id' => $data['vendor_id'] ?? null,
+                'customer_id' => $data['customer_id'] ?? null,
+                'source_document' => $rfqReference ?? $salesReference,
                 'scheduled_date' => $scheduled_date,
                 'state' => $data['state']
             ]);
             DB::commit();
-            return $this->successResponse($receipt, 'Receipt Successfully Added');
+            if ($data['transaction_type'] == 'IN') {
+                return $this->responseIn($receipt, 'Receipt Successfully Added');
+            } else {
+                return $this->responseOut($receipt, 'Receipt Successfully Added');
+            }
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
@@ -174,7 +261,11 @@ class ReceiptController extends Controller
                 'message' => 'Receipt not found',
             ], 404);
         }
-        return $this->successResponse($receipt, 'List Receipt Data ');
+        if ($receipt->transaction_type == 'IN') {
+            return $this->responseIn($receipt, 'List Receipt Data ');
+        } else {
+            return $this->responseOut($receipt, 'List Receipt Data ');
+        }
     }
 
     public function update(Request $request, $id)
@@ -315,7 +406,7 @@ class ReceiptController extends Controller
                 // }
             }
             DB::commit();
-            return $this->successResponse($receipt, 'Receipt Successfully Updated');
+            return $this->responseIn($receipt, 'Receipt Successfully Updated');
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([

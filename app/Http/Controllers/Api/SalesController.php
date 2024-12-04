@@ -29,30 +29,7 @@ class SalesController extends Controller
     public function store(Request $request)
     {
         // Validasi input
-        $validator = Validator::make($request->all(), [
-            'customer_id' => 'required|exists:customers,customer_id',
-            'quantity' => 'required|integer',
-            'taxes' => 'required|numeric',
-            'total' => 'required|numeric',
-            'order_date' => 'required|date',
-            'expiration' => 'nullable|date',
-            'invoice_status' => 'required|in:0,1', 
-            'state' => 'required|in:0,1',        
-            'payment_trem' => 'nullable|integer',
-            'reference' => 'nullable|string|max:255',
-            'components' => 'nullable|array',
-            'components.*.product_id' => 'required|exists:products,product_id',
-            'components.*.description' => 'nullable|string',
-            'components.*.display_type' => 'nullable|string',
-            'components.*.qty' => 'required|integer',
-            'components.*.unit_price' => 'required|numeric',
-            'components.*.tax' => 'nullable|numeric',
-            'components.*.subtotal' => 'required|numeric',
-            'components.*.qty_received' => 'nullable|integer',
-            'components.*.qty_to_invoice' => 'nullable|integer',
-            'components.*.qty_invoiced' => 'nullable|integer',
-            'components.*.state' => 'required|in:0,1', // Misalnya: 0 = Pending, 1 = Completed
-        ]);
+        $validator = $this->validateSales($request);
 
         if ($validator->fails()) {
             return response()->json([
@@ -89,6 +66,111 @@ class SalesController extends Controller
             'data' => $this->transformSales($sales->load(['customer', 'salesComponents'])),
         ], 201);
     }
+    public function update(Request $request, $id)
+    {
+        // Validasi input
+        $validator = $this->validateSales($request, true);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation errors',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        // Cari penjualan berdasarkan ID
+        $sales = Sales::find($id);
+
+        if (!$sales) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Sales not found',
+            ], 404);
+        }
+
+        // Update data penjualan
+        $sales->update($request->only([
+            'customer_id',
+            'quantity',
+            'taxes',
+            'total',
+            'order_date',
+            'expiration',
+            'invoice_status',
+            'state',
+            'payment_trem',
+            'reference',
+        ]));
+
+        // Perbarui komponen penjualan jika ada
+        if ($request->has('components')) {
+            // Hapus komponen yang sudah ada sebelumnya hanya jika ada komponen baru
+            $sales->salesComponents()->delete();
+
+            // Simpan komponen baru jika ada
+            foreach ($request->components as $component) {
+                $sales->salesComponents()->create($component);
+            }
+        }
+
+        // Kembalikan response setelah berhasil diupdate
+        return response()->json([
+            'success' => true,
+            'message' => 'Sales updated successfully',
+            'data' => $this->transformSales($sales->load(['customer', 'salesComponents'])),
+        ]);
+    }
+    public function show($id)
+    {
+        // Cari penjualan berdasarkan ID
+        $sales = Sales::with(['customer', 'salesComponents'])->find($id);
+
+        if (!$sales) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Sales not found',
+            ], 404);
+        }
+
+        // Transformasi data penjualan dan komponen terkait
+        $salesData = $this->transformSales($sales);
+
+        // Kembalikan response JSON dengan data penjualan yang ditemukan
+        return response()->json([
+            'success' => true,
+            'data' => $salesData,
+        ]);
+    }
+    // Pemisahan fungsi validasi
+    private function validateSales(Request $request, $isUpdate = false)
+    {
+        return Validator::make($request->all(), [
+            'customer_id' => 'required|exists:customers,customer_id',
+            'quantity' => 'required|integer',
+            'taxes' => 'required|numeric',
+            'total' => 'required|numeric',
+            'order_date' => 'required|date',
+            'expiration' => 'nullable|date',
+            'invoice_status' => 'required|in:0,1',
+            'state' => 'required|in:0,1',
+            'payment_trem' => 'nullable|integer',
+            'reference' => 'nullable|string|max:255',
+            'components' => 'nullable|array',
+            'components.*.product_id' => 'required_with:components|exists:products,product_id',
+            'components.*.description' => 'nullable|string',
+            'components.*.display_type' => 'nullable|string',
+            'components.*.qty' => 'required_with:components|integer',
+            'components.*.unit_price' => 'required_with:components|numeric',
+            'components.*.tax' => 'nullable|numeric',
+            'components.*.subtotal' => 'required_with:components|numeric',
+            'components.*.qty_received' => 'nullable|integer',
+            'components.*.qty_to_invoice' => 'nullable|integer',
+            'components.*.qty_invoiced' => 'nullable|integer',
+            'components.*.state' => 'required_with:components|in:0,1',
+        ]);
+    }
+
 
     private function transformSales($sale)
     {
@@ -129,5 +211,4 @@ class SalesController extends Controller
             'state' => $component->state,
         ];
     }
-    
 }

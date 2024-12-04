@@ -30,4 +30,11 @@ class Sales extends Model
     {
         return $this->hasMany(SalesComponent::class, 'sales_id', 'sales_id');
     }
+    public function receipts(){
+        return $this->hasMany(Receipt::class,'sales_id','sales_id');
+    }
+    public function invoices()
+    {
+        return $this->hasMany(Invoice::class, 'sales_id', 'sales_id');
+    }
 }

@@ -32,7 +32,7 @@ class CategorySeeder extends Seeder
             ],
         ]);
 
-        DB::table('Payment_terms')->insert([
+        DB::table('payment_terms')->insert([
             [
                 'name' => 'Immediate Payment',
                 'value' => 0,

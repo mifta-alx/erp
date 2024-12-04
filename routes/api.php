@@ -26,3 +26,5 @@ Route::apiResource('/rfqs', App\Http\Controllers\Api\RfqController::class);
 Route::apiResource('/receipts', App\Http\Controllers\Api\ReceiptController::class);
 Route::apiResource('/customers', App\Http\Controllers\Api\CustomerController::class);
 // Route::apiResource('/invoices', App\Http\Controllers\Api\InvoiceController::class);
+
+Route::apiResource('/sales', App\Http\Controllers\Api\SalesController::class);

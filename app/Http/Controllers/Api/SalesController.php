@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Receipt;
 use App\Models\Sales;
+use App\Models\SalesComponent;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 
 class SalesController extends Controller
 {
@@ -28,98 +31,208 @@ class SalesController extends Controller
     }
     public function store(Request $request)
     {
-        // Validasi input
-        $validator = $this->validateSales($request);
+        DB::beginTransaction();
+        try {
+            // Validasi input
+            $validator = $this->validateSales($request);
 
-        if ($validator->fails()) {
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation errors',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+            //   mengambil data terakhir
+            $lastSales = Sales::orderBy('created_at', 'DESC')->first();
+            if ($lastSales && $lastSales->reference) {
+                $lastReferenceNumber = (int) substr($lastSales->reference, 3);
+            } else {
+                $lastReferenceNumber = 0;
+            }
+            $referenceNumber = $lastReferenceNumber + 1;
+            $referenceNumberPadded = str_pad($referenceNumber, 5, '0', STR_PAD_LEFT);
+            $reference = "S{$referenceNumberPadded}";
+            $sales = Sales::create([
+                'customer_id' => $request->customer_id,
+                'quantity' => $request->quantity,
+                'taxes' => $request->taxes,
+                'total' => $request->total,
+                'order_date' => $request->order_date,
+                'expiration' => $request->expiration,
+                'invoice_status' => $request->invoice_status,
+                'state' => $request->state,
+                'payment_trem' => $request->payment_trem,
+                'reference' => $reference,
+            ]);
+            foreach ($request->components as $component) {
+                if ($component['type'] == 'product') {
+                    SalesComponent::create([
+                        'sales_id' => $sales->sales_id,
+                        'product_id' => $component['product_id'],
+                        'description' => $component['description'],
+                        'display_type' => $component['type'],
+                        'qty' => $component['qty'],
+                        'unit_price' => $component['unit_price'],
+                        'tax' => $component['tax'],
+                        'subtotal' => $component['subtotal'],
+                        'qty_received' => $component['qty_received'],
+                        'qty_to_invoice' => $component['qty_to_invoice'],
+                        'qty_invoiced' => $component['qty_invoiced'],
+                        'state' => $component['state'],
+                    ]);
+                } else {
+                    SalesComponent::create([
+                        'sales_id' => $sales->sales_id,
+                        'product_id' => null,
+                        'description' => $component['description'],
+                        'display_type' => $component['type'],
+                        'qty' => 0,
+                        'unit_price' => 0,
+                        'tax' => 0,
+                        'subtotal' => 0,
+                        'qty_received' => 0,
+                        'qty_to_invoice' => 0,
+                        'qty_invoiced' => 0,
+                        'state' => $component['state'],
+                    ]);
+                }
+            }
+            DB::commit();
+            return response()->json([
+                'success' => true,
+                'message' => 'Sales created successfully',
+                'data' => $this->transformSales($sales->load(['customer', 'salesComponents'])),
+            ]);
+        } catch (\Exception $e) {
+            // Rollback jika ada error
+            DB::rollBack();
+
             return response()->json([
                 'success' => false,
-                'message' => 'Validation errors',
-                'errors' => $validator->errors(),
-            ], 422);
+                'message' => $e->getMessage(),
+            ], 500);
         }
-
-        // Simpan data sales
-        $sales = Sales::create($request->only([
-            'customer_id',
-            'quantity',
-            'taxes',
-            'total',
-            'order_date',
-            'expiration',
-            'invoice_status',
-            'state',
-            'payment_trem',
-            'reference',
-        ]));
-
-        // Simpan komponen penjualan jika ada
-        if ($request->has('components')) {
-            foreach ($request->components as $component) {
-                $sales->salesComponents()->create($component);
-            }
-        }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Sales created successfully',
-            'data' => $this->transformSales($sales->load(['customer', 'salesComponents'])),
-        ], 201);
     }
     public function update(Request $request, $id)
     {
-        // Validasi input
-        $validator = $this->validateSales($request, true);
+        DB::beginTransaction();
+        try {
+            // Validasi input
+            $validator = $this->validateSales($request, true);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation errors',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        // Cari penjualan berdasarkan ID
-        $sales = Sales::find($id);
-
-        if (!$sales) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Sales not found',
-            ], 404);
-        }
-
-        // Update data penjualan
-        $sales->update($request->only([
-            'customer_id',
-            'quantity',
-            'taxes',
-            'total',
-            'order_date',
-            'expiration',
-            'invoice_status',
-            'state',
-            'payment_trem',
-            'reference',
-        ]));
-
-        // Perbarui komponen penjualan jika ada
-        if ($request->has('components')) {
-            // Hapus komponen yang sudah ada sebelumnya hanya jika ada komponen baru
-            $sales->salesComponents()->delete();
-
-            // Simpan komponen baru jika ada
-            foreach ($request->components as $component) {
-                $sales->salesComponents()->create($component);
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation errors',
+                    'errors' => $validator->errors(),
+                ], 422);
             }
-        }
 
-        // Kembalikan response setelah berhasil diupdate
-        return response()->json([
-            'success' => true,
-            'message' => 'Sales updated successfully',
-            'data' => $this->transformSales($sales->load(['customer', 'salesComponents'])),
-        ]);
+            // Cari penjualan berdasarkan ID
+            $sales = Sales::find($id);
+
+            if (!$sales) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Sales not found',
+                ], 404);
+            }
+
+            // Update data penjualan
+            $sales->update([
+                'customer_id' => $request->customer_id,
+                'quantity' => $request->quantity,
+                'taxes' => $request->taxes,
+                'total' => $request->total,
+                'order_date' => $request->order_date,
+                'expiration' => $request->expiration,
+                'invoice_status' => $request->invoice_status,
+                'state' => $request->state,
+                'payment_trem' => $request->payment_trem,
+            ]);
+
+            // Hapus semua komponen terkait
+            SalesComponent::where('sales_id', $sales->sales_id)->delete();
+
+            // Tambahkan komponen baru
+            foreach ($request->components as $component) {
+                if ($component['type'] == 'product') {
+                    SalesComponent::create([
+                        'sales_id' => $sales->sales_id,
+                        'product_id' => $component['product_id'],
+                        'description' => $component['description'],
+                        'display_type' => $component['type'],
+                        'qty' => $component['qty'],
+                        'unit_price' => $component['unit_price'],
+                        'tax' => $component['tax'],
+                        'subtotal' => $component['subtotal'],
+                        'qty_received' => $component['qty_received'],
+                        'qty_to_invoice' => $component['qty_to_invoice'],
+                        'qty_invoiced' => $component['qty_invoiced'],
+                        'state' => $component['state'],
+                    ]);
+                } else {
+                    SalesComponent::create([
+                        'sales_id' => $sales->sales_id,
+                        'product_id' => null,
+                        'description' => $component['description'],
+                        'display_type' => $component['type'],
+                        'qty' => 0,
+                        'unit_price' => 0,
+                        'tax' => 0,
+                        'subtotal' => 0,
+                        'qty_received' => 0,
+                        'qty_to_invoice' => 0,
+                        'qty_invoiced' => 0,
+                        'state' => $component['state'],
+                    ]);
+                }
+            }
+            // Logika tambahan untuk state = 3 (misalnya, pemrosesan penerimaan barang)
+            if ($request->state == 3) {
+                $lastReceipt = Receipt::where('transaction_type', 'IN')->orderBy('created_at', 'desc')->first();
+                $lastReferenceNumber = $lastReceipt ? (int) substr($lastReceipt->reference, 3) : 0;
+
+                $referenceNumber = $lastReferenceNumber + 1;
+                $referenceNumberPadded = str_pad($referenceNumber, 5, '0', STR_PAD_LEFT);
+                $reference = "IN{$referenceNumberPadded}";
+
+                Receipt::create([
+                    'transaction_type' => 'IN',
+                    'reference' => $reference,
+                    'sales_id' => $sales->sales_id,
+                    'source_document' => $sales->reference,
+                    'state' => 2, // Pending
+                ]);
+            }
+
+            // Logika untuk state = 4 (misalnya, pengubahan status penerimaan barang)
+            if ($request->state == 4) {
+                $receipts = Receipt::where('sales_id', $sales->sales_id)
+                    ->where('state', '!=', 4) // Belum selesai
+                    ->get();
+
+                foreach ($receipts as $receipt) {
+                    $receipt->update(['state' => 4]); // Selesai
+                }
+            }
+
+            DB::commit();
+            return response()->json([
+                'success' => true,
+                'message' => 'Sales updated successfully',
+                'data' => $this->transformSales($sales->load(['customer', 'salesComponents'])),
+            ]);
+        } catch (\Exception $e) {
+            // Rollback jika ada error
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
     }
     public function show($id)
     {
@@ -142,34 +255,39 @@ class SalesController extends Controller
             'data' => $salesData,
         ]);
     }
-    // Pemisahan fungsi validasi
-    private function validateSales(Request $request, $isUpdate = false)
-    {
-        return Validator::make($request->all(), [
-            'customer_id' => 'required|exists:customers,customer_id',
-            'quantity' => 'required|integer',
-            'taxes' => 'required|numeric',
-            'total' => 'required|numeric',
-            'order_date' => 'required|date',
-            'expiration' => 'nullable|date',
-            'invoice_status' => 'required|in:0,1',
-            'state' => 'required|in:0,1',
-            'payment_trem' => 'nullable|integer',
-            'reference' => 'nullable|string|max:255',
-            'components' => 'nullable|array',
-            'components.*.product_id' => 'required_with:components|exists:products,product_id',
-            'components.*.description' => 'nullable|string',
-            'components.*.display_type' => 'nullable|string',
-            'components.*.qty' => 'required_with:components|integer',
-            'components.*.unit_price' => 'required_with:components|numeric',
-            'components.*.tax' => 'nullable|numeric',
-            'components.*.subtotal' => 'required_with:components|numeric',
-            'components.*.qty_received' => 'nullable|integer',
-            'components.*.qty_to_invoice' => 'nullable|integer',
-            'components.*.qty_invoiced' => 'nullable|integer',
-            'components.*.state' => 'required_with:components|in:0,1',
-        ]);
+// Validasi input untuk update
+private function validateSales($request, $isUpdate = false)
+{
+    $rules = [
+        'customer_id' => 'required|exists:customers,customer_id',
+        'quantity' => 'required|numeric',
+        'taxes' => 'required|numeric',
+        'total' => 'required|numeric',
+        'order_date' => 'required|date',
+        'expiration' => 'required|date',
+        'invoice_status' => 'required|numeric',
+        'state' => 'required|numeric',
+        'payment_trem' => 'required',
+        'components' => 'required|array',
+        'components.*.type' => 'required|in:product,service',
+        'components.*.product_id' => 'required_if:components.*.type,product|exists:products,product_id',
+        'components.*.description' => 'required',
+        'components.*.qty' => 'required|numeric',
+        'components.*.unit_price' => 'required|numeric',
+        'components.*.tax' => 'required|numeric',
+        'components.*.subtotal' => 'required|numeric',
+        'components.*.qty_received' => 'required|numeric',
+        'components.*.qty_to_invoice' => 'required|numeric',
+        'components.*.qty_invoiced' => 'required|numeric',
+        'components.*.state' => 'required|numeric',
+    ];
+
+    if ($isUpdate) {
+        $rules['sales_id'] = 'required|exists:sales,sales_id';
     }
+
+    return Validator::make($request->all(), $rules);
+}
 
 
     private function transformSales($sale)

@@ -17,7 +17,6 @@ class Invoice extends Model
         'sales_id',
         'vendor_id',
         'customer_id',
-        'bill_reference',
         'state',
         'invoice_date',
         'accounting_date',

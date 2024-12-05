@@ -23,7 +23,6 @@ return new class extends Migration
             $table->foreign('rfq_id')->references('rfq_id')->on('rfqs')->onDelete('cascade');
             $table->unsignedBigInteger('sales_id')->nullable();
             $table->foreign('sales_id')->references('sales_id')->on('sales')->onDelete('cascade');
-            $table->string('bill_reference')->nullable();
             $table->timestamp('invoice_date')->nullable();
             $table->timestamp('accounting_date');
             $table->unsignedBigInteger('payment_term_id')->nullable();

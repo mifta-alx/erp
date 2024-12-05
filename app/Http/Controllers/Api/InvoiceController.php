@@ -212,8 +212,6 @@ class InvoiceController extends Controller
         DB::beginTransaction();
         try {
             $data = $request->json()->all();
-            $accounting_date = Carbon::parse($data['accounting_date'])->toIso8601String();
-
             if ($data['transaction_type'] == "BILL") {
                 $rfq = Rfq::findOrFail($data['rfq_id']);
                 $rfqReference = $rfq->reference;
@@ -227,12 +225,11 @@ class InvoiceController extends Controller
                 'reference' => 'Draft',
                 'rfq_id' => $rfq->rfq_id ?? null,
                 'sales_id' => $sales->sales_id ?? null,
-                'vendor_id' => $data['vendor_id'] ?? null,
-                'customer_id' => $data['customer_id'] ?? null,
-                'bill_reference' => $data['bill_reference'] ?? null,
-                'state' => $data['state'],
+                'vendor_id' => $rfq->vendor_id ?? null,
+                'customer_id' => $sales->customer_id ?? null,
+                'state' => 1,
                 'invoice_date' => null,
-                'accounting_date' => $accounting_date,
+                'accounting_date' => Carbon::now()->toIso8601String(),
                 'payment_term_id' => $data['payment_term_id'] ?? null,
                 'due_date' => $data['due_date'] ?? null,
                 'source_document' => $rfqReference ?? $salesReference,

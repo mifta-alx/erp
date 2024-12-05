@@ -12,6 +12,7 @@ use App\Models\SalesComponent;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 class InvoiceController extends Controller
 {
@@ -37,7 +38,7 @@ class InvoiceController extends Controller
                             ? Carbon::parse($invoice->accounting_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
                         'due_date' => $invoice->due_date
                             ? Carbon::parse($invoice->due_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
-                        'payment_terms' => $invoice->payment_terms,
+                        'payment_terms' => $invoice->payment_terms ?? null,
                         'source_document' => $invoice->source_document,
                         'taxes' => $invoice->rfq->taxes,
                         'total' => $invoice->rfq->total,
@@ -144,7 +145,7 @@ class InvoiceController extends Controller
                     ? Carbon::parse($invoice->accounting_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
                 'due_date' => $invoice->due_date
                     ? Carbon::parse($invoice->due_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
-                'payment_term_id' => $invoice->payment_term_id,
+                'payment_term_id' => $invoice->payment_term_id ?? null,
                 'source_document' => $invoice->source_document,
                 'taxes' => $invoice->rfq->taxes,
                 'total' => $invoice->rfq->total,
@@ -189,7 +190,7 @@ class InvoiceController extends Controller
                     ? Carbon::parse($invoice->accounting_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
                 'due_date' => $invoice->due_date
                     ? Carbon::parse($invoice->due_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
-                'payment_term_id' => $invoice->payment_term_id,
+                'payment_term_id' => $invoice->payment_term_id ?? null,
                 'source_document' => $invoice->source_document,
                 'taxes' => $invoice->sales->taxes,
                 'total' => $invoice->sales->total,
@@ -285,11 +286,36 @@ class InvoiceController extends Controller
             ], 500);
         }
     }
+
     public function update(Request $request, $id)
     {
         DB::beginTransaction();
         try {
             $data = $request->json()->all();
+            $validator = Validator::make(
+                $request->all(),
+                [
+                    'vendor_id' => 'required|exists:vendors,vendor_id',
+                    'invoice_date' => 'required',
+                    'paymetn_term_id' => 'nullable|exists:payment_terms, payment_term_id',
+                    'due_date' => 'required_without:payment_term_id',
+                ],
+                [
+                    'vendor_id.required' => 'Vendor ID must be filled',
+                    'vendor_id.exists' => 'Vendor ID does not exist',
+                    'invoice_date.required' => 'Invoice date must be filled',
+                    'paymetn_term_id.exists' => 'Payment term does not exist',
+                    'due_date.required_without' => 'Due date must be provided if payment term is not selected',
+                ]
+            );
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation Failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
             $invoice = Invoice::find($id);
             if (!$invoice) {
                 return response()->json([
@@ -305,12 +331,14 @@ class InvoiceController extends Controller
 
             $invoice_date = Carbon::parse($data['invoice_date'])->toIso8601String() ?? null;
             $accountingDate = Carbon::parse($data['accounting_date'])->toIso8601String() ?? null;
-
-            $paymentTerm = PaymentTerm::find($data['payment_term_id']);
-            if ($paymentTerm->name == 'End of This Month') {
-                $due_date = Carbon::parse($data['invoice_date'])->endOfMonth()->toIso8601String();
-            } else {
-                $due_date = Carbon::parse($data['invoice_date'])->addDays($paymentTerm->value)->toIso8601String();
+            if (isset($data['payment_term_id'])) {
+                $paymentTermId = $data['payment_term_id'] ?? null;
+                $paymentTerm = PaymentTerm::find($paymentTermId);
+                if ($paymentTerm->name == 'End of This Month') {
+                    $due_date = Carbon::parse($data['invoice_date'])->endOfMonth()->toIso8601String();
+                } else {
+                    $due_date = Carbon::parse($data['invoice_date'])->addDays($paymentTerm->value)->toIso8601String();
+                }
             }
 
             if ($data['transaction_type'] == 'BILL') {

@@ -32,7 +32,7 @@ class ReceiptController extends Controller
                         'source_document' => $receipt->source_document,
                         'rfq_id' => $receipt->rfq_id,
                         'invoice_status' => $receipt->rfq->invoice_status,
-                        'scheduled_date' => $receipt->scheduled_date,
+                        'scheduled_date' => $receipt->scheduled_date ? Carbon::parse($receipt->scheduled_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
                         'state' => $receipt->state,
                         'items' => $receipt->rfq->rfqComponent
                             ->filter(function ($component) {
@@ -68,7 +68,7 @@ class ReceiptController extends Controller
                         'source_document' => $receipt->source_document,
                         'sales_id' => $receipt->sales_id,
                         'invoice_status' => $receipt->sales->invoice_status,
-                        'scheduled_date' => $receipt->scheduled_date,
+                        'scheduled_date' => $receipt->scheduled_date ? Carbon::parse($receipt->scheduled_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
                         'state' => $receipt->state,
                         'items' => $receipt->sales->salesComponents
                             ->filter(function ($component) {
@@ -98,19 +98,7 @@ class ReceiptController extends Controller
         ], 200);
     }
 
-    private function formatDate($date, $adjustTimezone)
-    {
-        if (!$date) {
-            return null;
-        }
-
-        $carbonDate = Carbon::parse($date)->timezone('UTC');
-        if ($adjustTimezone) {
-            $carbonDate->addHours(7);
-        }
-        return $carbonDate->toIso8601String();
-    }
-    private function responseIn($receipt, $message, $adjustTimezone)
+    private function responseIn($receipt, $message)
     {
         return response()->json([
             'success' => true,
@@ -124,7 +112,7 @@ class ReceiptController extends Controller
                 'source_document' => $receipt->source_document,
                 'rfq_id' => $receipt->rfq_id,
                 'invoice_status' => $receipt->rfq->invoice_status,
-                'scheduled_date' => $this->formatDate($receipt->scheduled_date, $adjustTimezone),
+                'scheduled_date' => $receipt->scheduled_date ? Carbon::parse($receipt->scheduled_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
                 'state' => $receipt->state,
                 'items' => $receipt->rfq->rfqComponent
                     ->filter(function ($component) {
@@ -151,7 +139,7 @@ class ReceiptController extends Controller
             ],
         ], 201);
     }
-    private function responseOut($receipt, $message, $adjustTimezone)
+    private function responseOut($receipt, $message)
     {
         return response()->json([
             'success' => true,
@@ -165,7 +153,7 @@ class ReceiptController extends Controller
                 'source_document' => $receipt->source_document,
                 'sales_id' => $receipt->sales_id,
                 'invoice_status' => $receipt->sales->invoice_status,
-                'scheduled_date' => $this->formatDate($receipt->scheduled_date, $adjustTimezone),
+                'scheduled_date' => $receipt->scheduled_date ? Carbon::parse($receipt->scheduled_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
                 'state' => $receipt->state,
                 'items' => $receipt->sales->salesComponents
                     ->filter(function ($component) {
@@ -233,7 +221,7 @@ class ReceiptController extends Controller
             $referenceNumber = $lastReferenceNumber + 1;
             $referenceNumberPadded = str_pad($referenceNumber, 5, '0', STR_PAD_LEFT);
             $reference = "{$data['transaction_type']}/{$referenceNumberPadded}";
-            $scheduled_date = Carbon::parse($data['scheduled_date'])->timezone('UTC')->toIso8601String();
+            $scheduled_date = Carbon::parse($data['scheduled_date'])->toIso8601String();
 
             $receipt = Receipt::create([
                 'transaction_type' => $data['transaction_type'],
@@ -248,9 +236,9 @@ class ReceiptController extends Controller
             ]);
             DB::commit();
             if ($data['transaction_type'] == 'IN') {
-                return $this->responseIn($receipt, 'Receipt Successfully Added', true);
+                return $this->responseIn($receipt, 'Receipt Successfully Added');
             } else {
-                return $this->responseOut($receipt, 'Receipt Successfully Added', true);
+                return $this->responseOut($receipt, 'Receipt Successfully Added');
             }
         } catch (\Exception $e) {
             DB::rollBack();
@@ -274,9 +262,9 @@ class ReceiptController extends Controller
             ], 404);
         }
         if ($receipt->transaction_type == 'IN') {
-            return $this->responseIn($receipt, 'List Receipt Data ', false);
+            return $this->responseIn($receipt, 'List Receipt Data');
         } else {
-            return $this->responseOut($receipt, 'List Receipt Data', false);
+            return $this->responseOut($receipt, 'List Receipt Data');
         }
     }
 
@@ -318,7 +306,7 @@ class ReceiptController extends Controller
                     'message' => 'Receipt not found',
                 ], 404);
             }
-            $scheduled_date = Carbon::parse($data['scheduled_date'])->timezone('UTC')->toIso8601String();
+            $scheduled_date = Carbon::parse($data['scheduled_date'])->toIso8601String();
             $rfq = Rfq::findOrFail($data['rfq_id']);
             $rfqReference = $rfq->reference;
             if ($data['transaction_type'] == 'IN') {
@@ -419,9 +407,9 @@ class ReceiptController extends Controller
             }
             DB::commit();
             if ($data['transaction_type'] == 'IN') {
-                return $this->responseIn($receipt, 'Receipt Successfully Added', true);
+                return $this->responseIn($receipt, 'Receipt Successfully Added');
             } else {
-                return $this->responseOut($receipt, 'Receipt Successfully Added', true);
+                return $this->responseOut($receipt, 'Receipt Successfully Added');
             }
         } catch (\Exception $e) {
             DB::rollBack();

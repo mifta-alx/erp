@@ -14,4 +14,8 @@ class PaymentTerm extends Model
         'name',
         'value',
     ];
+
+    public function invoice(){
+        return $this->belongTo(Invoice::class, 'payment_term_id', 'payment_term_id');
+    }
 }

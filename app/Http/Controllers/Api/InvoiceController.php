@@ -31,8 +31,12 @@ class InvoiceController extends Controller
                         'vendor_name' => $invoice->vendor->name,
                         'rfq_id' => $invoice->rfq_id,
                         'reference' => $invoice->reference,
-                        'invoice_date' => $invoice->invoice_date,
-                        'accounting_date' => $invoice->accounting_date,
+                        'invoice_date' => $invoice->invoice_date
+                            ? Carbon::parse($invoice->invoice_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
+                        'accounting_date' => $invoice->accounting_date
+                            ? Carbon::parse($invoice->accounting_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
+                        'due_date' => $invoice->due_date
+                            ? Carbon::parse($invoice->due_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
                         'payment_terms' => $invoice->payment_terms,
                         'source_document' => $invoice->source_document,
                         'items' => $invoice->rfq->rfqComponent
@@ -67,8 +71,12 @@ class InvoiceController extends Controller
                         'customer_name' => $invoice->customer->name,
                         'sales_id' => $invoice->sales_id,
                         'bill_reference' => $invoice->bill_reference,
-                        'invoice_date' => $invoice->invoice_date,
-                        'accounting_date' => $invoice->accounting_date,
+                        'invoice_date' => $invoice->invoice_date
+                            ? Carbon::parse($invoice->invoice_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
+                        'accounting_date' => $invoice->accounting_date
+                            ? Carbon::parse($invoice->accounting_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
+                        'due_date' => $invoice->due_date
+                            ? Carbon::parse($invoice->due_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
                         'payment_terms' => $invoice->payment_terms,
                         'source_document' => $invoice->source_document,
                         'items' => $invoice->sales->salesComponent
@@ -107,26 +115,13 @@ class InvoiceController extends Controller
             ], 404);
         }
         if ($invoice->transaction_type == 'BILL') {
-            return $this->responseBill($invoice, 'Detail Invoice Data', false);
+            return $this->responseBill($invoice, 'Detail Invoice Data');
         } else {
-            return $this->responseInv($invoice, 'Detail Invoice Data', false);
+            return $this->responseInv($invoice, 'Detail Invoice Data');
         }
     }
 
-    private function formatDate($date, $adjustTimezone)
-    {
-        if (!$date) {
-            return null;
-        }
-
-        $carbonDate = Carbon::parse($date)->timezone('UTC');
-        if ($adjustTimezone) {
-            $carbonDate->addHours(7);
-        }
-        return $carbonDate->toIso8601String();
-    }
-
-    private function responseBill($invoice, $message, $adjustTimezone)
+    private function responseBill($invoice, $message)
     {
         return response()->json([
             'success' => true,
@@ -139,10 +134,13 @@ class InvoiceController extends Controller
                 'vendor_name' => $invoice->vendor->name,
                 'rfq_id' => $invoice->rfq_id,
                 'reference' => $invoice->reference,
-                'bill_date' =>  $this->formatDate($invoice->invoice_date, $adjustTimezone),
-                'accounting_date' => $this->formatDate($invoice->accounting_date, $adjustTimezone),
+                'invoice_date' => $invoice->invoice_date
+                    ? Carbon::parse($invoice->invoice_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
+                'accounting_date' => $invoice->accounting_date
+                    ? Carbon::parse($invoice->accounting_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
+                'due_date' => $invoice->due_date
+                    ? Carbon::parse($invoice->due_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
                 'payment_term_id' => $invoice->payment_term_id,
-                'due_date' =>  $this->formatDate($invoice->due_date, $adjustTimezone),
                 'source_document' => $invoice->source_document,
                 'items' =>  $invoice->rfq->rfqComponent->filter(function ($component) {
                     return $component->display_type !== 'line_section';
@@ -166,7 +164,7 @@ class InvoiceController extends Controller
             ],
         ], 201);
     }
-    private function responseInv($invoice, $message, $adjustTimezone)
+    private function responseInv($invoice, $message)
     {
         return response()->json([
             'success' => true,
@@ -179,10 +177,13 @@ class InvoiceController extends Controller
                 'customer_name' => $invoice->customer->name,
                 'sales_id' => $invoice->sales_id,
                 'reference' => $invoice->reference,
-                'bill_date' =>  $this->formatDate($invoice->invoice_date, $adjustTimezone),
-                'accounting_date' => $this->formatDate($invoice->accounting_date, $adjustTimezone),
+                'invoice_date' => $invoice->invoice_date
+                    ? Carbon::parse($invoice->invoice_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
+                'accounting_date' => $invoice->accounting_date
+                    ? Carbon::parse($invoice->accounting_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
+                'due_date' => $invoice->due_date
+                    ? Carbon::parse($invoice->due_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
                 'payment_term_id' => $invoice->payment_term_id,
-                'due_date' =>  $this->formatDate($invoice->due_date, $adjustTimezone),
                 'source_document' => $invoice->source_document,
                 'items' =>  $invoice->sales->salesComponent->filter(function ($component) {
                     return $component->display_type !== 'line_section';
@@ -211,7 +212,7 @@ class InvoiceController extends Controller
         DB::beginTransaction();
         try {
             $data = $request->json()->all();
-            $accounting_date = Carbon::parse($data['accounting_date'])->timezone('UTC')->toIso8601String();
+            $accounting_date = Carbon::parse($data['accounting_date'])->toIso8601String();
 
             if ($data['transaction_type'] == "BILL") {
                 $rfq = Rfq::findOrFail($data['rfq_id']);
@@ -238,9 +239,9 @@ class InvoiceController extends Controller
             ]);
             DB::commit();
             if ($data['transaction_type'] == 'BILL') {
-                return $this->responseBill($invoice, 'Receipt Successfully Added', true);
+                return $this->responseBill($invoice, 'Receipt Successfully Added');
             } else {
-                return $this->responseInv($invoice, 'Receipt Successfully Added', true);
+                return $this->responseInv($invoice, 'Receipt Successfully Added');
             }
         } catch (\Exception $e) {
             DB::rollBack();
@@ -292,7 +293,7 @@ class InvoiceController extends Controller
             $currentMonth = str_pad(Carbon::now()->month, 2, '0', STR_PAD_LEFT);
             $reference = "{$data['transaction_type']}/{$currentYear}/{$currentMonth}/{$referenceNumberPadded}";
 
-            $invoice_date = Carbon::parse($data['invoice_date'])->timezone('UTC')->toIso8601String() ?? null;
+            $invoice_date = Carbon::parse($data['invoice_date'])->toIso8601String() ?? null;
 
             $paymentTerm = PaymentTerm::find($data['payment_term_id']);
             if ($paymentTerm->name == 'End of This Month') {
@@ -382,9 +383,9 @@ class InvoiceController extends Controller
             }
             DB::commit();
             if ($data['transaction_type'] == 'BILL') {
-                return $this->responseBill($invoice, 'Receipt Successfully Updated', true);
+                return $this->responseBill($invoice, 'Receipt Successfully Updated');
             } else {
-                return $this->responseInv($invoice, 'Receipt Successfully Updated', true);
+                return $this->responseInv($invoice, 'Receipt Successfully Updated');
             }
         } catch (\Exception $e) {
             DB::rollBack();

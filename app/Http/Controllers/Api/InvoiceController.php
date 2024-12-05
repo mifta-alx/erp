@@ -42,27 +42,23 @@ class InvoiceController extends Controller
                         'source_document' => $invoice->source_document,
                         'taxes' => $invoice->rfq->taxes,
                         'total' => $invoice->rfq->total,
-                        'items' => $invoice->rfq->rfqComponent
-                            ->filter(function ($component) {
-                                return $component->display_type !== 'line_section';
-                            })
-                            ->values()->map(function ($component) {
-                                return [
-                                    'component_id' => $component->rfq_component_id,
-                                    'type' => $component->display_type,
-                                    'id' => $component->material_id,
-                                    'internal_reference' => $component->material->internal_reference,
-                                    'name' => $component->material->material_name,
-                                    'description' => $component->description,
-                                    'unit_price' => $component->unit_price,
-                                    'tax' => $component->tax,
-                                    'subtotal' => $component->subtotal,
-                                    'qty' => $component->qty,
-                                    'qty_received' => $component->qty_received,
-                                    'qty_to_invoice' => $component->qty_to_invoice,
-                                    'qty_invoiced' => $component->qty_invoiced,
-                                ];
-                            }),
+                        'items' => $invoice->rfq->rfqComponent->map(function ($component) {
+                            return [
+                                'component_id' => $component->rfq_component_id,
+                                'type' => $component->display_type,
+                                'id' => $component->material_id,
+                                'internal_reference' => $component->material->internal_reference,
+                                'name' => $component->material->material_name,
+                                'description' => $component->description,
+                                'unit_price' => $component->unit_price,
+                                'tax' => $component->tax,
+                                'subtotal' => $component->subtotal,
+                                'qty' => $component->qty,
+                                'qty_received' => $component->qty_received,
+                                'qty_to_invoice' => $component->qty_to_invoice,
+                                'qty_invoiced' => $component->qty_invoiced,
+                            ];
+                        }),
                     ];
                 }
                 if ($invoice->transaction_type == 'INV') {
@@ -84,27 +80,23 @@ class InvoiceController extends Controller
                         'source_document' => $invoice->source_document,
                         'taxes' => $invoice->sales->taxes,
                         'total' => $invoice->sales->total,
-                        'items' => $invoice->sales->salesComponent
-                            ->filter(function ($component) {
-                                return $component->display_type !== 'line_section';
-                            })
-                            ->values()->map(function ($component) {
-                                return [
-                                    'component_id' => $component->rfq_component_id,
-                                    'type' => $component->display_type,
-                                    'id' => $component->material_id,
-                                    'internal_reference' => $component->material->internal_reference ?? null,
-                                    'name' => $component->material->material_name ?? null,
-                                    'description' => $component->description,
-                                    'unit_price' => $component->unit_price ?? 0,
-                                    'tax' => $component->tax ?? 0,
-                                    'subtotal' => $component->subtotal ?? 0,
-                                    'qty' => $component->qty ?? 0,
-                                    'qty_received' => $component->qty_received ?? 0,
-                                    'qty_to_invoice' => $component->qty_to_invoice ?? 0,
-                                    'qty_invoiced' => $component->qty_invoiced ?? 0,
-                                ];
-                            }),
+                        'items' => $invoice->sales->salesComponent->map(function ($component) {
+                            return [
+                                'component_id' => $component->rfq_component_id,
+                                'type' => $component->display_type,
+                                'id' => $component->material_id,
+                                'internal_reference' => $component->material->internal_reference ?? null,
+                                'name' => $component->material->material_name ?? null,
+                                'description' => $component->description,
+                                'unit_price' => $component->unit_price ?? 0,
+                                'tax' => $component->tax ?? 0,
+                                'subtotal' => $component->subtotal ?? 0,
+                                'qty' => $component->qty ?? 0,
+                                'qty_received' => $component->qty_received ?? 0,
+                                'qty_to_invoice' => $component->qty_to_invoice ?? 0,
+                                'qty_invoiced' => $component->qty_invoiced ?? 0,
+                            ];
+                        }),
                     ];
                 }
             })
@@ -192,9 +184,7 @@ class InvoiceController extends Controller
                 'source_document' => $invoice->source_document,
                 'taxes' => $invoice->sales->taxes,
                 'total' => $invoice->sales->total,
-                'items' =>  $invoice->sales->salesComponent->filter(function ($component) {
-                    return $component->display_type !== 'line_section';
-                })->map(function ($component) {
+                'items' =>  $invoice->sales->salesComponent->map(function ($component) {
                     return [
                         'component_id' => $component->rfq_component_id,
                         'type' => $component->display_type,

@@ -98,7 +98,19 @@ class ReceiptController extends Controller
         ], 200);
     }
 
-    private function responseIn($receipt, $message)
+    private function formatDate($date, $adjustTimezone)
+    {
+        if (!$date) {
+            return null;
+        }
+
+        $carbonDate = Carbon::parse($date)->timezone('UTC');
+        if ($adjustTimezone) {
+            $carbonDate->addHours(7);
+        }
+        return $carbonDate->toIso8601String();
+    }
+    private function responseIn($receipt, $message, $adjustTimezone)
     {
         return response()->json([
             'success' => true,
@@ -112,7 +124,7 @@ class ReceiptController extends Controller
                 'source_document' => $receipt->source_document,
                 'rfq_id' => $receipt->rfq_id,
                 'invoice_status' => $receipt->rfq->invoice_status,
-                'scheduled_date' => $receipt->scheduled_date,
+                'scheduled_date' => $this->formatDate($receipt->scheduled_date, $adjustTimezone),
                 'state' => $receipt->state,
                 'items' => $receipt->rfq->rfqComponent
                     ->filter(function ($component) {
@@ -139,7 +151,7 @@ class ReceiptController extends Controller
             ],
         ], 201);
     }
-    private function responseOut($receipt, $message)
+    private function responseOut($receipt, $message, $adjustTimezone)
     {
         return response()->json([
             'success' => true,
@@ -153,7 +165,7 @@ class ReceiptController extends Controller
                 'source_document' => $receipt->source_document,
                 'sales_id' => $receipt->sales_id,
                 'invoice_status' => $receipt->sales->invoice_status,
-                'scheduled_date' => $receipt->scheduled_date,
+                'scheduled_date' => $this->formatDate($receipt->scheduled_date, $adjustTimezone),
                 'state' => $receipt->state,
                 'items' => $receipt->sales->salesComponents
                     ->filter(function ($component) {
@@ -236,9 +248,9 @@ class ReceiptController extends Controller
             ]);
             DB::commit();
             if ($data['transaction_type'] == 'IN') {
-                return $this->responseIn($receipt, 'Receipt Successfully Added');
+                return $this->responseIn($receipt, 'Receipt Successfully Added', true);
             } else {
-                return $this->responseOut($receipt, 'Receipt Successfully Added');
+                return $this->responseOut($receipt, 'Receipt Successfully Added', true);
             }
         } catch (\Exception $e) {
             DB::rollBack();
@@ -262,9 +274,9 @@ class ReceiptController extends Controller
             ], 404);
         }
         if ($receipt->transaction_type == 'IN') {
-            return $this->responseIn($receipt, 'List Receipt Data ');
+            return $this->responseIn($receipt, 'List Receipt Data ', false);
         } else {
-            return $this->responseOut($receipt, 'List Receipt Data ');
+            return $this->responseOut($receipt, 'List Receipt Data', false);
         }
     }
 
@@ -406,7 +418,11 @@ class ReceiptController extends Controller
                 // }
             }
             DB::commit();
-            return $this->responseIn($receipt, 'Receipt Successfully Updated');
+            if ($data['transaction_type'] == 'IN') {
+                return $this->responseIn($receipt, 'Receipt Successfully Added', true);
+            } else {
+                return $this->responseOut($receipt, 'Receipt Successfully Added', true);
+            }
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([

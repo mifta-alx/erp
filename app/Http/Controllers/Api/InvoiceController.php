@@ -39,6 +39,8 @@ class InvoiceController extends Controller
                             ? Carbon::parse($invoice->due_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
                         'payment_terms' => $invoice->payment_terms,
                         'source_document' => $invoice->source_document,
+                        'taxes' => $invoice->rfq->taxes,
+                        'total' => $invoice->rfq->total,
                         'items' => $invoice->rfq->rfqComponent
                             ->filter(function ($component) {
                                 return $component->display_type !== 'line_section';
@@ -79,6 +81,8 @@ class InvoiceController extends Controller
                             ? Carbon::parse($invoice->due_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
                         'payment_terms' => $invoice->payment_terms,
                         'source_document' => $invoice->source_document,
+                        'taxes' => $invoice->sales->taxes,
+                        'total' => $invoice->sales->total,
                         'items' => $invoice->sales->salesComponent
                             ->filter(function ($component) {
                                 return $component->display_type !== 'line_section';
@@ -142,6 +146,8 @@ class InvoiceController extends Controller
                     ? Carbon::parse($invoice->due_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
                 'payment_term_id' => $invoice->payment_term_id,
                 'source_document' => $invoice->source_document,
+                'taxes' => $invoice->rfq->taxes,
+                'total' => $invoice->rfq->total,
                 'items' =>  $invoice->rfq->rfqComponent->filter(function ($component) {
                     return $component->display_type !== 'line_section';
                 })->map(function ($component) {
@@ -185,6 +191,8 @@ class InvoiceController extends Controller
                     ? Carbon::parse($invoice->due_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
                 'payment_term_id' => $invoice->payment_term_id,
                 'source_document' => $invoice->source_document,
+                'taxes' => $invoice->sales->taxes,
+                'total' => $invoice->sales->total,
                 'items' =>  $invoice->sales->salesComponent->filter(function ($component) {
                     return $component->display_type !== 'line_section';
                 })->map(function ($component) {
@@ -288,9 +296,10 @@ class InvoiceController extends Controller
             $referenceNumberPadded = str_pad($referenceNumber, 4, '0', STR_PAD_LEFT);
             $currentYear = Carbon::now()->year;
             $currentMonth = str_pad(Carbon::now()->month, 2, '0', STR_PAD_LEFT);
-            $reference = "{$data['transaction_type']}/{$currentYear}/{$currentMonth}/{$referenceNumberPadded}";
+            $reference = "{$currentYear}/{$currentMonth}/{$referenceNumberPadded}";
 
             $invoice_date = Carbon::parse($data['invoice_date'])->toIso8601String() ?? null;
+            $accountingDate = Carbon::parse($data['accounting_date'])->toIso8601String() ?? null;
 
             $paymentTerm = PaymentTerm::find($data['payment_term_id']);
             if ($paymentTerm->name == 'End of This Month') {
@@ -304,10 +313,10 @@ class InvoiceController extends Controller
                     'transaction_type' => $data['transaction_type'],
                     'reference' => $reference,
                     'rfq_id' => $rfq->rfq_id ?? null,
-                    'vendor_id' => $data['vendor_id'] ?? null,
-                    'bill_reference' => $data['bill_reference'] ?? null,
+                    'vendor_id' => $data['vendor_id'],
                     'state' => $data['state'],
                     'invoice_date' => $invoice_date,
+                    'acounting_date' => $accountingDate,
                     'payment_term_id' => $data['payment_term_id'] ?? null,
                     'due_date' => $data['due_date'] ?? $due_date,
                 ]);
@@ -320,6 +329,7 @@ class InvoiceController extends Controller
                         'bill_reference' => $data['bill_reference'] ?? null,
                         'state' => $data['state'],
                         'invoice_date' => $invoice_date,
+                        'acounting_date' => $accountingDate,
                         'payment_term_id' => $data['payment_term_id'] ?? null,
                         'due_date' => $data['due_date']  ?? $due_date,
                     ]);

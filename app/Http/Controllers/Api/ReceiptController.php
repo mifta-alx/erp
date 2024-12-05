@@ -280,13 +280,20 @@ class ReceiptController extends Controller
                     'items.*.qty_received' => [
                         'required',
                         function ($attribute, $value, $fail) use ($request) {
-                            $componentId = $request->input('items.*.component_id');
+                            $index = str_replace(['items.', '.qty_received'], '', $attribute);
+
+                            $type = $request->input("items.$index.type");
+                            if ($type === 'line_section') {
+                                return;
+                            }
+                            $componentId = $request->input("items.$index.component_id");
                             $rfqComponent = RfqComponent::where('rfq_component_id', $componentId)->first();
                             if ($rfqComponent && $value > $rfqComponent->qty) {
                                 $fail('Qty received must not exceed the available qty.');
                             }
                         }
                     ],
+
                 ],
                 [
                     'scheduled_date.required' => 'Scheduled Date must be filled',

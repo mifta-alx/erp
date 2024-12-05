@@ -170,13 +170,13 @@ class InvoiceController extends Controller
                         'internal_reference' => $component->material->internal_reference ?? null,
                         'name' => $component->material->material_name ?? null,
                         'description' => $component->description,
-                        'unit_price' => $component->unit_price ?? 0,
-                        'tax' => $component->tax ?? 0,
-                        'subtotal' => $component->subtotal ?? 0,
-                        'qty' => $component->qty ?? 0,
-                        'qty_received' => $component->qty_received ?? 0,
-                        'qty_to_invoice' => $component->qty_to_invoice ?? 0,
-                        'qty_invoiced' => $component->qty_invoiced ?? 0,
+                        'unit_price' => $component->unit_price,
+                        'tax' => $component->tax,
+                        'subtotal' => $component->subtotal,
+                        'qty' => $component->qty,
+                        'qty_received' => $component->qty_received,
+                        'qty_to_invoice' => $component->qty_to_invoice,
+                        'qty_invoiced' => $component->qty_invoiced,
                     ];
                 }),
             ],
@@ -220,13 +220,13 @@ class InvoiceController extends Controller
                         'internal_reference' => $component->material->internal_reference ?? null,
                         'name' => $component->material->material_name ?? null,
                         'description' => $component->description,
-                        'unit_price' => $component->unit_price ?? 0,
-                        'tax' => $component->tax ?? 0,
-                        'subtotal' => $component->subtotal ?? 0,
-                        'qty' => $component->qty ?? 0,
-                        'qty_received' => $component->qty_received ?? 0,
-                        'qty_to_invoice' => $component->qty_to_invoice ?? 0,
-                        'qty_invoiced' => $component->qty_invoiced ?? 0,
+                        'unit_price' => $component->unit_price,
+                        'tax' => $component->tax,
+                        'subtotal' => $component->subtotal,
+                        'qty' => $component->qty,
+                        'qty_received' => $component->qty_received,
+                        'qty_to_invoice' => $component->qty_to_invoice,
+                        'qty_invoiced' => $component->qty_invoiced,
                     ];
                 }),
             ],
@@ -315,6 +315,22 @@ class InvoiceController extends Controller
                     'invoice_date' => 'required',
                     'paymetn_term_id' => 'nullable|exists:payment_terms, payment_term_id',
                     'due_date' => 'required_without:payment_term_id',
+                    'items.*.qty_invoiced' => [
+                        'required',
+                        function ($attribute, $value, $fail) use ($request) {
+                            $index = str_replace(['items.', '.qty_invoiced'], '', $attribute);
+
+                            $type = $request->input("items.$index.type");
+                            if ($type === 'line_section') {
+                                return;
+                            }
+                            $componentId = $request->input("items.$index.component_id");
+                            $rfqComponent = RfqComponent::where('rfq_component_id', $componentId)->first();
+                            if ($rfqComponent && $value > $rfqComponent->qty_to_invoice) {
+                                $fail('Qty invoiced must not exceed the available qty.');
+                            }
+                        }
+                    ],
                 ],
                 [
                     'vendor_id.required' => 'Vendor ID must be filled',
@@ -390,6 +406,8 @@ class InvoiceController extends Controller
                         }
                         if ($rfq) {
                             $rfq->update([
+                                'taxes' => $data['taxes'],
+                                'total' => $data['total'],
                                 'invoice_status' => $data['invoice_status'],
                             ]);
                         }
@@ -427,6 +445,8 @@ class InvoiceController extends Controller
                         }
                         if ($sales) {
                             $sales->update([
+                                'taxes' => $data['taxes'],
+                                'total' => $data['total'],
                                 'invoice_status' => $data['invoice_status'],
                             ]);
                         }

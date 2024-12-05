@@ -74,7 +74,7 @@ class RfqController extends Controller
                 'message' => 'RFQ not found',
             ], 404);
         }
-        return $this->successResponse($rfq, 'List RFQ Data ', false);
+        return $this->successResponse($rfq, 'List RFQ Data ');
     }
 
     private function validateRfq(Request $request)
@@ -111,8 +111,8 @@ class RfqController extends Controller
             $referenceNumberPadded = str_pad($referenceNumber, 5, '0', STR_PAD_LEFT);
             $reference = "P{$referenceNumberPadded}";
 
-            $orderDate = Carbon::parse($data['order_date'])->timezone('Asia/Jakarta')->toIso8601String();
-            $confirmDate = isset($data['confirmation_date']) ? Carbon::parse($data['confirmation_date'])->timezone('Asia/Jakarta')->toIso8601String() : null;
+            $orderDate = Carbon::parse($data['order_date'])->setTimezone('+07:00')->toIso8601String();
+            $confirmDate = isset($data['confirmation_date']) ? Carbon::parse($data['confirmation_date'])->setTimezone('+07:00')->toIso8601String() : null;
             $rfq = Rfq::create([
                 'vendor_id' => $data['vendor_id'],
                 'reference' => $reference,
@@ -158,7 +158,7 @@ class RfqController extends Controller
             }
 
             DB::commit();
-            return $this->successResponse($rfq, $message = 'RFQ Successfully Added', true);
+            return $this->successResponse($rfq, 'RFQ Successfully Added');
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('RFQ Creation Failed: ' . $e->getMessage());
@@ -190,8 +190,8 @@ class RfqController extends Controller
                     'message' => 'RFQ not found'
                 ], 404);
             }
-            $orderDate = Carbon::parse($data['order_date'])->timezone('Asia/Jakarta')->toIso8601String();
-            $confirmDate = isset($data['confirmation_date']) ? Carbon::parse($data['confirmation_date'])->timezone('Asia/Jakarta')->toIso8601String() : null;
+            $orderDate = Carbon::parse($data['order_date'])->setTimezone('+07:00')->toIso8601String();
+            $confirmDate = isset($data['confirmation_date']) ? Carbon::parse($data['confirmation_date'])->setTimezone('+07:00')->toIso8601String() : null;
             $rfq->update([
                 'vendor_id' => $data['vendor_id'],
                 'vendor_reference' => $data['vendor_reference'],
@@ -276,7 +276,7 @@ class RfqController extends Controller
             }
 
             DB::commit();
-            return $this->successResponse($rfq, 'RFQ Updated Successfully', true);
+            return $this->successResponse($rfq, 'RFQ Updated Successfully');
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('RFQ Update Failed: ' . $e->getMessage());
@@ -287,19 +287,19 @@ class RfqController extends Controller
             ], 500);
         }
     }
-    private function formatDate($date, $adjustTimezone)
-    {
-        if (!$date) {
-            return null;
-        }
+    // private function formatDate($date, $adjustTimezone)
+    // {
+    //     if (!$date) {
+    //         return null;
+    //     }
 
-        $carbonDate = Carbon::parse($date)->timezone('UTC');
-        if ($adjustTimezone) {
-            $carbonDate->addHours(7);
-        }
-        return $carbonDate->toIso8601String();
-    }
-    private function successResponse($rfq, $message, $adjustTimezone)
+    //     $carbonDate = Carbon::parse($date)->timezone('UTC');
+    //     if ($adjustTimezone) {
+    //         $carbonDate->addHours(7);
+    //     }
+    //     return $carbonDate->toIso8601String();
+    // }
+    private function successResponse($rfq, $message)
     {
         return response()->json([
             'success' => true,
@@ -310,11 +310,11 @@ class RfqController extends Controller
                 'vendor_id' => $rfq->vendor_id,
                 'vendor_name' => $rfq->vendor->name,
                 'vendor_reference' => $rfq->vendor_reference,
-                "order_date" => $this->formatDate($rfq->order_date, $adjustTimezone),
+                "order_date" => $rfq->order_date,
                 'state' => $rfq->state,
                 'taxes' => $rfq->taxes,
                 'total' => $rfq->total,
-                'confirmation_date' =>  $this->formatDate($rfq->confirmation_date, $adjustTimezone),
+                'confirmation_date' =>  $rfq->confirmation_date,
                 'invoice_status' => $rfq->invoice_status,
                 'receipt' => $rfq->receipts->map(function ($receipt) {
                     return [

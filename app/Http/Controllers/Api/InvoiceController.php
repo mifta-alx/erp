@@ -228,9 +228,37 @@ class InvoiceController extends Controller
                 $salesReference = $sales->reference;
             }
 
+            if ($data['transaction_type'] == 'BILL') {
+                $lastOrder = Invoice::where('transaction_type', 'BILL')
+                    ->whereYear('created_at', Carbon::now()->year)
+                    ->whereMonth('created_at', Carbon::now()->month)
+                    ->orderBy('created_at', 'desc')
+                    ->first();
+                $rfq = Rfq::findOrFail($data['rfq_id']);
+            } else {
+                $lastOrder = Invoice::where('transaction_type', 'INV')
+                    ->whereYear('created_at', Carbon::now()->year)
+                    ->whereMonth('created_at', Carbon::now()->month)
+                    ->orderBy('created_at', 'desc')
+                    ->first();
+                $sales = Sales::findOrFail($data['sales_id']);
+            }
+
+            if ($lastOrder && $lastOrder->reference) {
+                $lastReferenceNumber = (int) substr($lastOrder->reference, -4);
+            } else {
+                $lastReferenceNumber = 0;
+            }
+
+            $referenceNumber = $lastReferenceNumber + 1;
+            $referenceNumberPadded = str_pad($referenceNumber, 4, '0', STR_PAD_LEFT);
+            $currentYear = Carbon::now()->year;
+            $currentMonth = str_pad(Carbon::now()->month, 2, '0', STR_PAD_LEFT);
+            $reference = "{$currentYear}/{$currentMonth}/{$referenceNumberPadded}";
+
             $invoice = Invoice::create([
                 'transaction_type' => $data['transaction_type'],
-                'reference' => 'Draft',
+                'reference' => $reference,
                 'rfq_id' => $rfq->rfq_id ?? null,
                 'sales_id' => $sales->sales_id ?? null,
                 'vendor_id' => $rfq->vendor_id ?? null,
@@ -269,34 +297,11 @@ class InvoiceController extends Controller
                     'message' => 'Invoice not found'
                 ], 404);
             }
-
             if ($data['transaction_type'] == 'BILL') {
-                $lastOrder = Invoice::where('transaction_type', 'BILL')
-                    ->whereYear('created_at', Carbon::now()->year)
-                    ->whereMonth('created_at', Carbon::now()->month)
-                    ->orderBy('created_at', 'desc')
-                    ->first();
                 $rfq = Rfq::findOrFail($data['rfq_id']);
             } else {
-                $lastOrder = Invoice::where('transaction_type', 'INV')
-                    ->whereYear('created_at', Carbon::now()->year)
-                    ->whereMonth('created_at', Carbon::now()->month)
-                    ->orderBy('created_at', 'desc')
-                    ->first();
                 $sales = Sales::findOrFail($data['sales_id']);
             }
-
-            if ($lastOrder && $lastOrder->reference) {
-                $lastReferenceNumber = (int) substr($lastOrder->reference, -4);
-            } else {
-                $lastReferenceNumber = 0;
-            }
-
-            $referenceNumber = $lastReferenceNumber + 1;
-            $referenceNumberPadded = str_pad($referenceNumber, 4, '0', STR_PAD_LEFT);
-            $currentYear = Carbon::now()->year;
-            $currentMonth = str_pad(Carbon::now()->month, 2, '0', STR_PAD_LEFT);
-            $reference = "{$currentYear}/{$currentMonth}/{$referenceNumberPadded}";
 
             $invoice_date = Carbon::parse($data['invoice_date'])->toIso8601String() ?? null;
             $accountingDate = Carbon::parse($data['accounting_date'])->toIso8601String() ?? null;
@@ -311,7 +316,6 @@ class InvoiceController extends Controller
             if ($data['transaction_type'] == 'BILL') {
                 $invoice->update([
                     'transaction_type' => $data['transaction_type'],
-                    'reference' => $reference,
                     'rfq_id' => $rfq->rfq_id ?? null,
                     'vendor_id' => $data['vendor_id'],
                     'state' => $data['state'],
@@ -323,7 +327,6 @@ class InvoiceController extends Controller
                 if ($data['state'] == 2) {
                     $invoice->update([
                         'transaction_type' => $data['transaction_type'],
-                        'reference' => $reference,
                         'rfq_id' => $rfq->rfq_id ?? null,
                         'vendor_id' => $data['vendor_id'] ?? null,
                         'bill_reference' => $data['bill_reference'] ?? null,
@@ -351,7 +354,6 @@ class InvoiceController extends Controller
             } else if ($data['transaction_type'] == 'INV') {
                 $invoice->update([
                     'transaction_type' => $data['transaction_type'],
-                    'reference' => $reference,
                     'sales_id' => $sales->sales_id ?? null,
                     'customer_id' => $data['customer_id'] ?? null,
                     'bill_reference' => $data['bill_reference'] ?? null,
@@ -363,7 +365,6 @@ class InvoiceController extends Controller
                 if ($data['state'] == 2) {
                     $invoice->update([
                         'transaction_type' => $data['transaction_type'],
-                        'reference' => $reference,
                         'sales_id' => $sales->sales_id ?? null,
                         'customer_id' => $data['customer_id'] ?? null,
                         'bill_reference' => $data['bill_reference'] ?? null,

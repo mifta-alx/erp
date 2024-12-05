@@ -31,11 +31,13 @@ class RfqController extends Controller
                     'vendor_id' => $item->vendor_id,
                     'vendor_name' => $item->vendor->name,
                     'vendor_reference' => $item->vendor_reference,
-                    'order_date' => $item->order_date,
+                    'order_date' => Carbon::parse($item->order_date)->setTimezone('+07:00')->format('Y-m-d H:i:s'),
                     'state' => $item->state,
                     'taxes' => $item->taxes,
                     'total' => $item->total,
-                    'confirmation_date' => $item->confirmation_date,
+                    'confirmation_date' => $item->confirmation_date
+                        ? Carbon::parse($item->confirmation_date)->setTimezone('+07:00')->format('Y-m-d H:i:s')
+                        : null,
                     'invoice_status' => $item->invoice_status,
                     'receipt' => $item->receipts->map(function ($receipt) {
                         return [
@@ -287,18 +289,7 @@ class RfqController extends Controller
             ], 500);
         }
     }
-    // private function formatDate($date, $adjustTimezone)
-    // {
-    //     if (!$date) {
-    //         return null;
-    //     }
 
-    //     $carbonDate = Carbon::parse($date)->timezone('UTC');
-    //     if ($adjustTimezone) {
-    //         $carbonDate->addHours(7);
-    //     }
-    //     return $carbonDate->toIso8601String();
-    // }
     private function successResponse($rfq, $message)
     {
         return response()->json([

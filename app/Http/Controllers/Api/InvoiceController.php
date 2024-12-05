@@ -108,7 +108,7 @@ class InvoiceController extends Controller
     public function show($id)
     {
         $invoice = Invoice::find($id);
-        if ($invoice) {
+        if (!$invoice) {
             return response()->json([
                 'success' => false,
                 'message' => 'Invoice not found'

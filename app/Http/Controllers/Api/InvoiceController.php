@@ -38,17 +38,24 @@ class InvoiceController extends Controller
                             ? Carbon::parse($invoice->accounting_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
                         'due_date' => $invoice->due_date
                             ? Carbon::parse($invoice->due_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
-                        'payment_terms' => $invoice->payment_terms ?? null,
+                        'payment_terms' => $invoice->paymentTerm->map(function ($paymentTerm) {
+                            return [
+                                'id' => $paymentTerm->payment_term_id,
+                                'name' => $paymentTerm->name,
+                                'value' => $paymentTerm->value,
+                            ];
+                        }),
                         'source_document' => $invoice->source_document,
                         'taxes' => $invoice->rfq->taxes,
                         'total' => $invoice->rfq->total,
+                        'state' => $invoice->state,
                         'items' => $invoice->rfq->rfqComponent->map(function ($component) {
                             return [
                                 'component_id' => $component->rfq_component_id,
                                 'type' => $component->display_type,
                                 'id' => $component->material_id,
-                                'internal_reference' => $component->material->internal_reference,
-                                'name' => $component->material->material_name,
+                                'internal_reference' => $component->material->internal_reference ?? null,
+                                'name' => $component->material->material_name ?? null,
                                 'description' => $component->description,
                                 'unit_price' => $component->unit_price,
                                 'tax' => $component->tax,
@@ -76,10 +83,17 @@ class InvoiceController extends Controller
                             ? Carbon::parse($invoice->accounting_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
                         'due_date' => $invoice->due_date
                             ? Carbon::parse($invoice->due_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
-                        'payment_terms' => $invoice->payment_terms,
+                        'payment_terms' => $invoice->paymentTerm->map(function ($paymentTerm) {
+                            return [
+                                'id' => $paymentTerm->payment_term_id,
+                                'name' => $paymentTerm->name,
+                                'value' => $paymentTerm->value,
+                            ];
+                        }),
                         'source_document' => $invoice->source_document,
                         'taxes' => $invoice->sales->taxes,
                         'total' => $invoice->sales->total,
+                        'state' => $invoice->state,
                         'items' => $invoice->sales->salesComponent->map(function ($component) {
                             return [
                                 'component_id' => $component->rfq_component_id,
@@ -88,13 +102,13 @@ class InvoiceController extends Controller
                                 'internal_reference' => $component->material->internal_reference ?? null,
                                 'name' => $component->material->material_name ?? null,
                                 'description' => $component->description,
-                                'unit_price' => $component->unit_price ?? 0,
-                                'tax' => $component->tax ?? 0,
-                                'subtotal' => $component->subtotal ?? 0,
-                                'qty' => $component->qty ?? 0,
-                                'qty_received' => $component->qty_received ?? 0,
-                                'qty_to_invoice' => $component->qty_to_invoice ?? 0,
-                                'qty_invoiced' => $component->qty_invoiced ?? 0,
+                                'unit_price' => $component->unit_price,
+                                'tax' => $component->tax,
+                                'subtotal' => $component->subtotal,
+                                'qty' => $component->qty,
+                                'qty_received' => $component->qty_received,
+                                'qty_to_invoice' => $component->qty_to_invoice,
+                                'qty_invoiced' => $component->qty_invoiced,
                             ];
                         }),
                     ];
@@ -137,10 +151,17 @@ class InvoiceController extends Controller
                     ? Carbon::parse($invoice->accounting_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
                 'due_date' => $invoice->due_date
                     ? Carbon::parse($invoice->due_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
-                'payment_term_id' => $invoice->payment_term_id ?? null,
+                'payment_terms' => $invoice->paymentTerm->map(function ($paymentTerm) {
+                    return [
+                        'id' => $paymentTerm->payment_term_id,
+                        'name' => $paymentTerm->name,
+                        'value' => $paymentTerm->value,
+                    ];
+                }),
                 'source_document' => $invoice->source_document,
                 'taxes' => $invoice->rfq->taxes,
                 'total' => $invoice->rfq->total,
+                'state' => $invoice->state,
                 'items' =>  $invoice->rfq->rfqComponent->map(function ($component) {
                     return [
                         'component_id' => $component->rfq_component_id,
@@ -180,10 +201,17 @@ class InvoiceController extends Controller
                     ? Carbon::parse($invoice->accounting_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
                 'due_date' => $invoice->due_date
                     ? Carbon::parse($invoice->due_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
-                'payment_term_id' => $invoice->payment_term_id ?? null,
+                'payment_term_id' => $invoice->paymentTerm->map(function ($paymentTerm) {
+                    return [
+                        'id' => $paymentTerm->payment_term_id,
+                        'name' => $paymentTerm->name,
+                        'value' => $paymentTerm->value,
+                    ];
+                }),
                 'source_document' => $invoice->source_document,
                 'taxes' => $invoice->sales->taxes,
                 'total' => $invoice->sales->total,
+                'state' => $invoice->state,
                 'items' =>  $invoice->sales->salesComponent->map(function ($component) {
                     return [
                         'component_id' => $component->rfq_component_id,

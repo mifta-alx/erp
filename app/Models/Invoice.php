@@ -39,6 +39,6 @@ class Invoice extends Model
     }
 
     public function paymentTerm(){
-        return $this->belongTo(PaymentTerm::class, 'payment_term_id', 'payment_term_id');
+        return $this->hasMany(PaymentTerm::class, 'payment_term_id', 'payment_term_id');
     }
 }

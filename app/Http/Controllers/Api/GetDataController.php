@@ -7,6 +7,7 @@ use App\Models\Bom;
 use App\Models\Category;
 use App\Models\ManufacturingOrder;
 use App\Models\Material;
+use App\Models\PaymentTerm;
 use App\Models\Product;
 use App\Models\Receipt;
 use App\Models\Rfq;
@@ -28,6 +29,7 @@ class GetDataController extends Controller
         $includeMo = $request->has('mos');
         $includeRfq = $request->has('rfqs');
         $includeReceipt = $request->has('receipts');
+        $includePaymentTerm = $request->has('payment_terms');
 
         $products = Product::with('category', 'tag')->orderBy('created_at', 'ASC')->get();
         $productData = $products->map(function ($product) {
@@ -262,6 +264,15 @@ class GetDataController extends Controller
             ];
         });
 
+        $paymentTerm = PaymentTerm::orderBy('created_at', 'ASC')->get();
+        $paymentTermData = $paymentTerm->map(function($payment){
+                return[
+                    'id' => $payment->payment_term_id,
+                    'name' => $payment->name,
+                    'value' => $payment->value,
+                ];
+            });
+
         $response = [
             'success' => true,
             'message' => 'Data fetched successfully',
@@ -302,6 +313,10 @@ class GetDataController extends Controller
 
         if ($includeReceipt) {
             $response['data']['receipts'] = $receiptData;
+        }
+
+        if ($includePaymentTerm) {
+            $response['data']['payment_terms'] = $paymentTermData;
         }
 
         return response()->json($response);

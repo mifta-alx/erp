@@ -111,8 +111,8 @@ class RfqController extends Controller
             $referenceNumberPadded = str_pad($referenceNumber, 5, '0', STR_PAD_LEFT);
             $reference = "P{$referenceNumberPadded}";
 
-            $orderDate = Carbon::parse($data['order_date'])->timezone('UTC')->toIso8601String();
-            $confirmDate = isset($data['confirmation_date']) ? Carbon::parse($data['confirmation_date'])->timezone('UTC')->toIso8601String() : null;
+            $orderDate = Carbon::parse($data['order_date'])->timezone('Asia/Jakarta')->toIso8601String();
+            $confirmDate = isset($data['confirmation_date']) ? Carbon::parse($data['confirmation_date'])->timezone('Asia/Jakarta')->toIso8601String() : null;
             $rfq = Rfq::create([
                 'vendor_id' => $data['vendor_id'],
                 'reference' => $reference,
@@ -190,8 +190,8 @@ class RfqController extends Controller
                     'message' => 'RFQ not found'
                 ], 404);
             }
-            $orderDate = Carbon::parse($data['order_date'])->timezone('UTC')->toIso8601String();
-            $confirmDate = isset($data['confirmation_date']) ? Carbon::parse($data['confirmation_date'])->timezone('UTC')->toIso8601String() : null;
+            $orderDate = Carbon::parse($data['order_date'])->timezone('Asia/Jakarta')->toIso8601String();
+            $confirmDate = isset($data['confirmation_date']) ? Carbon::parse($data['confirmation_date'])->timezone('Asia/Jakarta')->toIso8601String() : null;
             $rfq->update([
                 'vendor_id' => $data['vendor_id'],
                 'vendor_reference' => $data['vendor_reference'],

@@ -74,7 +74,7 @@ class RfqController extends Controller
                 'message' => 'RFQ not found',
             ], 404);
         }
-        return $this->successResponse($rfq, $message = 'List RFQ Data ');
+        return $this->successResponse($rfq, 'List RFQ Data ', false);
     }
 
     private function validateRfq(Request $request)
@@ -158,7 +158,7 @@ class RfqController extends Controller
             }
 
             DB::commit();
-            return $this->successResponse($rfq, $message = 'RFQ Successfully Added');
+            return $this->successResponse($rfq, $message = 'RFQ Successfully Added', true);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('RFQ Creation Failed: ' . $e->getMessage());
@@ -240,8 +240,7 @@ class RfqController extends Controller
                 if (empty($data['items']) || !collect($data['items'])->contains(function ($item) {
                     return $item['type'] === 'material';
                 })) {
-                    // Jika tidak ada item dengan type 'material' atau items kosong, kembalikan respon sukses tanpa membuat receipt
-                    return $this->successResponse($rfq, 'RFQ Updated Successfully');
+                    return $this->successResponse($rfq, 'RFQ Updated Successfully', true);
                 } else {
                     $lastOrder = Receipt::where('transaction_type', 'IN')
                         ->orderBy('created_at', 'desc')
@@ -277,7 +276,7 @@ class RfqController extends Controller
             }
 
             DB::commit();
-            return $this->successResponse($rfq, 'RFQ Updated Successfully');
+            return $this->successResponse($rfq, 'RFQ Updated Successfully', true);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('RFQ Update Failed: ' . $e->getMessage());
@@ -288,8 +287,19 @@ class RfqController extends Controller
             ], 500);
         }
     }
+    private function formatDate($date, $adjustTimezone)
+    {
+        if (!$date) {
+            return null;
+        }
 
-    private function successResponse($rfq, $message)
+        $carbonDate = Carbon::parse($date)->timezone('UTC');
+        if ($adjustTimezone) {
+            $carbonDate->addHours(7);
+        }
+        return $carbonDate->toIso8601String();
+    }
+    private function successResponse($rfq, $message, $adjustTimezone)
     {
         return response()->json([
             'success' => true,
@@ -300,11 +310,11 @@ class RfqController extends Controller
                 'vendor_id' => $rfq->vendor_id,
                 'vendor_name' => $rfq->vendor->name,
                 'vendor_reference' => $rfq->vendor_reference,
-                'order_date' => $rfq->order_date,
+                "order_date" => $this->formatDate($rfq->order_date, $adjustTimezone),
                 'state' => $rfq->state,
                 'taxes' => $rfq->taxes,
                 'total' => $rfq->total,
-                'confirmation_date' => $rfq->confirmation_date,
+                'confirmation_date' =>  $this->formatDate($rfq->confirmation_date, $adjustTimezone),
                 'invoice_status' => $rfq->invoice_status,
                 'receipt' => $rfq->receipts->map(function ($receipt) {
                     return [

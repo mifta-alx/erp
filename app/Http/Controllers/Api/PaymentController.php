@@ -58,56 +58,10 @@ class PaymentController extends Controller
         ];
     }
 
-
-
-    private function buildInvoiceData($payment, $type)
-    {
-        $personId = $type === 'outbound' ? 'vendor_id' : 'customer_id';
-        $personName = $type === 'outbound' ? 'vendor_name' : 'customer_name';
-        $person = $type === 'outbound' ? 'vendor' : 'customer';
-
+    private function buildInvoiceData($payment){
         return [
-            'id' => $payment->invoice->invoice_id,
-            'transaction_type' => $payment->invoice->transaction_type,
-            'reference' => $payment->invoice->reference,
-            $personId => $payment->invoice->{$personId},
-            $personName => $payment->invoice->{$person}->name,
-            'rfq_id' => $payment->invoice->rfq_id,
-            'invoice_date' => $payment->invoice->invoice_date
-                ? Carbon::parse($payment->invoice->invoice_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
-            'accounting_date' => $payment->invoice->accounting_date
-                ? Carbon::parse($payment->invoice->accounting_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
-            'due_date' => $payment->invoice->due_date
-                ? Carbon::parse($payment->invoice->due_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
-            'payment_terms' => $payment->invoice->paymentTerm->map(function ($paymentTerm) {
-                return [
-                    'id' => $paymentTerm->payment_term_id,
-                    'name' => $paymentTerm->name,
-                    'value' => $paymentTerm->value,
-                ];
-            }),
-            'source_document' => $payment->invoice->source_document,
-            'taxes' => $payment->invoice->rfq->taxes,
-            'total' => $payment->invoice->rfq->total,
             'state' => $payment->invoice->state,
             'payment_status' => $payment->invoice->payment_status,
-            'items' => $payment->invoice->rfq->rfqComponent->map(function ($component) {
-                return [
-                    'component_id' => $component->rfq_component_id,
-                    'type' => $component->display_type,
-                    'id' => $component->material_id,
-                    'internal_reference' => $component->material->internal_reference ?? null,
-                    'name' => $component->material->material_name ?? null,
-                    'description' => $component->description,
-                    'unit_price' => $component->unit_price,
-                    'tax' => $component->tax,
-                    'subtotal' => $component->subtotal,
-                    'qty' => $component->qty,
-                    'qty_received' => $component->qty_received,
-                    'qty_to_invoice' => $component->qty_to_invoice,
-                    'qty_invoiced' => $component->qty_invoiced,
-                ];
-            }),
         ];
     }
 
@@ -176,7 +130,7 @@ class PaymentController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Payment Successfully Created',
-                'data' => $this->buildInvoiceData($payment, 'outbound'),
+                'data' => $this->buildInvoiceData($payment),
             ]);
         } catch (\Exception $e) {
             DB::rollBack();

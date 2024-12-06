@@ -384,6 +384,7 @@ class InvoiceController extends Controller
 
             $invoice_date = Carbon::parse($data['invoice_date'])->toIso8601String() ?? null;
             $accountingDate = Carbon::parse($data['accounting_date'])->toIso8601String() ?? null;
+            $dueDate = Carbon::parse($data['due_date'])->toIso8601String() ?? null;
             if (isset($data['payment_term_id'])) {
                 $paymentTermId = $data['payment_term_id'] ?? null;
                 $paymentTerm = PaymentTerm::find($paymentTermId);
@@ -403,7 +404,7 @@ class InvoiceController extends Controller
                     'invoice_date' => $invoice_date,
                     'acounting_date' => $accountingDate,
                     'payment_term_id' => $data['payment_term_id'] ?? null,
-                    'due_date' => $data['due_date'] ?? $due_date,
+                    'due_date' => $dueDate ?? $due_date,
                 ]);
                 if ($data['state'] == 2) {
                     $invoice->update([
@@ -415,7 +416,7 @@ class InvoiceController extends Controller
                         'invoice_date' => $invoice_date,
                         'acounting_date' => $accountingDate,
                         'payment_term_id' => $data['payment_term_id'] ?? null,
-                        'due_date' => $data['due_date']  ?? $due_date,
+                        'due_date' => $dueDate  ?? $due_date,
                     ]);
                     foreach ($data['items'] as $component) {
                         $rfqComponent = RfqComponent::where('rfq_id', $rfq->rfq_id)->where('rfq_component_id', $component['component_id'])->first();
@@ -443,7 +444,7 @@ class InvoiceController extends Controller
                     'state' => $data['state'],
                     'invoice_date' => $invoice_date,
                     'payment_term_id' => $data['payment_term_id'] ?? null,
-                    'due_date' => $data['due_date'] ?? $due_date,
+                    'due_date' => $dueDate ?? $due_date,
                 ]);
                 if ($data['state'] == 2) {
                     $invoice->update([
@@ -454,7 +455,7 @@ class InvoiceController extends Controller
                         'state' => $data['state'],
                         'invoice_date' => $invoice_date,
                         'payment_term_id' => $data['payment_term_id'] ?? null,
-                        'due_date' => $data['due_date']  ?? $due_date,
+                        'due_date' => $dueDate ?? $due_date,
                     ]);
                     foreach ($data['items'] as $component) {
                         $salesComponent = SalesComponent::where('sales_id', $sales->sales_id)->where('sales_component_id', $component['component_id'])->first();

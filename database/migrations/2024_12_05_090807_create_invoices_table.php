@@ -30,6 +30,7 @@ return new class extends Migration
             $table->timestamp('due_date')->nullable();
             $table->integer('state');
             $table->string('source_document');
+            $table->integer('payment_status');
             $table->timestamps();
         });
     }

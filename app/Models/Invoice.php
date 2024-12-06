@@ -22,7 +22,8 @@ class Invoice extends Model
         'accounting_date',
         'payment_term_id',
         'due_date',
-        'source_document'
+        'source_document',
+        'payment_status'
     ];
 
     public function vendor(){

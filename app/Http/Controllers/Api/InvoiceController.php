@@ -220,9 +220,9 @@ class InvoiceController extends Controller
                     return [
                         'component_id' => $component->rfq_component_id,
                         'type' => $component->display_type,
-                        'id' => $component->material_id,
-                        'internal_reference' => $component->material->internal_reference ?? null,
-                        'name' => $component->material->material_name ?? null,
+                        'id' => $component->product_id,
+                        'internal_reference' => $component->product->internal_reference ?? null,
+                        'name' => $component->product->product_name ?? null,
                         'description' => $component->description,
                         'unit_price' => $component->unit_price,
                         'tax' => $component->tax,
@@ -244,6 +244,20 @@ class InvoiceController extends Controller
             if ($data['transaction_type'] == "BILL") {
                 $rfq = Rfq::findOrFail($data['rfq_id']);
                 $rfqReference = $rfq->reference;
+
+                $unfinishedInvoice = Invoice::where('rfq_id', $rfq->rfq_id)
+                    ->where(function ($query) {
+                        $query->where('state', '!=', 2)
+                            ->orWhere('payment_status', '=', 1);
+                    })
+                    ->exists();
+
+                if ($unfinishedInvoice) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'There are unfinished or unpaid invoices related to this RFQ. Please complete or pay them first.',
+                    ], 400);
+                }
             } else {
                 $sales = Sales::findOrFail($data['sales_id']);
                 $salesReference = $sales->reference;
@@ -319,6 +333,7 @@ class InvoiceController extends Controller
                     'vendor_id' => 'required|exists:vendors,vendor_id',
                     'invoice_date' => 'required',
                     'paymetn_term_id' => 'nullable|exists:payment_terms, payment_term_id',
+                    'accounting_date' => 'required',
                     'due_date' => 'required_without:payment_term_id',
                     'items.*.qty_invoiced' => [
                         'required',
@@ -341,6 +356,7 @@ class InvoiceController extends Controller
                     'vendor_id.required' => 'Vendor ID must be filled',
                     'vendor_id.exists' => 'Vendor ID does not exist',
                     'invoice_date.required' => 'Invoice date must be filled',
+                    'accounting_date.required' => 'Accounting date must be filled',
                     'paymetn_term_id.exists' => 'Payment term does not exist',
                     'due_date.required_without' => 'Due date must be provided if payment term is not selected',
                 ]

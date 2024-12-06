@@ -333,6 +333,7 @@ class InvoiceController extends Controller
                     'vendor_id' => 'required|exists:vendors,vendor_id',
                     'invoice_date' => 'required',
                     'paymetn_term_id' => 'nullable|exists:payment_terms, payment_term_id',
+                    'accounting_date' => 'required',
                     'due_date' => 'required_without:payment_term_id',
                     'items.*.qty_invoiced' => [
                         'required',
@@ -355,6 +356,7 @@ class InvoiceController extends Controller
                     'vendor_id.required' => 'Vendor ID must be filled',
                     'vendor_id.exists' => 'Vendor ID does not exist',
                     'invoice_date.required' => 'Invoice date must be filled',
+                    'accounting_date.required' => 'Accounting date must be filled',
                     'paymetn_term_id.exists' => 'Payment term does not exist',
                     'due_date.required_without' => 'Due date must be provided if payment term is not selected',
                 ]

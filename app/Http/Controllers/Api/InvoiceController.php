@@ -49,6 +49,7 @@ class InvoiceController extends Controller
                         'taxes' => $invoice->rfq->taxes,
                         'total' => $invoice->rfq->total,
                         'state' => $invoice->state,
+                        'payment_status' => $invoice->payment_status,
                         'items' => $invoice->rfq->rfqComponent->map(function ($component) {
                             return [
                                 'component_id' => $component->rfq_component_id,
@@ -94,6 +95,7 @@ class InvoiceController extends Controller
                         'taxes' => $invoice->sales->taxes,
                         'total' => $invoice->sales->total,
                         'state' => $invoice->state,
+                        'payment_status' => $invoice->payment_status,
                         'items' => $invoice->sales->salesComponent->map(function ($component) {
                             return [
                                 'component_id' => $component->rfq_component_id,
@@ -162,6 +164,7 @@ class InvoiceController extends Controller
                 'taxes' => $invoice->rfq->taxes,
                 'total' => $invoice->rfq->total,
                 'state' => $invoice->state,
+                'payment_status' => $invoice->payment_status,
                 'items' =>  $invoice->rfq->rfqComponent->map(function ($component) {
                     return [
                         'component_id' => $component->rfq_component_id,
@@ -212,6 +215,7 @@ class InvoiceController extends Controller
                 'taxes' => $invoice->sales->taxes,
                 'total' => $invoice->sales->total,
                 'state' => $invoice->state,
+                'payment_status' => $invoice->payment_status,
                 'items' =>  $invoice->sales->salesComponent->map(function ($component) {
                     return [
                         'component_id' => $component->rfq_component_id,
@@ -286,6 +290,7 @@ class InvoiceController extends Controller
                 'payment_term_id' => $data['payment_term_id'] ?? null,
                 'due_date' => $data['due_date'] ?? null,
                 'source_document' => $rfqReference ?? $salesReference,
+                'payment_status' => 1,
             ]);
             DB::commit();
             if ($data['transaction_type'] == 'BILL') {

@@ -28,3 +28,4 @@ Route::apiResource('/customers', App\Http\Controllers\Api\CustomerController::cl
 Route::apiResource('/invoices', App\Http\Controllers\Api\InvoiceController::class);
 Route::apiResource('/sales', App\Http\Controllers\Api\SalesController::class);
 Route::apiResource('/payment-terms', App\Http\Controllers\Api\PaymentTermController::class);
+Route::apiResource('/register-payments', App\Http\Controllers\Api\PaymentController::class);

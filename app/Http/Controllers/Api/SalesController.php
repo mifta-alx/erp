@@ -62,7 +62,7 @@ class SalesController extends Controller
                 'expiration' => $request->expiration,
                 'invoice_status' => $request->invoice_status,
                 'state' => $request->state,
-                'payment_trem' => $request->payment_trem,
+                'payment_terms' => $request->payment_terms,
                 'reference' => $reference,
             ]);
             foreach ($request->components as $component) {
@@ -146,7 +146,7 @@ class SalesController extends Controller
                 'expiration' => $request->expiration,
                 'invoice_status' => $request->invoice_status,
                 'state' => $request->state,
-                'payment_trem' => $request->payment_trem,
+                'payment_terms' => $request->payment_terms,
             ]);
 
 
@@ -263,7 +263,7 @@ class SalesController extends Controller
             'expiration' => 'required|date',
             'invoice_status' => 'required|numeric',
             'state' => 'required|numeric',
-            'payment_trem' => 'required',
+            'payment_terms' => 'required',
             'components' => 'nullable|array',
             'components.*.type' => 'nullable|in:product,service',
             'components.*.product_id' => 'nullable:components.*.type,product|exists:products,product_id',
@@ -295,7 +295,7 @@ class SalesController extends Controller
             'expiration' => $sale->expiration,
             'invoice_status' => $sale->invoice_status,
             'state' => $sale->state,
-            'payment_trem' => $sale->payment_trem,
+            'payment_terms' => $sale->payment_terms,
             'reference' => $sale->reference,
             'created_at' => $sale->created_at,
             'updated_at' => $sale->updated_at,

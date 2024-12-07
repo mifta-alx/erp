@@ -19,7 +19,7 @@ class Sales extends Model
         'expiration',
         'invoice_status',
         'state',
-        'payment_trem',
+        'payment_terms',
         'reference'
     ];
     public function customer()

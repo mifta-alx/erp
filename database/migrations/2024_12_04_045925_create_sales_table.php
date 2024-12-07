@@ -22,7 +22,7 @@ return new class extends Migration
             $table->timestamp('expiration');
             $table->integer('invoice_status');
             $table->integer('state');
-            $table->integer('payment_trem');
+            $table->integer('payment_terms');
             $table->string('reference');
             $table->timestamps();
         });

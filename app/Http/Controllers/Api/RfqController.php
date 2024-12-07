@@ -76,7 +76,53 @@ class RfqController extends Controller
                 'message' => 'RFQ not found',
             ], 404);
         }
-        return $this->successResponse($rfq, 'Detail RFQ Data ');
+        return response()->json([
+            'success' => true,
+            'message' => 'Detail RFQ Data',
+            'data' => [
+                'id' => $rfq->rfq_id,
+                'reference' =>  $rfq->reference,
+                'vendor_id' => $rfq->vendor_id,
+                'vendor_name' => $rfq->vendor->name,
+                'vendor_reference' => $rfq->vendor_reference,
+                "order_date" => Carbon::parse($rfq->order_date)->setTimezone('+07:00')->format('Y-m-d H:i:s'),
+                'state' => $rfq->state,
+                'taxes' => $rfq->taxes,
+                'total' => $rfq->total,
+                'confirmation_date' => $rfq->confirmation_date
+                    ? Carbon::parse($rfq->confirmation_date)->setTimezone('+07:00')->format('Y-m-d H:i:s')
+                    : null,
+                'invoice_status' => $rfq->invoice_status,
+                'receipt' => $rfq->receipts->map(function ($receipt) {
+                    return [
+                        'id' => $receipt->receipt_id,
+                    ];
+                }),
+                'items' => $rfq->rfqComponent->map(function ($component) {
+                    return [
+                        'component_id' => $component->rfq_component_id,
+                        'type' => $component->display_type,
+                        'id' => $component->material_id,
+                        'internal_reference' => $component->material->internal_reference ?? null,
+                        'name' => $component->material->material_name ?? null,
+                        'description' => $component->description,
+                        'qty' => $component->qty,
+                        'unit_price' => $component->unit_price,
+                        'tax' => $component->tax,
+                        'subtotal' => $component->subtotal,
+                        'qty_received' => $component->qty_received,
+                        'qty_to_invoice' =>  $component->qty_to_invoice,
+                        'qty_invoiced' =>  $component->qty_invoiced,
+                    ];
+                }),
+                'invoices' => $rfq->invoices->map(function ($invoice) {
+                    return [
+                        'id' => $invoice->invoice_id,
+                        'payment_status' => $invoice->payment_status
+                    ];
+                })
+            ]
+        ]);
     }
 
     private function validateRfq(Request $request)

@@ -52,13 +52,14 @@ class PaymentController extends Controller
             }) : [],
             'journal' => $payment->journal,
             'amount' => $payment->amount,
-            'payment_date' => Carbon::parse($payment->payment_date)->setTimezone('+07:00')->format('Y-m-d H:i:s'),
+            'payment_date' => Carbon::parse($payment->payment_date)->format('Y-m-d H:i:s'),
             'memo' => $payment->memo,
             'payment_type' => $payment->payment_type,
         ];
     }
 
-    private function buildInvoiceData($payment){
+    private function buildInvoiceData($payment)
+    {
         return [
             'state' => $payment->invoice->state,
             'payment_status' => $payment->invoice->payment_status,
@@ -107,7 +108,7 @@ class PaymentController extends Controller
             $currentYear = Carbon::now()->year;
 
             $reference = "{$ref}/{$currentYear}/{$referenceNumberPadded}";
-            $payment_date = Carbon::parse($data['payment_date'])->toIso8601String();
+            $payment_date = Carbon::parse($data['payment_date']);
             $payment = RegisterPayment::create([
                 'reference' => $reference,
                 'invoice_id' => $data['invoice_id'],
@@ -130,7 +131,7 @@ class PaymentController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Payment Successfully Created',
-                'data' => $this->buildInvoiceData($payment),
+                'data' => $this->buildInvoiceData($payment)
             ]);
         } catch (\Exception $e) {
             DB::rollBack();

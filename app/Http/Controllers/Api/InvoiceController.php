@@ -33,11 +33,11 @@ class InvoiceController extends Controller
                         'rfq_id' => $invoice->rfq_id,
                         'reference' => $invoice->reference,
                         'invoice_date' => $invoice->invoice_date
-                            ? Carbon::parse($invoice->invoice_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
+                            ? Carbon::parse($invoice->invoice_date)->format('Y-m-d H:i:s') : null,
                         'accounting_date' => $invoice->accounting_date
-                            ? Carbon::parse($invoice->accounting_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
+                            ? Carbon::parse($invoice->accounting_date)->format('Y-m-d H:i:s') : null,
                         'due_date' => $invoice->due_date
-                            ? Carbon::parse($invoice->due_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
+                            ? Carbon::parse($invoice->due_date)->format('Y-m-d H:i:s') : null,
                         'payment_terms' => $invoice->paymentTerm->map(function ($paymentTerm) {
                             return [
                                 'id' => $paymentTerm->payment_term_id,
@@ -79,11 +79,11 @@ class InvoiceController extends Controller
                         'sales_id' => $invoice->sales_id,
                         'bill_reference' => $invoice->bill_reference,
                         'invoice_date' => $invoice->invoice_date
-                            ? Carbon::parse($invoice->invoice_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
+                            ? Carbon::parse($invoice->invoice_date)->format('Y-m-d H:i:s') : null,
                         'accounting_date' => $invoice->accounting_date
-                            ? Carbon::parse($invoice->accounting_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
+                            ? Carbon::parse($invoice->accounting_date)->format('Y-m-d H:i:s') : null,
                         'due_date' => $invoice->due_date
-                            ? Carbon::parse($invoice->due_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
+                            ? Carbon::parse($invoice->due_date)->format('Y-m-d H:i:s') : null,
                         'payment_term_id' => $invoice->paymentTerm->payment_term_id ?? null,
                         'source_document' => $invoice->source_document,
                         'taxes' => $invoice->sales->taxes,
@@ -142,11 +142,11 @@ class InvoiceController extends Controller
                 'rfq_id' => $invoice->rfq_id,
                 'reference' => $invoice->reference,
                 'invoice_date' => $invoice->invoice_date
-                    ? Carbon::parse($invoice->invoice_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
+                    ? Carbon::parse($invoice->invoice_date)->format('Y-m-d H:i:s') : null,
                 'accounting_date' => $invoice->accounting_date
-                    ? Carbon::parse($invoice->accounting_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
+                    ? Carbon::parse($invoice->accounting_date)->format('Y-m-d H:i:s') : null,
                 'due_date' => $invoice->due_date
-                    ? Carbon::parse($invoice->due_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
+                    ? Carbon::parse($invoice->due_date)->format('Y-m-d H:i:s') : null,
                 'payment_term_id' => $invoice->paymentTerm->payment_term_id ?? null,
                 'source_document' => $invoice->source_document,
                 'taxes' => $invoice->rfq->taxes,
@@ -188,11 +188,11 @@ class InvoiceController extends Controller
                 'sales_id' => $invoice->sales_id,
                 'reference' => $invoice->reference,
                 'invoice_date' => $invoice->invoice_date
-                    ? Carbon::parse($invoice->invoice_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
+                    ? Carbon::parse($invoice->invoice_date)->format('Y-m-d H:i:s') : null,
                 'accounting_date' => $invoice->accounting_date
-                    ? Carbon::parse($invoice->accounting_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
+                    ? Carbon::parse($invoice->accounting_date)->format('Y-m-d H:i:s') : null,
                 'due_date' => $invoice->due_date
-                    ? Carbon::parse($invoice->due_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
+                    ? Carbon::parse($invoice->due_date)->format('Y-m-d H:i:s') : null,
                 'payment_term_id' => $invoice->paymentTerm->payment_term_id ?? null,
                 'source_document' => $invoice->source_document,
                 'taxes' => $invoice->sales->taxes,
@@ -283,7 +283,7 @@ class InvoiceController extends Controller
                 'customer_id' => $sales->customer_id ?? null,
                 'state' => 1,
                 'invoice_date' => null,
-                'accounting_date' => Carbon::now()->toIso8601String(),
+                'accounting_date' => Carbon::now()->setTimezone('+07:00'),
                 'payment_term_id' => $data['payment_term_id'] ?? null,
                 'due_date' => $data['due_date'] ?? null,
                 'source_document' => $rfqReference ?? $salesReference,
@@ -311,9 +311,9 @@ class InvoiceController extends Controller
 
         try {
             $data = $request->json()->all();
-            $invoice_date = Carbon::parse($data['invoice_date'])->toIso8601String() ?? null;
-            $accounting_date = Carbon::parse($data['accounting_date'])->toIso8601String();
-            $due_date = Carbon::parse($data['due_date'])->toIso8601String() ?? null;
+            $invoice_date = Carbon::parse($data['invoice_date']) ?? null;
+            $accounting_date = Carbon::parse($data['accounting_date']);
+            $due_date = Carbon::parse($data['due_date'])?? null;
             if ($data['action_type'] !== 'confirm') {
                 $invoice = Invoice::find($id);
                 if (!$invoice) {
@@ -377,8 +377,8 @@ class InvoiceController extends Controller
     {
         return [
             'vendor_id' => 'required|exists:vendors,vendor_id',
-            'invoice_date' => 'required|date',
-            'accounting_date' => 'required|date',
+            'invoice_date' => 'required',
+            'accounting_date' => 'required',
             'due_date' => 'required_without:payment_term_id',
             'payment_term_id' => 'nullable|exists:payment_terms,payment_term_id',
             'items.*.qty_invoiced' => [
@@ -420,12 +420,12 @@ class InvoiceController extends Controller
         if (isset($data['payment_term_id'])) {
             $paymentTerm = PaymentTerm::find($data['payment_term_id']);
             if ($paymentTerm && $paymentTerm->name === 'End of This Month') {
-                return Carbon::parse($data['invoice_date'])->endOfMonth()->toIso8601String();
+                return Carbon::parse($data['invoice_date'])->endOfMonth();
             } elseif ($paymentTerm) {
-                return Carbon::parse($data['invoice_date'])->addDays($paymentTerm->value)->toIso8601String();
+                return Carbon::parse($data['invoice_date'])->addDays($paymentTerm->value);
             }
         }
-        return Carbon::parse($data['due_date'])->toIso8601String();
+        return Carbon::parse($data['due_date']);
     }
 
     private function processBillTransaction(array $data, $invoice, $invoice_date, $accounting_date, $due_date)

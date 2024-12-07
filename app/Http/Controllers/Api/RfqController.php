@@ -31,12 +31,12 @@ class RfqController extends Controller
                     'vendor_id' => $item->vendor_id,
                     'vendor_name' => $item->vendor->name,
                     'vendor_reference' => $item->vendor_reference,
-                    'order_date' => Carbon::parse($item->order_date)->setTimezone('+07:00')->format('Y-m-d H:i:s'),
+                    'order_date' => Carbon::parse($item->order_date)->format('Y-m-d H:i:s'),
                     'state' => $item->state,
                     'taxes' => $item->taxes,
                     'total' => $item->total,
                     'confirmation_date' => $item->confirmation_date
-                        ? Carbon::parse($item->confirmation_date)->setTimezone('+07:00')->format('Y-m-d H:i:s')
+                        ? Carbon::parse($item->confirmation_date)->format('Y-m-d H:i:s')
                         : null,
                     'invoice_status' => $item->invoice_status,
                     'receipt' => $item->receipts->map(function ($receipt) {
@@ -85,12 +85,12 @@ class RfqController extends Controller
                 'vendor_id' => $rfq->vendor_id,
                 'vendor_name' => $rfq->vendor->name,
                 'vendor_reference' => $rfq->vendor_reference,
-                "order_date" => Carbon::parse($rfq->order_date)->setTimezone('+07:00')->format('Y-m-d H:i:s'),
+                "order_date" => Carbon::parse($rfq->order_date)->format('Y-m-d H:i:s'),
                 'state' => $rfq->state,
                 'taxes' => $rfq->taxes,
                 'total' => $rfq->total,
                 'confirmation_date' => $rfq->confirmation_date
-                    ? Carbon::parse($rfq->confirmation_date)->setTimezone('+07:00')->format('Y-m-d H:i:s')
+                    ? Carbon::parse($rfq->confirmation_date)->format('Y-m-d H:i:s')
                     : null,
                 'invoice_status' => $rfq->invoice_status,
                 'receipt' => $rfq->receipts->map(function ($receipt) {
@@ -159,8 +159,8 @@ class RfqController extends Controller
             $referenceNumberPadded = str_pad($referenceNumber, 5, '0', STR_PAD_LEFT);
             $reference = "P{$referenceNumberPadded}";
 
-            $orderDate = Carbon::parse($data['order_date'])->toIso8601String();
-            $confirmDate = isset($data['confirmation_date']) ? Carbon::parse($data['confirmation_date'])->toIso8601String() : null;
+            $orderDate = Carbon::parse($data['order_date']);
+            $confirmDate = isset($data['confirmation_date']) ? Carbon::parse($data['confirmation_date']) : null;
             $rfq = Rfq::create([
                 'vendor_id' => $data['vendor_id'],
                 'reference' => $reference,
@@ -238,8 +238,8 @@ class RfqController extends Controller
                     'message' => 'RFQ not found'
                 ], 404);
             }
-            $orderDate = Carbon::parse($data['order_date'])->toIso8601String();
-            $confirmDate = isset($data['confirmation_date']) ? Carbon::parse($data['confirmation_date'])->toIso8601String() : null;
+            $orderDate = Carbon::parse($data['order_date']);
+            $confirmDate = isset($data['confirmation_date']) ? Carbon::parse($data['confirmation_date']) : null;
             $rfq->update([
                 'vendor_id' => $data['vendor_id'],
                 'vendor_reference' => $data['vendor_reference'],
@@ -347,12 +347,12 @@ class RfqController extends Controller
                 'vendor_id' => $rfq->vendor_id,
                 'vendor_name' => $rfq->vendor->name,
                 'vendor_reference' => $rfq->vendor_reference,
-                "order_date" => Carbon::parse($rfq->order_date)->setTimezone('+07:00')->format('Y-m-d H:i:s'),
+                "order_date" => Carbon::parse($rfq->order_date)->format('Y-m-d H:i:s'),
                 'state' => $rfq->state,
                 'taxes' => $rfq->taxes,
                 'total' => $rfq->total,
                 'confirmation_date' => $rfq->confirmation_date
-                    ? Carbon::parse($rfq->confirmation_date)->setTimezone('+07:00')->format('Y-m-d H:i:s')
+                    ? Carbon::parse($rfq->confirmation_date)->format('Y-m-d H:i:s')
                     : null,
                 'invoice_status' => $rfq->invoice_status,
                 'receipt' => $rfq->receipts->map(function ($receipt) {

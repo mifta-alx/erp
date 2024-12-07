@@ -341,17 +341,19 @@ class InvoiceController extends Controller
                         function ($attribute, $value, $fail) use ($request) {
                             $index = str_replace(['items.', '.qty_invoiced'], '', $attribute);
                             $state = $request->input('state');
-                            if ($state == 1) {
+                            $data = $request->input('action_type');
+                            if ($data == 'save' || $data == 'reset' || $data == 'cancel') {
                                 return;
-                            }
-                            $type = $request->input("items.$index.type");
-                            if ($type === 'line_section') {
-                                return;
-                            }
-                            $componentId = $request->input("items.$index.component_id");
-                            $rfqComponent = RfqComponent::where('rfq_component_id', $componentId)->first();
-                            if ($rfqComponent && $value > $rfqComponent->qty_to_invoice) {
-                                $fail('Qty invoiced must not exceed the available qty.');
+                            } else {
+                                $type = $request->input("items.$index.type");
+                                if ($type === 'line_section') {
+                                    return;
+                                }
+                                $componentId = $request->input("items.$index.component_id");
+                                $rfqComponent = RfqComponent::where('rfq_component_id', $componentId)->first();
+                                if ($rfqComponent && $value > $rfqComponent->qty_to_invoice) {
+                                    $fail('Qty invoiced must not exceed the available qty.');
+                                }
                             }
                         }
                     ],

@@ -32,7 +32,7 @@ class ReceiptController extends Controller
                         'source_document' => $receipt->source_document,
                         'rfq_id' => $receipt->rfq_id,
                         'invoice_status' => $receipt->rfq->invoice_status,
-                        'scheduled_date' => $receipt->scheduled_date ? Carbon::parse($receipt->scheduled_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
+                        'scheduled_date' => $receipt->scheduled_date ?? null,
                         'state' => $receipt->state,
                         'items' => $receipt->rfq->rfqComponent
                             ->filter(function ($component) {
@@ -68,7 +68,7 @@ class ReceiptController extends Controller
                         'source_document' => $receipt->source_document,
                         'sales_id' => $receipt->sales_id,
                         'invoice_status' => $receipt->sales->invoice_status,
-                        'scheduled_date' => $receipt->scheduled_date ? Carbon::parse($receipt->scheduled_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
+                        'scheduled_date' => $receipt->scheduled_date ?? null,
                         'state' => $receipt->state,
                         'items' => $receipt->sales->salesComponents
                             ->filter(function ($component) {
@@ -112,7 +112,7 @@ class ReceiptController extends Controller
                 'source_document' => $receipt->source_document,
                 'rfq_id' => $receipt->rfq_id,
                 'invoice_status' => $receipt->rfq->invoice_status,
-                'scheduled_date' => $receipt->scheduled_date ? Carbon::parse($receipt->scheduled_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
+                'scheduled_date' => $receipt->scheduled_date ?? null,
                 'state' => $receipt->state,
                 'items' => $receipt->rfq->rfqComponent
                     ->filter(function ($component) {
@@ -153,7 +153,7 @@ class ReceiptController extends Controller
                 'source_document' => $receipt->source_document,
                 'sales_id' => $receipt->sales_id,
                 'invoice_status' => $receipt->sales->invoice_status,
-                'scheduled_date' => $receipt->scheduled_date ? Carbon::parse($receipt->scheduled_date)->setTimezone('+07:00')->format('Y-m-d H:i:s') : null,
+                'scheduled_date' => $receipt->scheduled_date ?? null,
                 'state' => $receipt->state,
                 'items' => $receipt->sales->salesComponents
                     ->filter(function ($component) {
@@ -221,7 +221,7 @@ class ReceiptController extends Controller
             $referenceNumber = $lastReferenceNumber + 1;
             $referenceNumberPadded = str_pad($referenceNumber, 5, '0', STR_PAD_LEFT);
             $reference = "{$data['transaction_type']}/{$referenceNumberPadded}";
-            $scheduled_date = Carbon::parse($data['scheduled_date'])->toIso8601String();
+            $scheduled_date = Carbon::parse($data['scheduled_date']);
 
             $receipt = Receipt::create([
                 'transaction_type' => $data['transaction_type'],
@@ -313,7 +313,7 @@ class ReceiptController extends Controller
                     'message' => 'Receipt not found',
                 ], 404);
             }
-            $scheduled_date = Carbon::parse($data['scheduled_date'])->toIso8601String();
+            $scheduled_date = Carbon::parse($data['scheduled_date']);
             $rfq = Rfq::findOrFail($data['rfq_id']);
             $rfqReference = $rfq->reference;
             if ($data['transaction_type'] == 'IN') {

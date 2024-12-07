@@ -528,7 +528,9 @@ class InvoiceController extends Controller
         } else {
             if ($rfqComponent) {
                 $rfqComponent->update([
-                    'qty_to_invoice' => $component['qty_invoiced'],
+                    'qty_to_invoice' => $rfqComponent->qty_to_invoice == 0
+                        ? $component['qty_invoiced']
+                        : $rfqComponent->qty_to_invoice,
                     'qty_invoiced' => 0,
                 ]);
             }

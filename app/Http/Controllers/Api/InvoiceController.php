@@ -165,6 +165,7 @@ class InvoiceController extends Controller
                 'total' => $invoice->rfq->total,
                 'state' => $invoice->state,
                 'payment_status' => $invoice->payment_status,
+                'payment_date' => $invoice->regPay->payment_date ?? null,
                 'items' =>  $invoice->rfq->rfqComponent->map(function ($component) {
                     return [
                         'component_id' => $component->rfq_component_id,
@@ -339,7 +340,10 @@ class InvoiceController extends Controller
                         'required',
                         function ($attribute, $value, $fail) use ($request) {
                             $index = str_replace(['items.', '.qty_invoiced'], '', $attribute);
-
+                            $state = $request->input('state');
+                            if ($state == 1) {
+                                return;
+                            }
                             $type = $request->input("items.$index.type");
                             if ($type === 'line_section') {
                                 return;
@@ -405,7 +409,17 @@ class InvoiceController extends Controller
                     'acounting_date' => $accountingDate,
                     'payment_term_id' => $data['payment_term_id'] ?? null,
                     'due_date' => $dueDate ?? $due_date,
+                    'payment_status' => $data['payment_status'],
                 ]);
+                foreach ($data['items'] as $component) {
+                    $rfqComponent = RfqComponent::where('rfq_id', $rfq->rfq_id)->where('rfq_component_id', $component['component_id'])->first();
+                    if ($rfqComponent) {
+                        $rfqComponent->update([
+                            'qty_to_invoice' => $component['qty_invoiced'],
+                            'qty_invoiced' => 0,
+                        ]);
+                    }
+                }
                 if ($data['state'] == 2) {
                     $invoice->update([
                         'transaction_type' => $data['transaction_type'],

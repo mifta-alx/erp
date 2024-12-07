@@ -42,4 +42,12 @@ class Invoice extends Model
     public function paymentTerm(){
         return $this->hasMany(PaymentTerm::class, 'payment_term_id', 'payment_term_id');
     }
+
+    public function registerPayments(){
+        return $this->hasMany(RegisterPayment::class, 'invoice_id', 'invoice_id');
+    }
+
+    public function regPay(){
+        return $this->belongsTo(RegisterPayment::class, 'invoice_id', 'invoice_id');
+    }
 }

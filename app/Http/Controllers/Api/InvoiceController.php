@@ -329,9 +329,9 @@ class InvoiceController extends Controller
 
         try {
             $data = $request->json()->all();
-            $invoice_date = ($data['action_type'] !== 'confirm' && isset($data['invoice_date'])) ? Carbon::parse($data['invoice_date'])->toIso8601String() : null;
-            $accounting_date = ($data['action_type'] !== 'confirm' && isset($data['accounting_date'])) ? Carbon::parse($data['accounting_date'])->toIso8601String() : null;
-            $due_date = ($data['action_type'] !== 'confirm' && isset($data['due_date'])) ? Carbon::parse($data['due_date'])->toIso8601String() : null;
+            $invoice_date = Carbon::parse($data['invoice_date'])->toIso8601String() ?? null;
+            $accounting_date = Carbon::parse($data['accounting_date'])->toIso8601String();
+            $due_date = Carbon::parse($data['due_date'])->toIso8601String() ?? null;
             if ($data['action_type'] !== 'confirm') {
                 $invoice = Invoice::find($id);
                 if (!$invoice) {
@@ -449,7 +449,11 @@ class InvoiceController extends Controller
     private function processBillTransaction(array $data, $invoice, $invoice_date, $accounting_date, $due_date)
     {
         $rfq = Rfq::findOrFail($data['rfq_id']);
-
+        if ($data['state'] == 1) {
+            $payment_status = 1;
+        } else {
+            $payment_status = 1;
+        }
         $invoice->update([
             'rfq_id' => $rfq->rfq_id,
             'vendor_id' => $data['vendor_id'],
@@ -458,7 +462,7 @@ class InvoiceController extends Controller
             'accounting_date' => $accounting_date,
             'due_date' => $due_date,
             'payment_term_id' => $data['payment_term_id'] ?? null,
-            'payment_status' => $data['payment_status'],
+            'payment_status' => $payment_status,
         ]);
 
         foreach ($data['items'] as $component) {
@@ -474,7 +478,6 @@ class InvoiceController extends Controller
                 'accounting_date' => $accounting_date,
                 'due_date' => $due_date,
                 'payment_term_id' => $data['payment_term_id'] ?? null,
-                'payment_status' => $data['payment_status'],
             ]);
             foreach ($data['items'] as $component) {
                 $this->updateRfqComponent($rfq->rfq_id, $component, 2);
@@ -490,7 +493,9 @@ class InvoiceController extends Controller
     private function processInvTransaction(array $data, $invoice, $invoice_date, $accounting_date, $due_date)
     {
         $sales = Sales::findOrFail($data['sales_id']);
-
+        if ($data['state'] == 1) {
+            $payment_status = 1;
+        }
         $invoice->update([
             'sales_id' => $sales->sales_id,
             'customer_id' => $data['customer_id'] ?? null,
@@ -499,6 +504,7 @@ class InvoiceController extends Controller
             'accounting_date' => $accounting_date,
             'due_date' => $due_date,
             'payment_term_id' => $data['payment_term_id'] ?? null,
+            'payment_status' => $payment_status,
         ]);
 
         foreach ($data['items'] as $component) {

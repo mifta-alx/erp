@@ -326,52 +326,37 @@ class InvoiceController extends Controller
     public function update(Request $request, $id)
     {
         DB::beginTransaction();
+
         try {
             $data = $request->json()->all();
-            $validator = Validator::make(
-                $request->all(),
-                [
-                    'vendor_id' => 'required|exists:vendors,vendor_id',
-                    'invoice_date' => 'required',
-                    'paymetn_term_id' => 'nullable|exists:payment_terms, payment_term_id',
-                    'accounting_date' => 'required',
-                    'due_date' => 'required_without:payment_term_id',
-                    'items.*.qty_invoiced' => [
-                        'required',
-                        function ($attribute, $value, $fail) use ($request) {
-                            $index = str_replace(['items.', '.qty_invoiced'], '', $attribute);
-                            $state = $request->input('state');
-                            $data = $request->input('action_type');
-                            if ($data == 'save' || $data == 'reset' || $data == 'cancel') {
-                                return;
-                            } else {
-                                $type = $request->input("items.$index.type");
-                                if ($type === 'line_section') {
-                                    return;
-                                }
-                                $componentId = $request->input("items.$index.component_id");
-                                $rfqComponent = RfqComponent::where('rfq_component_id', $componentId)->first();
-                                if ($rfqComponent && $value > $rfqComponent->qty_to_invoice) {
-                                    $fail('Qty invoiced must not exceed the available qty.');
-                                }
-                            }
-                        }
-                    ],
-                ],
-                [
-                    'vendor_id.required' => 'Vendor ID must be filled',
-                    'vendor_id.exists' => 'Vendor ID does not exist',
-                    'invoice_date.required' => 'Invoice date must be filled',
-                    'accounting_date.required' => 'Accounting date must be filled',
-                    'paymetn_term_id.exists' => 'Payment term does not exist',
-                    'due_date.required_without' => 'Due date must be provided if payment term is not selected',
-                ]
-            );
+            $invoice_date = ($data['action_type'] !== 'confirm' && isset($data['invoice_date'])) ? Carbon::parse($data['invoice_date'])->toIso8601String() : null;
+            $accounting_date = ($data['action_type'] !== 'confirm' && isset($data['accounting_date'])) ? Carbon::parse($data['accounting_date'])->toIso8601String() : null;
+            $due_date = ($data['action_type'] !== 'confirm' && isset($data['due_date'])) ? Carbon::parse($data['due_date'])->toIso8601String() : null;
+            if ($data['action_type'] !== 'confirm') {
+                $invoice = Invoice::find($id);
+                if (!$invoice) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Invoice not found',
+                    ], 404);
+                }
+
+                if ($data['transaction_type'] === 'BILL') {
+                    $this->processBillTransaction($data, $invoice, $invoice_date, $accounting_date, $due_date);
+                } else if ($data['transaction_type'] === 'INV') {
+                    $this->processInvTransaction($data, $invoice, $invoice_date, $accounting_date, $due_date);
+                }
+
+                DB::commit();
+                return $this->generateResponse($data['transaction_type'], $invoice, 'Receipt Successfully Updated');
+            }
+
+            $validator = Validator::make($data, $this->getValidationRules($request), $this->getValidationMessages($request));
             if ($validator->fails()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Validation Failed',
-                    'errors' => $validator->errors()
+                    'errors' => $validator->errors(),
                 ], 422);
             }
 
@@ -379,124 +364,18 @@ class InvoiceController extends Controller
             if (!$invoice) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Invoice not found'
+                    'message' => 'Invoice not found',
                 ], 404);
             }
-            if ($data['transaction_type'] == 'BILL') {
-                $rfq = Rfq::findOrFail($data['rfq_id']);
-            } else {
-                $sales = Sales::findOrFail($data['sales_id']);
+            if ($data['transaction_type'] === 'BILL') {
+                $this->processBillTransaction($data, $invoice, $invoice_date, $accounting_date, $due_date);
+            } else if ($data['transaction_type'] === 'INV') {
+                $this->processInvTransaction($data, $invoice, $invoice_date, $accounting_date, $due_date);
             }
 
-            $invoice_date = Carbon::parse($data['invoice_date'])->toIso8601String() ?? null;
-            $accountingDate = Carbon::parse($data['accounting_date'])->toIso8601String() ?? null;
-            $dueDate = Carbon::parse($data['due_date'])->toIso8601String() ?? null;
-            if (isset($data['payment_term_id'])) {
-                $paymentTermId = $data['payment_term_id'] ?? null;
-                $paymentTerm = PaymentTerm::find($paymentTermId);
-                if ($paymentTerm->name == 'End of This Month') {
-                    $due_date = Carbon::parse($data['invoice_date'])->endOfMonth()->toIso8601String();
-                } else {
-                    $due_date = Carbon::parse($data['invoice_date'])->addDays($paymentTerm->value)->toIso8601String();
-                }
-            }
-
-            if ($data['transaction_type'] == 'BILL') {
-                $invoice->update([
-                    'transaction_type' => $data['transaction_type'],
-                    'rfq_id' => $rfq->rfq_id ?? null,
-                    'vendor_id' => $data['vendor_id'],
-                    'state' => $data['state'],
-                    'invoice_date' => $invoice_date,
-                    'acounting_date' => $accountingDate,
-                    'payment_term_id' => $data['payment_term_id'] ?? null,
-                    'due_date' => $dueDate ?? $due_date,
-                    'payment_status' => $data['payment_status'],
-                ]);
-                foreach ($data['items'] as $component) {
-                    $rfqComponent = RfqComponent::where('rfq_id', $rfq->rfq_id)->where('rfq_component_id', $component['component_id'])->first();
-                    if ($rfqComponent) {
-                        $rfqComponent->update([
-                            'qty_to_invoice' => $component['qty_invoiced'],
-                            'qty_invoiced' => 0,
-                        ]);
-                    }
-                }
-                if ($data['state'] == 2) {
-                    $invoice->update([
-                        'transaction_type' => $data['transaction_type'],
-                        'rfq_id' => $rfq->rfq_id ?? null,
-                        'vendor_id' => $data['vendor_id'] ?? null,
-                        'bill_reference' => $data['bill_reference'] ?? null,
-                        'state' => $data['state'],
-                        'invoice_date' => $invoice_date,
-                        'acounting_date' => $accountingDate,
-                        'payment_term_id' => $data['payment_term_id'] ?? null,
-                        'due_date' => $dueDate  ?? $due_date,
-                    ]);
-                    foreach ($data['items'] as $component) {
-                        $rfqComponent = RfqComponent::where('rfq_id', $rfq->rfq_id)->where('rfq_component_id', $component['component_id'])->first();
-                        if ($rfqComponent) {
-                            $rfqComponent->update([
-                                'qty_to_invoice' => $rfqComponent->qty_to_invoice - $component['qty_invoiced'],
-                                'qty_invoiced' => $component['qty_invoiced'] + $rfqComponent->qty_invoiced,
-                            ]);
-                        }
-                        if ($rfq) {
-                            $rfq->update([
-                                'taxes' => $data['taxes'],
-                                'total' => $data['total'],
-                                'invoice_status' => $data['invoice_status'],
-                            ]);
-                        }
-                    }
-                }
-            } else if ($data['transaction_type'] == 'INV') {
-                $invoice->update([
-                    'transaction_type' => $data['transaction_type'],
-                    'sales_id' => $sales->sales_id ?? null,
-                    'customer_id' => $data['customer_id'] ?? null,
-                    'bill_reference' => $data['bill_reference'] ?? null,
-                    'state' => $data['state'],
-                    'invoice_date' => $invoice_date,
-                    'payment_term_id' => $data['payment_term_id'] ?? null,
-                    'due_date' => $dueDate ?? $due_date,
-                ]);
-                if ($data['state'] == 2) {
-                    $invoice->update([
-                        'transaction_type' => $data['transaction_type'],
-                        'sales_id' => $sales->sales_id ?? null,
-                        'customer_id' => $data['customer_id'] ?? null,
-                        'bill_reference' => $data['bill_reference'] ?? null,
-                        'state' => $data['state'],
-                        'invoice_date' => $invoice_date,
-                        'payment_term_id' => $data['payment_term_id'] ?? null,
-                        'due_date' => $dueDate ?? $due_date,
-                    ]);
-                    foreach ($data['items'] as $component) {
-                        $salesComponent = SalesComponent::where('sales_id', $sales->sales_id)->where('sales_component_id', $component['component_id'])->first();
-                        if ($salesComponent) {
-                            $salesComponent->update([
-                                'qty_to_invoice' => $salesComponent->qty_to_invoice - $component['qty_invoiced'],
-                                'qty_invoiced' => $component['qty_invoiced'] + $salesComponent->qty_invoiced,
-                            ]);
-                        }
-                        if ($sales) {
-                            $sales->update([
-                                'taxes' => $data['taxes'],
-                                'total' => $data['total'],
-                                'invoice_status' => $data['invoice_status'],
-                            ]);
-                        }
-                    }
-                }
-            }
             DB::commit();
-            if ($data['transaction_type'] == 'BILL') {
-                return $this->responseBill($invoice, 'Receipt Successfully Updated');
-            } else {
-                return $this->responseInv($invoice, 'Receipt Successfully Updated');
-            }
+
+            return $this->generateResponse($data['transaction_type'], $invoice, 'Receipt Successfully Updated');
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
@@ -504,6 +383,187 @@ class InvoiceController extends Controller
                 'message' => 'Failed to update Invoice',
                 'error' => $e->getMessage(),
             ], 500);
+        }
+    }
+    private function generateResponse($transactionType, $invoice, $message)
+    {
+        return $transactionType === 'BILL'
+            ? $this->responseBill($invoice, $message)
+            : $this->responseInv($invoice, $message);
+    }
+    private function getValidationRules(Request $request)
+    {
+        return [
+            'vendor_id' => 'required|exists:vendors,vendor_id',
+            'invoice_date' => 'required|date',
+            'accounting_date' => 'required|date',
+            'due_date' => 'required_without:payment_term_id|date',
+            'payment_term_id' => 'nullable|exists:payment_terms,payment_term_id',
+            'items.*.qty_invoiced' => [
+                'required',
+                function ($attribute, $value, $fail) use ($request) {
+                    $index = str_replace(['items.', '.qty_invoiced'], '', $attribute);
+                    $state = $request->input('state');
+                    if ($state == 1) {
+                        return;
+                    } else {
+                        $type = $request->input("items.$index.type");
+                        if ($type === 'line_section') {
+                            return;
+                        }
+                        $componentId = $request->input("items.$index.component_id");
+                        $rfqComponent = RfqComponent::where('rfq_component_id', $componentId)->first();
+                        if ($rfqComponent && $value > $rfqComponent->qty_to_invoice) {
+                            $fail('Qty invoiced must not exceed the available qty.');
+                        }
+                    }
+                }
+            ],
+        ];
+    }
+
+    private function getValidationMessages()
+    {
+        return [
+            'vendor_id.required' => 'Vendor ID must be filled',
+            'vendor_id.exists' => 'Vendor ID does not exist',
+            'invoice_date.required' => 'Invoice date must be filled',
+            'accounting_date.required' => 'Accounting date must be filled',
+            'due_date.required_without' => 'Due date must be provided if payment term is not selected',
+        ];
+    }
+
+    private function calculateDueDate(array $data)
+    {
+        if (isset($data['payment_term_id'])) {
+            $paymentTerm = PaymentTerm::find($data['payment_term_id']);
+            if ($paymentTerm && $paymentTerm->name === 'End of This Month') {
+                return Carbon::parse($data['invoice_date'])->endOfMonth()->toIso8601String();
+            } elseif ($paymentTerm) {
+                return Carbon::parse($data['invoice_date'])->addDays($paymentTerm->value)->toIso8601String();
+            }
+        }
+        return Carbon::parse($data['due_date'])->toIso8601String();
+    }
+
+    private function processBillTransaction(array $data, $invoice, $invoice_date, $accounting_date, $due_date)
+    {
+        $rfq = Rfq::findOrFail($data['rfq_id']);
+
+        $invoice->update([
+            'rfq_id' => $rfq->rfq_id,
+            'vendor_id' => $data['vendor_id'],
+            'state' => $data['state'],
+            'invoice_date' => $invoice_date,
+            'accounting_date' => $accounting_date,
+            'due_date' => $due_date,
+            'payment_term_id' => $data['payment_term_id'] ?? null,
+            'payment_status' => $data['payment_status'],
+        ]);
+
+        foreach ($data['items'] as $component) {
+            $this->updateRfqComponent($rfq->rfq_id, $component, 1);
+        }
+
+        if ($data['state'] === 2) {
+            $invoice->update([
+                'rfq_id' => $rfq->rfq_id,
+                'vendor_id' => $data['vendor_id'],
+                'state' => $data['state'],
+                'invoice_date' => $invoice_date,
+                'accounting_date' => $accounting_date,
+                'due_date' => $due_date,
+                'payment_term_id' => $data['payment_term_id'] ?? null,
+                'payment_status' => $data['payment_status'],
+            ]);
+            foreach ($data['items'] as $component) {
+                $this->updateRfqComponent($rfq->rfq_id, $component, 2);
+            }
+            $rfq->update([
+                'taxes' => $data['taxes'],
+                'total' => $data['total'],
+                'invoice_status' => $data['invoice_status'],
+            ]);
+        }
+    }
+
+    private function processInvTransaction(array $data, $invoice, $invoice_date, $accounting_date, $due_date)
+    {
+        $sales = Sales::findOrFail($data['sales_id']);
+
+        $invoice->update([
+            'sales_id' => $sales->sales_id,
+            'customer_id' => $data['customer_id'] ?? null,
+            'state' => $data['state'],
+            'invoice_date' => $invoice_date,
+            'accounting_date' => $accounting_date,
+            'due_date' => $due_date,
+            'payment_term_id' => $data['payment_term_id'] ?? null,
+        ]);
+
+        foreach ($data['items'] as $component) {
+            $this->updateSalesComponent($sales->sales_id, $component, 1);
+        }
+
+        if ($data['state'] === 2) {
+            $invoice->update([
+                'sales_id' => $sales->sales_id,
+                'customer_id' => $data['customer_id'] ?? null,
+                'state' => $data['state'],
+                'invoice_date' => $invoice_date,
+                'accounting_date' => $accounting_date,
+                'due_date' => $due_date,
+                'payment_term_id' => $data['payment_term_id'] ?? null,
+            ]);
+
+            foreach ($data['items'] as $component) {
+                $this->updateSalesComponent($sales->sales_id, $component, 2);
+            }
+            $sales->update([
+                'taxes' => $data['taxes'],
+                'total' => $data['total'],
+                'invoice_status' => $data['invoice_status'],
+            ]);
+        }
+    }
+
+    private function updateRfqComponent($rfq_id, $component, $mes)
+    {
+        $rfqComponent = RfqComponent::where('rfq_id', $rfq_id)->where('rfq_component_id', $component['component_id'])->first();
+        if ($mes == 2) {
+            if ($rfqComponent) {
+                $rfqComponent->update([
+                    'qty_to_invoice' => max(0, $rfqComponent->qty_to_invoice - $component['qty_invoiced']),
+                    'qty_invoiced' => $component['qty_invoiced'] + $rfqComponent->qty_invoiced,
+                ]);
+            }
+        } else {
+            if ($rfqComponent) {
+                $rfqComponent->update([
+                    'qty_to_invoice' => $component['qty_invoiced'],
+                    'qty_invoiced' => 0,
+                ]);
+            }
+        }
+    }
+
+    private function updateSalesComponent($sales_id, $component, $mes)
+    {
+        $salesComponent = SalesComponent::where('sales_id', $sales_id)->where('sales_component_id', $component['component_id'])->first();
+        if ($mes == 2) {
+            if ($salesComponent) {
+                $salesComponent->update([
+                    'qty_to_invoice' => max(0, $salesComponent->qty_to_invoice - $component['qty_invoiced']),
+                    'qty_invoiced' => $component['qty_invoiced'] + $salesComponent->qty_invoiced,
+                ]);
+            }
+        } else {
+            if ($salesComponent) {
+                $salesComponent->update([
+                    'qty_to_invoice' => $component['qty_invoiced'],
+                    'qty_invoiced' => 0,
+                ]);
+            }
         }
     }
     public function destroy($id) {}

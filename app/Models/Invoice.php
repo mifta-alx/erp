@@ -40,7 +40,7 @@ class Invoice extends Model
     }
 
     public function paymentTerm(){
-        return $this->hasMany(PaymentTerm::class, 'payment_term_id', 'payment_term_id');
+        return $this->belongsTo(PaymentTerm::class, 'payment_term_id', 'payment_term_id');
     }
 
     public function registerPayments(){

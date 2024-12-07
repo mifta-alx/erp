@@ -129,7 +129,6 @@ class SalesController extends Controller
 
             // Cari penjualan berdasarkan ID
             $sales = Sales::find($id);
-
             if (!$sales) {
                 return response()->json([
                     'success' => false,
@@ -150,38 +149,39 @@ class SalesController extends Controller
                 'payment_trem' => $request->payment_trem,
             ]);
 
-            // Hapus semua komponen terkait
-            SalesComponent::where('sales_id', $sales->sales_id)->delete();
 
             // Tambahkan komponen baru
             foreach ($request->components as $component) {
-                if ($component['type'] == 'product') {
-                    SalesComponent::create([
-                        'sales_id' => $sales->sales_id,
-                        'product_id' => $component['product_id'],
-                        'description' => $component['description'],
-                        'display_type' => $component['type'],
-                        'qty' => $component['qty'],
-                        'unit_price' => $component['unit_price'],
-                        'tax' => $component['tax'],
-                        'subtotal' => $component['subtotal'],
-                        'qty_received' => $component['qty_received'],
-                        'qty_to_invoice' => $component['qty_to_invoice'],
-                        'qty_invoiced' => $component['qty_invoiced'],
-                    ]);
+                if (isset($component['sales_component_id'])) {
+                    $salesComponent = SalesComponent::find($component['sales_component_id']);
+                    if ($salesComponent && $salesComponent->sales_id == $sales->sales_id) {
+                        $salesComponent->update([
+                            'product_id' => $component['type'] == 'product' ? $component['product_id'] : null,
+                            'description' => $component['description'],
+                            'display_type' => $component['type'],
+                            'qty' => $component['qty'] ?? 0,
+                            'unit_price' => $component['unit_price'] ?? 0,
+                            'tax' => $component['tax'] ?? 0,
+                            'subtotal' => $component['subtotal'] ?? 0,
+                            'qty_received' => $component['qty_received'] ?? 0,
+                            'qty_to_invoice' => $component['qty_to_invoice'] ?? 0,
+                            'qty_invoiced' => $component['qty_invoiced'] ?? 0,
+                        ]);
+                    }
                 } else {
+
                     SalesComponent::create([
                         'sales_id' => $sales->sales_id,
-                        'product_id' => null,
+                        'product_id' => $component['type'] == 'product' ? $component['product_id'] : null,
                         'description' => $component['description'],
                         'display_type' => $component['type'],
-                        'qty' => 0,
-                        'unit_price' => 0,
-                        'tax' => 0,
-                        'subtotal' => 0,
-                        'qty_received' => 0,
-                        'qty_to_invoice' => 0,
-                        'qty_invoiced' => 0,
+                        'qty' => $component['qty'] ?? 0,
+                        'unit_price' => $component['unit_price'] ?? 0,
+                        'tax' => $component['tax'] ?? 0,
+                        'subtotal' => $component['subtotal'] ?? 0,
+                        'qty_received' => $component['qty_received'] ?? 0,
+                        'qty_to_invoice' => $component['qty_to_invoice'] ?? 0,
+                        'qty_invoiced' => $component['qty_invoiced'] ?? 0,
                     ]);
                 }
             }
@@ -195,7 +195,7 @@ class SalesController extends Controller
                 $reference = "IN{$referenceNumberPadded}";
 
                 Receipt::create([
-                    'transaction_type' => 'IN',
+                    'transaction_type' => 'OUT',
                     'reference' => $reference,
                     'sales_id' => $sales->sales_id,
                     'source_document' => $sales->reference,
@@ -251,38 +251,36 @@ class SalesController extends Controller
             'data' => $salesData,
         ]);
     }
-// Validasi input untuk update
-private function validateSales($request, $isUpdate = false)
-{
-    $rules = [
-        'customer_id' => 'required|exists:customers,customer_id',
-        'quantity' => 'required|numeric',
-        'taxes' => 'required|numeric',
-        'total' => 'required|numeric',
-        'order_date' => 'required|date',
-        'expiration' => 'required|date',
-        'invoice_status' => 'required|numeric',
-        'state' => 'required|numeric',
-        'payment_trem' => 'required',
-        'components' => 'nullable|array',
-        'components.*.type' => 'nullable|in:product,service',
-        'components.*.product_id' => 'nullable:components.*.type,product|exists:products,product_id',
-        'components.*.description' => 'nullable',
-        'components.*.qty' => 'nullable|numeric',
-        'components.*.unit_price' => 'nullable|numeric',
-        'components.*.tax' => 'nullable|numeric',
-        'components.*.subtotal' => 'nullable|numeric',
-        'components.*.qty_received' => 'nullable|numeric',
-        'components.*.qty_to_invoice' => 'nullable|numeric',
-        'components.*.qty_invoiced' => 'nullable|numeric',
-    ];
+    // Validasi input untuk update
+    private function validateSales($request, $isUpdate = false)
+    {
+        $rules = [
+            'customer_id' => 'required|exists:customers,customer_id',
+            'quantity' => 'required|numeric',
+            'taxes' => 'required|numeric',
+            'total' => 'required|numeric',
+            'order_date' => 'required|date',
+            'expiration' => 'required|date',
+            'invoice_status' => 'required|numeric',
+            'state' => 'required|numeric',
+            'payment_trem' => 'required',
+            'components' => 'nullable|array',
+            'components.*.type' => 'nullable|in:product,service',
+            'components.*.product_id' => 'nullable:components.*.type,product|exists:products,product_id',
+            'components.*.description' => 'nullable',
+            'components.*.qty' => 'nullable|numeric',
+            'components.*.unit_price' => 'nullable|numeric',
+            'components.*.tax' => 'nullable|numeric',
+            'components.*.subtotal' => 'nullable|numeric',
+            'components.*.qty_received' => 'nullable|numeric',
+            'components.*.qty_to_invoice' => 'nullable|numeric',
+            'components.*.qty_invoiced' => 'nullable|numeric',
+        ];
 
-    if ($isUpdate) {
-        $rules['sales_id'] = 'required|exists:sales,sales_id';
+
+
+        return Validator::make($request->all(), $rules);
     }
-
-    return Validator::make($request->all(), $rules);
-}
 
 
     private function transformSales($sale)

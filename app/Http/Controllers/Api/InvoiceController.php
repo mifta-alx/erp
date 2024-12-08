@@ -317,7 +317,7 @@ class InvoiceController extends Controller
             : response()->json([
                 'success' => true,
                 'message' => $message,
-                'data' => $this->responseBill($invoice)
+                'data' => $this->responseInv($invoice)
             ]);
     }
     private function getValidationRules(Request $request)
@@ -384,21 +384,19 @@ class InvoiceController extends Controller
             $payment_status = 1;
         }
 
-        if ($data['state'] == 1) {
-            $invoice->update([
-                'rfq_id' => $rfq->rfq_id,
-                'vendor_id' => $data['vendor_id'],
-                'state' => $data['state'],
-                'invoice_date' => $invoice_date,
-                'accounting_date' => $accounting_date,
-                'due_date' => $due_date,
-                'payment_term_id' => $data['payment_term_id'] ?? null,
-                'payment_status' => $payment_status,
-            ]);
+        $invoice->update([
+            'rfq_id' => $rfq->rfq_id,
+            'vendor_id' => $data['vendor_id'],
+            'state' => $data['state'],
+            'invoice_date' => $invoice_date,
+            'accounting_date' => $accounting_date,
+            'due_date' => $due_date,
+            'payment_term_id' => $data['payment_term_id'] ?? null,
+            'payment_status' => $payment_status,
+        ]);
 
-            foreach ($data['items'] as $component) {
-                $this->updateRfqComponent($rfq->rfq_id, $component, 1);
-            }
+        foreach ($data['items'] as $component) {
+            $this->updateRfqComponent($rfq->rfq_id, $component, 1);
         }
 
         if ($data['state'] === 2) {

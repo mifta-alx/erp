@@ -25,7 +25,7 @@ return new class extends Migration
             $table->foreign('customer_id')->references('customer_id')->on('customers')->onDelete('cascade');
             $table->integer('state');
             $table->string('source_document');
-            $table->timestamp('scheduled_date')->nullable();
+            $table->dateTime('scheduled_date')->nullable();
             $table->timestamps();
         });
     }

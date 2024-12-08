@@ -17,168 +17,97 @@ class ReceiptController extends Controller
 {
     public function index(Request $request)
     {
-        $receipts = Receipt::orderBy('created_at', 'DESC')->get();
+        $rfq_id = $request->get('rfq_id');
+        $receipts = Receipt::when($rfq_id, function ($query) use ($rfq_id) {
+            return $query->where('rfq_id', $rfq_id);
+        })->orderBy('created_at', 'DESC')->get();
         return response()->json([
             'success' => true,
             'message' => 'List Recipt Data',
             'data' => $receipts->map(function ($receipt) {
                 if ($receipt->transaction_type == 'IN') {
-                    return [
-                        'id' => $receipt->receipt_id,
-                        'transaction_type' => $receipt->transaction_type,
-                        'reference' => $receipt->reference,
-                        'vendor_id' => $receipt->vendor_id,
-                        'vendor_name' => $receipt->vendor->name,
-                        'source_document' => $receipt->source_document,
-                        'rfq_id' => $receipt->rfq_id,
-                        'invoice_status' => $receipt->rfq->invoice_status,
-                        'scheduled_date' => $receipt->scheduled_date ?? null,
-                        'state' => $receipt->state,
-                        'items' => $receipt->rfq->rfqComponent
-                            ->filter(function ($component) {
-                                return $component->display_type !== 'line_section';
-                            })
-                            ->values()
-                            ->map(function ($component) {
-                                return [
-                                    'component_id' => $component->rfq_component_id,
-                                    'type' => $component->display_type,
-                                    'id' => $component->material_id,
-                                    'internal_reference' => $component->material->internal_reference,
-                                    'name' => $component->material->material_name,
-                                    'description' => $component->description,
-                                    'qty' => $component->qty,
-                                    'unit_price' => $component->unit_price,
-                                    'tax' => $component->tax,
-                                    'subtotal' => $component->subtotal,
-                                    'qty_received' => $component->qty_received,
-                                    'qty_to_invoice' => $component->qty_to_invoice,
-                                    'qty_invoiced' => $component->qty_invoiced,
-                                ];
-                            }),
-                    ];
+                    return $this->responseIn($receipt);
                 }
                 if ($receipt->transaction_type == 'OUT') {
-                    return [
-                        'id' => $receipt->receipt_id,
-                        'transaction_type' => $receipt->transaction_type,
-                        'reference' => $receipt->reference,
-                        'customer_id' => $receipt->customer_id,
-                        'customer_name' => $receipt->customer->name,
-                        'source_document' => $receipt->source_document,
-                        'sales_id' => $receipt->sales_id,
-                        'invoice_status' => $receipt->sales->invoice_status,
-                        'scheduled_date' => $receipt->scheduled_date ?? null,
-                        'state' => $receipt->state,
-                        'items' => $receipt->sales->salesComponents
-                            ->filter(function ($component) {
-                                return $component->display_type !== 'line_section';
-                            })
-                            ->values()
-                            ->map(function ($component) {
-                                return [
-                                    'component_id' => $component->sales_component_id,
-                                    'type' => $component->display_type,
-                                    'id' => $component->product_id,
-                                    'internal_reference' => $component->product->internal_reference,
-                                    'name' => $component->product->product_name,
-                                    'description' => $component->description,
-                                    'qty' => $component->qty,
-                                    'unit_price' => $component->unit_price,
-                                    'tax' => $component->tax,
-                                    'subtotal' => $component->subtotal,
-                                    'qty_received' => $component->qty_received,
-                                    'qty_to_invoice' => $component->qty_to_invoice,
-                                    'qty_invoiced' => $component->qty_invoiced,
-                                ];
-                            }),
-                    ];
+                    return $this->responseOut($receipt);
                 }
             }),
         ], 200);
     }
 
-    private function responseIn($receipt, $message)
+    private function responseIn($receipt)
     {
-        return response()->json([
-            'success' => true,
-            'message' => $message,
-            'data' => [
-                'id' => $receipt->receipt_id,
-                'transaction_type' => $receipt->transaction_type,
-                'reference' => $receipt->reference,
-                'vendor_id' => $receipt->vendor_id,
-                'vendor_name' => $receipt->vendor->name,
-                'source_document' => $receipt->source_document,
-                'rfq_id' => $receipt->rfq_id,
-                'invoice_status' => $receipt->rfq->invoice_status,
-                'scheduled_date' => $receipt->scheduled_date ?? null,
-                'state' => $receipt->state,
-                'items' => $receipt->rfq->rfqComponent
-                    ->filter(function ($component) {
-                        return $component->display_type !== 'line_section';
-                    })
-                    ->values()
-                    ->map(function ($component) {
-                        return [
-                            'component_id' => $component->rfq_component_id,
-                            'type' => $component->display_type,
-                            'id' => $component->material_id,
-                            'internal_reference' => $component->material->internal_reference,
-                            'name' => $component->material->material_name,
-                            'description' => $component->description,
-                            'qty' => $component->qty,
-                            'unit_price' => $component->unit_price,
-                            'tax' => $component->tax,
-                            'subtotal' => $component->subtotal,
-                            'qty_received' => $component->qty_received,
-                            'qty_to_invoice' => $component->qty_to_invoice,
-                            'qty_invoiced' => $component->qty_invoiced,
-                        ];
-                    }),
-            ],
-        ], 201);
+        return [
+            'id' => $receipt->receipt_id,
+            'transaction_type' => $receipt->transaction_type,
+            'reference' => $receipt->reference,
+            'vendor_id' => $receipt->vendor_id,
+            'vendor_name' => $receipt->vendor->name,
+            'source_document' => $receipt->source_document,
+            'rfq_id' => $receipt->rfq_id,
+            'invoice_status' => $receipt->rfq->invoice_status,
+            'scheduled_date' => $receipt->scheduled_date ?? null,
+            'state' => $receipt->state,
+            'items' => $receipt->rfq->rfqComponent
+                ->filter(function ($component) {
+                    return $component->display_type !== 'line_section';
+                })
+                ->values()
+                ->map(function ($component) {
+                    return [
+                        'component_id' => $component->rfq_component_id,
+                        'type' => $component->display_type,
+                        'id' => $component->material_id,
+                        'internal_reference' => $component->material->internal_reference,
+                        'name' => $component->material->material_name,
+                        'description' => $component->description,
+                        'qty' => $component->qty,
+                        'unit_price' => $component->unit_price,
+                        'tax' => $component->tax,
+                        'subtotal' => $component->subtotal,
+                        'qty_received' => $component->qty_received,
+                        'qty_to_invoice' => $component->qty_to_invoice,
+                        'qty_invoiced' => $component->qty_invoiced,
+                    ];
+                }),
+        ];
     }
-    private function responseOut($receipt, $message)
+    private function responseOut($receipt)
     {
-        return response()->json([
-            'success' => true,
-            'message' => $message,
-            'data' => [
-                'id' => $receipt->receipt_id,
-                'transaction_type' => $receipt->transaction_type,
-                'reference' => $receipt->reference,
-                'customer_id' => $receipt->customer_id,
-                'customer_name' => $receipt->customer->name,
-                'source_document' => $receipt->source_document,
-                'sales_id' => $receipt->sales_id,
-                'invoice_status' => $receipt->sales->invoice_status,
-                'scheduled_date' => $receipt->scheduled_date ?? null,
-                'state' => $receipt->state,
-                'items' => $receipt->sales->salesComponents
-                    ->filter(function ($component) {
-                        return $component->display_type !== 'line_section';
-                    })
-                    ->values()
-                    ->map(function ($component) {
-                        return [
-                            'component_id' => $component->sales_component_id,
-                            'type' => $component->display_type,
-                            'id' => $component->product_id,
-                            'internal_reference' => $component->product->internal_reference,
-                            'name' => $component->product->product_name,
-                            'description' => $component->description,
-                            'qty' => $component->qty,
-                            'unit_price' => $component->unit_price,
-                            'tax' => $component->tax,
-                            'subtotal' => $component->subtotal,
-                            'qty_received' => $component->qty_received,
-                            'qty_to_invoice' => $component->qty_to_invoice,
-                            'qty_invoiced' => $component->qty_invoiced,
-                        ];
-                    }),
-            ],
-        ], 201);
+        return [
+            'id' => $receipt->receipt_id,
+            'transaction_type' => $receipt->transaction_type,
+            'reference' => $receipt->reference,
+            'customer_id' => $receipt->customer_id,
+            'customer_name' => $receipt->customer->name,
+            'source_document' => $receipt->source_document,
+            'sales_id' => $receipt->sales_id,
+            'invoice_status' => $receipt->sales->invoice_status,
+            'scheduled_date' => $receipt->scheduled_date ?? null,
+            'state' => $receipt->state,
+            'items' => $receipt->sales->salesComponents
+                ->filter(function ($component) {
+                    return $component->display_type !== 'line_section';
+                })
+                ->values()
+                ->map(function ($component) {
+                    return [
+                        'component_id' => $component->sales_component_id,
+                        'type' => $component->display_type,
+                        'id' => $component->product_id,
+                        'internal_reference' => $component->product->internal_reference,
+                        'name' => $component->product->product_name,
+                        'description' => $component->description,
+                        'qty' => $component->qty,
+                        'unit_price' => $component->unit_price,
+                        'tax' => $component->tax,
+                        'subtotal' => $component->subtotal,
+                        'qty_received' => $component->qty_received,
+                        'qty_to_invoice' => $component->qty_to_invoice,
+                        'qty_invoiced' => $component->qty_invoiced,
+                    ];
+                }),
+        ];
     }
 
     private function validateRecipt(Request $request)
@@ -236,9 +165,17 @@ class ReceiptController extends Controller
             ]);
             DB::commit();
             if ($data['transaction_type'] == 'IN') {
-                return $this->responseIn($receipt, 'Receipt Successfully Added');
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Receipt Successfully Added',
+                    'data' => $this->responseIn($receipt)
+                ], 201);
             } else {
-                return $this->responseOut($receipt, 'Receipt Successfully Added');
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Receipt Successfully Added',
+                    'data' => $this->responseOut($receipt)
+                ], 201);
             }
         } catch (\Exception $e) {
             DB::rollBack();
@@ -262,9 +199,17 @@ class ReceiptController extends Controller
             ], 404);
         }
         if ($receipt->transaction_type == 'IN') {
-            return $this->responseIn($receipt, 'List Receipt Data');
+            return response()->json([
+                'success' => true,
+                'message' => 'Detail Receipt Data',
+                'data' => $this->responseIn($receipt)
+            ], 201);
         } else {
-            return $this->responseOut($receipt, 'List Receipt Data');
+            return response()->json([
+                'success' => true,
+                'message' => 'Detail Receipt Data',
+                'data' => $this->responseOut($receipt)
+            ], 201);
         }
     }
 
@@ -414,9 +359,17 @@ class ReceiptController extends Controller
             }
             DB::commit();
             if ($data['transaction_type'] == 'IN') {
-                return $this->responseIn($receipt, 'Receipt Successfully Added');
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Receipt Successfully Added',
+                    'data' => $this->responseIn($receipt)
+                ], 201);
             } else {
-                return $this->responseOut($receipt, 'Receipt Successfully Added');
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Receipt Successfully Added',
+                    'data' => $this->responseOut($receipt)
+                ], 201);
             }
         } catch (\Exception $e) {
             DB::rollBack();

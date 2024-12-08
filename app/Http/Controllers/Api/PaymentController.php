@@ -69,6 +69,7 @@ class PaymentController extends Controller
         return [
             'state' => $payment->invoice->state,
             'payment_status' => $payment->invoice->payment_status,
+            'payment_date' => Carbon::parse($payment->payment_date)->format('Y-m-d H:i:s'),
             'payment_amount' => $payment
                 ? $payment->where('invoice_id', $payment->invoice_id)->sum('amount')
                 : 0,

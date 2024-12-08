@@ -18,8 +18,14 @@ class ReceiptController extends Controller
     public function index(Request $request)
     {
         $rfq_id = $request->get('rfq_id');
-        $receipts = Receipt::when($rfq_id, function ($query) use ($rfq_id) {
+        $sales_id = $request->get('sales_id');
+        $transaction_type = $request->get('transaction_type');
+        $receipts = Receipt::when($transaction_type, function ($query) use ($transaction_type) {
+            return $query->where('transaction_type', $transaction_type);
+        })->when($rfq_id, function ($query) use ($rfq_id) {
             return $query->where('rfq_id', $rfq_id);
+        })->when($sales_id, function ($query) use ($sales_id) {
+            return $query->where('sales_id', $sales_id);
         })->orderBy('created_at', 'DESC')->get();
         return response()->json([
             'success' => true,

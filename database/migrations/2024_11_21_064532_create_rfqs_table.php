@@ -20,8 +20,8 @@ return new class extends Migration
             $table->integer('state');
             $table->double('taxes');
             $table->double('total');
-            $table->timestamp('order_date');
-            $table->timestamp('confirmation_date')->nullable();
+            $table->dateTime('order_date');
+            $table->dateTime('confirmation_date')->nullable();
             $table->integer('invoice_status');
             $table->timestamps();
         });

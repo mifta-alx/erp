@@ -22,7 +22,7 @@ return new class extends Migration
             $table->foreign('customer_id')->references('customer_id')->on('customers')->onDelete('no action');
             $table->integer('journal');
             $table->double('amount');
-            $table->timestamp('payment_date');
+            $table->dateTime('payment_date');
             $table->string('memo');
             $table->string('payment_type');
             $table->timestamps();

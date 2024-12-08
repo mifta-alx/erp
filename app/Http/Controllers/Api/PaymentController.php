@@ -55,6 +55,12 @@ class PaymentController extends Controller
             'payment_date' => Carbon::parse($payment->payment_date)->format('Y-m-d H:i:s'),
             'memo' => $payment->memo,
             'payment_type' => $payment->payment_type,
+            'payment_amount' => $payment
+                ? $payment->where('invoice_id', $payment->invoice_id)->sum('amount')
+                : 0,
+            'amount_due' => $payment->invoice->rfq->total - ($payment
+                ? $payment->where('invoice_id', $payment->invoice_id)->sum('amount')
+                : 0),
         ];
     }
 
@@ -63,6 +69,12 @@ class PaymentController extends Controller
         return [
             'state' => $payment->invoice->state,
             'payment_status' => $payment->invoice->payment_status,
+            'payment_amount' => $payment
+                ? $payment->where('invoice_id', $payment->invoice_id)->sum('amount')
+                : 0,
+            'amount_due' => $payment->invoice->rfq->total - ($payment
+                ? $payment->where('invoice_id', $payment->invoice_id)->sum('amount')
+                : 0),
         ];
     }
 

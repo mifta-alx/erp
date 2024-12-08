@@ -50,6 +50,9 @@ class InvoiceController extends Controller
                         'total' => $invoice->rfq->total,
                         'state' => $invoice->state,
                         'payment_status' => $invoice->payment_status,
+                        'payment_date' => $invoice->regPay->payment_date ?? null,
+                        'payment_amount' => $invoice->regPay->amount ?? null,
+                        'amount_due' => $invoice->rfq->total - $invoice->regPay->amount ?? null,
                         'items' => $invoice->rfq->rfqComponent->map(function ($component) {
                             return [
                                 'component_id' => $component->rfq_component_id,
@@ -154,6 +157,8 @@ class InvoiceController extends Controller
                 'state' => $invoice->state,
                 'payment_status' => $invoice->payment_status,
                 'payment_date' => $invoice->regPay->payment_date ?? null,
+                'payment_amount' => $invoice->regPay ? $invoice->regPay->sum('amount') : 0,
+                'amount_due' => $invoice->rfq->total - ($invoice->regPay ? $invoice->regPay->sum('amount') : 0),
                 'items' =>  $invoice->rfq->rfqComponent->map(function ($component) {
                     return [
                         'component_id' => $component->rfq_component_id,
@@ -199,6 +204,9 @@ class InvoiceController extends Controller
                 'total' => $invoice->sales->total,
                 'state' => $invoice->state,
                 'payment_status' => $invoice->payment_status,
+                // 'payment_date' => $invoice->regPay->payment_date ?? null,
+                // 'payment_amount' => $invoice->regPay->amount ?? null,
+                // 'amount_due' => $invoice->rfq->total - $invoice->regPay->amount ?? null,
                 'items' =>  $invoice->sales->salesComponent->map(function ($component) {
                     return [
                         'component_id' => $component->rfq_component_id,
@@ -313,7 +321,7 @@ class InvoiceController extends Controller
             $data = $request->json()->all();
             $invoice_date = Carbon::parse($data['invoice_date']) ?? null;
             $accounting_date = Carbon::parse($data['accounting_date']);
-            $due_date = Carbon::parse($data['due_date'])?? null;
+            $due_date = Carbon::parse($data['due_date']) ?? null;
             if ($data['action_type'] !== 'confirm') {
                 $invoice = Invoice::find($id);
                 if (!$invoice) {

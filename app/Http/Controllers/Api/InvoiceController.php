@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Invoice;
 use App\Models\PaymentTerm;
+use App\Models\RegisterPayment;
 use App\Models\Rfq;
 use App\Models\RfqComponent;
 use App\Models\Sales;
@@ -24,93 +25,10 @@ class InvoiceController extends Controller
             'message' => 'List Invoice Data',
             'data' => $invoices->map(function ($invoice) {
                 if ($invoice->transaction_type == 'BILL') {
-                    return [
-                        'id' => $invoice->invoice_id,
-                        'transaction_type' => $invoice->transaction_type,
-                        'number' => $invoice->number,
-                        'vendor_id' => $invoice->vendor_id,
-                        'vendor_name' => $invoice->vendor->name,
-                        'rfq_id' => $invoice->rfq_id,
-                        'reference' => $invoice->reference,
-                        'invoice_date' => $invoice->invoice_date
-                            ? Carbon::parse($invoice->invoice_date)->format('Y-m-d H:i:s') : null,
-                        'accounting_date' => $invoice->accounting_date
-                            ? Carbon::parse($invoice->accounting_date)->format('Y-m-d H:i:s') : null,
-                        'due_date' => $invoice->due_date
-                            ? Carbon::parse($invoice->due_date)->format('Y-m-d H:i:s') : null,
-                        'payment_terms' => $invoice->paymentTerm->map(function ($paymentTerm) {
-                            return [
-                                'id' => $paymentTerm->payment_term_id,
-                                'name' => $paymentTerm->name,
-                                'value' => $paymentTerm->value,
-                            ];
-                        }),
-                        'source_document' => $invoice->source_document,
-                        'taxes' => $invoice->rfq->taxes,
-                        'total' => $invoice->rfq->total,
-                        'state' => $invoice->state,
-                        'payment_status' => $invoice->payment_status,
-                        'payment_date' => $invoice->regPay->payment_date ?? null,
-                        'payment_amount' => $invoice->regPay->amount ?? null,
-                        'amount_due' => $invoice->rfq->total - $invoice->regPay->amount ?? null,
-                        'items' => $invoice->rfq->rfqComponent->map(function ($component) {
-                            return [
-                                'component_id' => $component->rfq_component_id,
-                                'type' => $component->display_type,
-                                'id' => $component->material_id,
-                                'internal_reference' => $component->material->internal_reference ?? null,
-                                'name' => $component->material->material_name ?? null,
-                                'description' => $component->description,
-                                'unit_price' => $component->unit_price,
-                                'tax' => $component->tax,
-                                'subtotal' => $component->subtotal,
-                                'qty' => $component->qty,
-                                'qty_received' => $component->qty_received,
-                                'qty_to_invoice' => $component->qty_to_invoice,
-                                'qty_invoiced' => $component->qty_invoiced,
-                            ];
-                        }),
-                    ];
+                    return $this->responseBill($invoice);
                 }
                 if ($invoice->transaction_type == 'INV') {
-                    return [
-                        'id' => $invoice->invoice_id,
-                        'transaction_type' => $invoice->transaction_type,
-                        'reference' => $invoice->reference,
-                        'customer_id' => $invoice->customer_id,
-                        'customer_name' => $invoice->customer->name,
-                        'sales_id' => $invoice->sales_id,
-                        'bill_reference' => $invoice->bill_reference,
-                        'invoice_date' => $invoice->invoice_date
-                            ? Carbon::parse($invoice->invoice_date)->format('Y-m-d H:i:s') : null,
-                        'accounting_date' => $invoice->accounting_date
-                            ? Carbon::parse($invoice->accounting_date)->format('Y-m-d H:i:s') : null,
-                        'due_date' => $invoice->due_date
-                            ? Carbon::parse($invoice->due_date)->format('Y-m-d H:i:s') : null,
-                        'payment_term_id' => $invoice->paymentTerm->payment_term_id ?? null,
-                        'source_document' => $invoice->source_document,
-                        'taxes' => $invoice->sales->taxes,
-                        'total' => $invoice->sales->total,
-                        'state' => $invoice->state,
-                        'payment_status' => $invoice->payment_status,
-                        'items' => $invoice->sales->salesComponent->map(function ($component) {
-                            return [
-                                'component_id' => $component->rfq_component_id,
-                                'type' => $component->display_type,
-                                'id' => $component->material_id,
-                                'internal_reference' => $component->material->internal_reference ?? null,
-                                'name' => $component->material->material_name ?? null,
-                                'description' => $component->description,
-                                'unit_price' => $component->unit_price,
-                                'tax' => $component->tax,
-                                'subtotal' => $component->subtotal,
-                                'qty' => $component->qty,
-                                'qty_received' => $component->qty_received,
-                                'qty_to_invoice' => $component->qty_to_invoice,
-                                'qty_invoiced' => $component->qty_invoiced,
-                            ];
-                        }),
-                    ];
+                    return $this->responseInv($invoice);
                 }
             })
         ], 201);
@@ -124,108 +42,113 @@ class InvoiceController extends Controller
                 'message' => 'Invoice not found'
             ], 404);
         }
+
         if ($invoice->transaction_type == 'BILL') {
-            return $this->responseBill($invoice, 'Detail Invoice Data');
+            return response()->json([
+                'success' => true,
+                'message' => 'Detail Invoice Data',
+                'data' => $this->responseBill($invoice)
+            ]);
         } else {
-            return $this->responseInv($invoice, 'Detail Invoice Data');
+            return response()->json([
+                'success' => true,
+                'message' => 'Detail Invoice Data',
+                'data' => $this->responseInv($invoice)
+            ]);
         }
     }
 
-    private function responseBill($invoice, $message)
+    private function responseBill($invoice)
     {
-        return response()->json([
-            'success' => true,
-            'message' => $message,
-            'data' => [
-                'id' => $invoice->invoice_id,
-                'transaction_type' => $invoice->transaction_type,
-                'reference' => $invoice->reference,
-                'vendor_id' => $invoice->vendor_id,
-                'vendor_name' => $invoice->vendor->name,
-                'rfq_id' => $invoice->rfq_id,
-                'reference' => $invoice->reference,
-                'invoice_date' => $invoice->invoice_date
-                    ? Carbon::parse($invoice->invoice_date)->format('Y-m-d H:i:s') : null,
-                'accounting_date' => $invoice->accounting_date
-                    ? Carbon::parse($invoice->accounting_date)->format('Y-m-d H:i:s') : null,
-                'due_date' => $invoice->due_date
-                    ? Carbon::parse($invoice->due_date)->format('Y-m-d H:i:s') : null,
-                'payment_term_id' => $invoice->paymentTerm->payment_term_id ?? null,
-                'source_document' => $invoice->source_document,
-                'taxes' => $invoice->rfq->taxes,
-                'total' => $invoice->rfq->total,
-                'state' => $invoice->state,
-                'payment_status' => $invoice->payment_status,
-                'payment_date' => $invoice->regPay->payment_date ?? null,
-                'payment_amount' => $invoice->regPay ? $invoice->regPay->sum('amount') : 0,
-                'amount_due' => $invoice->rfq->total - ($invoice->regPay ? $invoice->regPay->sum('amount') : 0),
-                'items' =>  $invoice->rfq->rfqComponent->map(function ($component) {
-                    return [
-                        'component_id' => $component->rfq_component_id,
-                        'type' => $component->display_type,
-                        'id' => $component->material_id,
-                        'internal_reference' => $component->material->internal_reference ?? null,
-                        'name' => $component->material->material_name ?? null,
-                        'description' => $component->description,
-                        'unit_price' => $component->unit_price,
-                        'tax' => $component->tax,
-                        'subtotal' => $component->subtotal,
-                        'qty' => $component->qty,
-                        'qty_received' => $component->qty_received,
-                        'qty_to_invoice' => $component->qty_to_invoice,
-                        'qty_invoiced' => $component->qty_invoiced,
-                    ];
-                }),
-            ],
-        ], 201);
+        return [
+            'id' => $invoice->invoice_id,
+            'transaction_type' => $invoice->transaction_type,
+            'reference' => $invoice->reference,
+            'vendor_id' => $invoice->vendor_id,
+            'vendor_name' => $invoice->vendor->name,
+            'rfq_id' => $invoice->rfq_id,
+            'reference' => $invoice->reference,
+            'invoice_date' => $invoice->invoice_date
+                ? Carbon::parse($invoice->invoice_date)->format('Y-m-d H:i:s') : null,
+            'accounting_date' => $invoice->accounting_date
+                ? Carbon::parse($invoice->accounting_date)->format('Y-m-d H:i:s') : null,
+            'due_date' => $invoice->due_date
+                ? Carbon::parse($invoice->due_date)->format('Y-m-d H:i:s') : null,
+            'payment_term_id' => $invoice->paymentTerm->payment_term_id ?? null,
+            'source_document' => $invoice->source_document,
+            'taxes' => $invoice->rfq->taxes,
+            'total' => $invoice->rfq->total,
+            'state' => $invoice->state,
+            'payment_status' => $invoice->payment_status,
+            'payment_date' => $invoice->regPay->payment_date ?? null,
+            'payment_amount' => $invoice->regPay
+                ? $invoice->regPay->where('invoice_id', $invoice->invoice_id)->sum('amount')
+                : 0,
+            'amount_due' => $invoice->rfq->total - ($invoice->regPay
+                ? $invoice->regPay->where('invoice_id', $invoice->invoice_id)->sum('amount')
+                : 0),
+            'items' =>  $invoice->rfq->rfqComponent->map(function ($component) {
+                return [
+                    'component_id' => $component->rfq_component_id,
+                    'type' => $component->display_type,
+                    'id' => $component->material_id,
+                    'internal_reference' => $component->material->internal_reference ?? null,
+                    'name' => $component->material->material_name ?? null,
+                    'description' => $component->description,
+                    'unit_price' => $component->unit_price,
+                    'tax' => $component->tax,
+                    'subtotal' => $component->subtotal,
+                    'qty' => $component->qty,
+                    'qty_received' => $component->qty_received,
+                    'qty_to_invoice' => $component->qty_to_invoice,
+                    'qty_invoiced' => $component->qty_invoiced,
+                ];
+            }),
+        ];
     }
-    private function responseInv($invoice, $message)
+    private function responseInv($invoice)
     {
-        return response()->json([
-            'success' => true,
-            'message' => $message,
-            'data' => [
-                'id' => $invoice->invoice_id,
-                'transaction_type' => $invoice->transaction_type,
-                'number' => $invoice->number,
-                'customer_id' => $invoice->customer_id,
-                'customer_name' => $invoice->customer->name,
-                'sales_id' => $invoice->sales_id,
-                'reference' => $invoice->reference,
-                'invoice_date' => $invoice->invoice_date
-                    ? Carbon::parse($invoice->invoice_date)->format('Y-m-d H:i:s') : null,
-                'accounting_date' => $invoice->accounting_date
-                    ? Carbon::parse($invoice->accounting_date)->format('Y-m-d H:i:s') : null,
-                'due_date' => $invoice->due_date
-                    ? Carbon::parse($invoice->due_date)->format('Y-m-d H:i:s') : null,
-                'payment_term_id' => $invoice->paymentTerm->payment_term_id ?? null,
-                'source_document' => $invoice->source_document,
-                'taxes' => $invoice->sales->taxes,
-                'total' => $invoice->sales->total,
-                'state' => $invoice->state,
-                'payment_status' => $invoice->payment_status,
-                // 'payment_date' => $invoice->regPay->payment_date ?? null,
-                // 'payment_amount' => $invoice->regPay->amount ?? null,
-                // 'amount_due' => $invoice->rfq->total - $invoice->regPay->amount ?? null,
-                'items' =>  $invoice->sales->salesComponent->map(function ($component) {
-                    return [
-                        'component_id' => $component->rfq_component_id,
-                        'type' => $component->display_type,
-                        'id' => $component->product_id,
-                        'internal_reference' => $component->product->internal_reference ?? null,
-                        'name' => $component->product->product_name ?? null,
-                        'description' => $component->description,
-                        'unit_price' => $component->unit_price,
-                        'tax' => $component->tax,
-                        'subtotal' => $component->subtotal,
-                        'qty' => $component->qty,
-                        'qty_received' => $component->qty_received,
-                        'qty_to_invoice' => $component->qty_to_invoice,
-                        'qty_invoiced' => $component->qty_invoiced,
-                    ];
-                }),
-            ],
-        ], 201);
+        return [
+            'id' => $invoice->invoice_id,
+            'transaction_type' => $invoice->transaction_type,
+            'number' => $invoice->number,
+            'customer_id' => $invoice->customer_id,
+            'customer_name' => $invoice->customer->name,
+            'sales_id' => $invoice->sales_id,
+            'reference' => $invoice->reference,
+            'invoice_date' => $invoice->invoice_date
+                ? Carbon::parse($invoice->invoice_date)->format('Y-m-d H:i:s') : null,
+            'accounting_date' => $invoice->accounting_date
+                ? Carbon::parse($invoice->accounting_date)->format('Y-m-d H:i:s') : null,
+            'due_date' => $invoice->due_date
+                ? Carbon::parse($invoice->due_date)->format('Y-m-d H:i:s') : null,
+            'payment_term_id' => $invoice->paymentTerm->payment_term_id ?? null,
+            'source_document' => $invoice->source_document,
+            'taxes' => $invoice->sales->taxes,
+            'total' => $invoice->sales->total,
+            'state' => $invoice->state,
+            'payment_status' => $invoice->payment_status,
+            // 'payment_date' => $invoice->regPay->payment_date ?? null,
+            // 'payment_amount' => $invoice->regPay->amount ?? null,
+            // 'amount_due' => $invoice->rfq->total - $invoice->regPay->amount ?? null,
+            'items' =>  $invoice->sales->salesComponent->map(function ($component) {
+                return [
+                    'component_id' => $component->rfq_component_id,
+                    'type' => $component->display_type,
+                    'id' => $component->product_id,
+                    'internal_reference' => $component->product->internal_reference ?? null,
+                    'name' => $component->product->product_name ?? null,
+                    'description' => $component->description,
+                    'unit_price' => $component->unit_price,
+                    'tax' => $component->tax,
+                    'subtotal' => $component->subtotal,
+                    'qty' => $component->qty,
+                    'qty_received' => $component->qty_received,
+                    'qty_to_invoice' => $component->qty_to_invoice,
+                    'qty_invoiced' => $component->qty_invoiced,
+                ];
+            }),
+        ];
     }
     public function store(Request $request)
     {
@@ -299,9 +222,17 @@ class InvoiceController extends Controller
             ]);
             DB::commit();
             if ($data['transaction_type'] == 'BILL') {
-                return $this->responseBill($invoice, 'Receipt Successfully Added');
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Invoice Successfully Added',
+                    'data' => $this->responseBill($invoice),
+                ]);
             } else {
-                return $this->responseInv($invoice, 'Receipt Successfully Added');
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Invoice Successfully Added',
+                    'data' => $this->responseInv($invoice),
+                ]);
             }
         } catch (\Exception $e) {
             DB::rollBack();
@@ -378,8 +309,16 @@ class InvoiceController extends Controller
     private function generateResponse($transactionType, $invoice, $message)
     {
         return $transactionType === 'BILL'
-            ? $this->responseBill($invoice, $message)
-            : $this->responseInv($invoice, $message);
+            ? response()->json([
+                'success' => true,
+                'message' => $message,
+                'data' => $this->responseBill($invoice)
+            ])
+            : response()->json([
+                'success' => true,
+                'message' => $message,
+                'data' => $this->responseBill($invoice)
+            ]);
     }
     private function getValidationRules(Request $request)
     {
@@ -444,19 +383,22 @@ class InvoiceController extends Controller
         } else {
             $payment_status = 1;
         }
-        $invoice->update([
-            'rfq_id' => $rfq->rfq_id,
-            'vendor_id' => $data['vendor_id'],
-            'state' => $data['state'],
-            'invoice_date' => $invoice_date,
-            'accounting_date' => $accounting_date,
-            'due_date' => $due_date,
-            'payment_term_id' => $data['payment_term_id'] ?? null,
-            'payment_status' => $payment_status,
-        ]);
 
-        foreach ($data['items'] as $component) {
-            $this->updateRfqComponent($rfq->rfq_id, $component, 1);
+        if ($data['state'] == 1) {
+            $invoice->update([
+                'rfq_id' => $rfq->rfq_id,
+                'vendor_id' => $data['vendor_id'],
+                'state' => $data['state'],
+                'invoice_date' => $invoice_date,
+                'accounting_date' => $accounting_date,
+                'due_date' => $due_date,
+                'payment_term_id' => $data['payment_term_id'] ?? null,
+                'payment_status' => $payment_status,
+            ]);
+
+            foreach ($data['items'] as $component) {
+                $this->updateRfqComponent($rfq->rfq_id, $component, 1);
+            }
         }
 
         if ($data['state'] === 2) {

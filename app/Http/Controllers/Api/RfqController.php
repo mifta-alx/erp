@@ -307,7 +307,7 @@ class RfqController extends Controller
                         'vendor_id' => $rfq->vendor_id,
                         'rfq_id' => $rfq->rfq_id,
                         'source_document' => $rfq->reference,
-                        'scheduled_date' => null,
+                        'scheduled_date' => Carbon::now()->setTimezone('+07:00'),
                         'state' => 2,
                     ]);
                 }

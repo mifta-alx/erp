@@ -290,6 +290,7 @@ class RfqController extends Controller
                 })) {
                     return $this->successResponse($rfq, 'RFQ Updated Successfully', true);
                 } else {
+                    $scheduledDate = Carbon::parse($data['scheduled_date']);
                     $lastOrder = Receipt::where('transaction_type', 'IN')
                         ->orderBy('created_at', 'desc')
                         ->first();
@@ -307,7 +308,7 @@ class RfqController extends Controller
                         'vendor_id' => $rfq->vendor_id,
                         'rfq_id' => $rfq->rfq_id,
                         'source_document' => $rfq->reference,
-                        'scheduled_date' => Carbon::now()->setTimezone('+07:00'),
+                        'scheduled_date' => $scheduledDate,
                         'state' => 2,
                     ]);
                 }

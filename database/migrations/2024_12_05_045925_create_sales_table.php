@@ -17,7 +17,6 @@ return new class extends Migration
             $table->foreign('customer_id')->references('customer_id')->on('customers')->onDelete('cascade');
             $table->double('taxes');
             $table->double('total');
-            $table->dateTime('order_date')->nullable();
             $table->dateTime('expiration');
             $table->dateTime('confirmation_date')->nullable();
             $table->integer('invoice_status');

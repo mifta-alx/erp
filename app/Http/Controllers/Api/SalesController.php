@@ -52,14 +52,12 @@ class SalesController extends Controller
             $referenceNumber = $lastReferenceNumber + 1;
             $referenceNumberPadded = str_pad($referenceNumber, 5, '0', STR_PAD_LEFT);
             $reference = "S{$referenceNumberPadded}";
-            $orderDate = Carbon::parse($data['order_date']);
             $expiration = Carbon::parse($data['expiration']);
             $confirmDate = isset($data['confirmation_date']) ? Carbon::parse($data['confirmation_date']) : null;
             $sales = Sales::create([
                 'customer_id' => $data['customer_id'],
                 'taxes' => $data['taxes'],
                 'total' => $data['total'],
-                'order_date' => $orderDate,
                 'expiration' => $expiration,
                 'confirmation_date' => $confirmDate,
                 'invoice_status' => $data['invoice_status'],
@@ -132,14 +130,12 @@ class SalesController extends Controller
                     'message' => 'Sales not found',
                 ], 404);
             }
-            $orderDate = Carbon::parse($data['order_date']);
             $expiration = Carbon::parse($data['expiration']);
             $confirmDate = isset($data['confirmation_date']) ? Carbon::parse($data['confirmation_date']) : null;
             $sales->update([
                 'customer_id' => $data['customer_id'],
                 'taxes' => $data['taxes'],
                 'total' => $data['total'],
-                'order_date' => $orderDate,
                 'expiration' => $expiration,
                 'confirmation_date' => $confirmDate,
                 'invoice_status' => $data['invoice_status'],
@@ -267,7 +263,6 @@ class SalesController extends Controller
             'customer_name' => $sale->customer->name,
             'taxes' => $sale->taxes,
             'total' => $sale->total,
-            'order_date' => Carbon::parse($sale->order_date)->format('Y-m-d H:i:s'),
             'expiration' => Carbon::parse($sale->expiration)->format('Y-m-d H:i:s'),
             'confirmation_date' => $sale->confirmation_date
                 ? Carbon::parse($sale->confirmation_date)->format('Y-m-d H:i:s')

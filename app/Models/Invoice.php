@@ -20,6 +20,7 @@ class Invoice extends Model
         'state',
         'invoice_date',
         'accounting_date',
+        'delivery_date',
         'payment_term_id',
         'due_date',
         'source_document',

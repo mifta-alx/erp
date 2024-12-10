@@ -14,7 +14,6 @@ class Sales extends Model
         'customer_id',
         'taxes',
         'total',
-        'order_date',
         'expiration',
         'confirmation_date',
         'invoice_status',

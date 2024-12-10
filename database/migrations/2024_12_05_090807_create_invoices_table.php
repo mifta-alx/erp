@@ -28,6 +28,7 @@ return new class extends Migration
             $table->unsignedBigInteger('payment_term_id')->nullable();
             $table->foreign('payment_term_id')->references('payment_term_id')->on('payment_terms')->onDelete('cascade');
             $table->dateTime('due_date')->nullable();
+            $table->dateTime('delivery_date')->nullable();
             $table->integer('state');
             $table->string('source_document');
             $table->integer('payment_status');

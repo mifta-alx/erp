@@ -66,16 +66,19 @@ class PaymentController extends Controller
 
     private function buildInvoiceData($payment)
     {
+        $isInbound = $payment->payment_type === 'inbound';
+        $totalAmount = $isInbound
+            ? $payment->invoice->sales->total
+            : $payment->invoice->rfq->total;
+        $paidAmount = $payment
+            ? $payment->where('invoice_id', $payment->invoice_id)->sum('amount')
+            : 0;
         return [
             'state' => $payment->invoice->state,
             'payment_status' => $payment->invoice->payment_status,
             'payment_date' => Carbon::parse($payment->payment_date)->format('Y-m-d H:i:s'),
-            'payment_amount' => $payment
-                ? $payment->where('invoice_id', $payment->invoice_id)->sum('amount')
-                : 0,
-            'amount_due' => $payment->invoice->rfq->total - ($payment
-                ? $payment->where('invoice_id', $payment->invoice_id)->sum('amount')
-                : 0),
+            'payment_amount' => $paidAmount,
+            'amount_due' => $totalAmount - $paidAmount,
         ];
     }
 

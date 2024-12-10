@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Receipt;
 use App\Models\Sales;
 use App\Models\SalesComponent;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
@@ -13,19 +14,19 @@ use Illuminate\Support\Facades\DB;
 class SalesController extends Controller
 {
 
-    public function index()
+    public function index(Request $request)
     {
-        // Ambil data sales dan relasi customer serta salesComponents
-        $sales = Sales::with(['customer', 'salesComponents'])->orderBy('created_at', 'ASC')->get();
-
-        // Format data sales dengan transformasi
+        $query = Sales::query();
+        if ($request->has('sales_order') && $request->sales_order == 'true') {
+            $query->where('state', 3);
+        }
+        $sales = $query->with(['customer', 'salesComponents'])->orderBy('created_at', 'DESC')->get();
         $salesData = $sales->map(function ($sale) {
             return $this->transformSales($sale);
         });
-
-        // Kembalikan response JSON
         return response()->json([
             'success' => true,
+            'message' => 'List Sales Data',
             'data' => $salesData,
         ]);
     }
@@ -33,9 +34,8 @@ class SalesController extends Controller
     {
         DB::beginTransaction();
         try {
-            // Validasi input
+            $data = $request->json()->all();
             $validator = $this->validateSales($request);
-
             if ($validator->fails()) {
                 return response()->json([
                     'success' => false,
@@ -43,7 +43,6 @@ class SalesController extends Controller
                     'errors' => $validator->errors(),
                 ], 422);
             }
-            //   mengambil data terakhir
             $lastSales = Sales::orderBy('created_at', 'DESC')->first();
             if ($lastSales && $lastSales->reference) {
                 $lastReferenceNumber = (int) substr($lastSales->reference, 3);
@@ -53,19 +52,22 @@ class SalesController extends Controller
             $referenceNumber = $lastReferenceNumber + 1;
             $referenceNumberPadded = str_pad($referenceNumber, 5, '0', STR_PAD_LEFT);
             $reference = "S{$referenceNumberPadded}";
+            $orderDate = Carbon::parse($data['order_date']);
+            $expiration = Carbon::parse($data['expiration']);
+            $confirmDate = isset($data['confirmation_date']) ? Carbon::parse($data['confirmation_date']) : null;
             $sales = Sales::create([
-                'customer_id' => $request->customer_id,
-                'quantity' => $request->quantity,
-                'taxes' => $request->taxes,
-                'total' => $request->total,
-                'order_date' => $request->order_date,
-                'expiration' => $request->expiration,
-                'invoice_status' => $request->invoice_status,
-                'state' => $request->state,
-                'payment_terms' => $request->payment_terms,
+                'customer_id' => $data['customer_id'],
+                'taxes' => $data['taxes'],
+                'total' => $data['total'],
+                'order_date' => $orderDate,
+                'expiration' => $expiration,
+                'confirmation_date' => $confirmDate,
+                'invoice_status' => $data['invoice_status'],
+                'state' => $data['state'],
+                'payment_term_id' => $data['payment_term_id'],
                 'reference' => $reference,
             ]);
-            foreach ($request->components as $component) {
+            foreach ($data['items'] as $component) {
                 if ($component['type'] == 'product') {
                     SalesComponent::create([
                         'sales_id' => $sales->sales_id,
@@ -76,9 +78,9 @@ class SalesController extends Controller
                         'unit_price' => $component['unit_price'],
                         'tax' => $component['tax'],
                         'subtotal' => $component['subtotal'],
-                        'qty_received' => $component['qty_received'],
-                        'qty_to_invoice' => $component['qty_to_invoice'],
-                        'qty_invoiced' => $component['qty_invoiced'],
+                        'qty_received' => $component['qty_received'] ?? 0,
+                        'qty_to_invoice' => $component['qty_to_invoice'] ?? 0,
+                        'qty_invoiced' => $component['qty_invoiced'] ?? 0,
                     ]);
                 } else {
                     SalesComponent::create([
@@ -103,9 +105,7 @@ class SalesController extends Controller
                 'data' => $this->transformSales($sales->load(['customer', 'salesComponents'])),
             ]);
         } catch (\Exception $e) {
-            // Rollback jika ada error
             DB::rollBack();
-
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
@@ -116,9 +116,8 @@ class SalesController extends Controller
     {
         DB::beginTransaction();
         try {
-            // Validasi input
-            $validator = $this->validateSales($request, true);
-
+            $data = $request->json()->all();
+            $validator = $this->validateSales($request);
             if ($validator->fails()) {
                 return response()->json([
                     'success' => false,
@@ -126,8 +125,6 @@ class SalesController extends Controller
                     'errors' => $validator->errors(),
                 ], 422);
             }
-
-            // Cari penjualan berdasarkan ID
             $sales = Sales::find($id);
             if (!$sales) {
                 return response()->json([
@@ -135,26 +132,24 @@ class SalesController extends Controller
                     'message' => 'Sales not found',
                 ], 404);
             }
-
-            // Update data penjualan
+            $orderDate = Carbon::parse($data['order_date']);
+            $expiration = Carbon::parse($data['expiration']);
+            $confirmDate = isset($data['confirmation_date']) ? Carbon::parse($data['confirmation_date']) : null;
             $sales->update([
-                'customer_id' => $request->customer_id,
-                'quantity' => $request->quantity,
-                'taxes' => $request->taxes,
-                'total' => $request->total,
-                'order_date' => $request->order_date,
-                'expiration' => $request->expiration,
-                'invoice_status' => $request->invoice_status,
-                'state' => $request->state,
-                'payment_terms' => $request->payment_terms,
+                'customer_id' => $data['customer_id'],
+                'taxes' => $data['taxes'],
+                'total' => $data['total'],
+                'order_date' => $orderDate,
+                'expiration' => $expiration,
+                'confirmation_date' => $confirmDate,
+                'invoice_status' => $data['invoice_status'],
+                'state' => $data['state'],
+                'payment_term_id' => $data['payment_term_id'],
             ]);
-
-
-            // Tambahkan komponen baru
-            foreach ($request->components as $component) {
-                if (isset($component['sales_component_id'])) {
-                    $salesComponent = SalesComponent::find($component['sales_component_id']);
-                    if ($salesComponent && $salesComponent->sales_id == $sales->sales_id) {
+            foreach ($data['items'] as $component) {
+                if (isset($component['component_id'])) {
+                    $salesComponent = SalesComponent::find($component['component_id']);
+                    if ($salesComponent && $salesComponent->sales_id === $sales->sales_id) {
                         $salesComponent->update([
                             'product_id' => $component['type'] == 'product' ? $component['product_id'] : null,
                             'description' => $component['description'],
@@ -169,7 +164,6 @@ class SalesController extends Controller
                         ]);
                     }
                 } else {
-
                     SalesComponent::create([
                         'sales_id' => $sales->sales_id,
                         'product_id' => $component['type'] == 'product' ? $component['product_id'] : null,
@@ -185,35 +179,45 @@ class SalesController extends Controller
                     ]);
                 }
             }
-            // Logika tambahan untuk state = 3 (misalnya, pemrosesan penerimaan barang)
-            if ($request->state == 3) {
-                $lastReceipt = Receipt::where('transaction_type', 'IN')->orderBy('created_at', 'desc')->first();
-                $lastReferenceNumber = $lastReceipt ? (int) substr($lastReceipt->reference, 3) : 0;
-
-                $referenceNumber = $lastReferenceNumber + 1;
-                $referenceNumberPadded = str_pad($referenceNumber, 5, '0', STR_PAD_LEFT);
-                $reference = "IN{$referenceNumberPadded}";
-
-                Receipt::create([
-                    'transaction_type' => 'OUT',
-                    'reference' => $reference,
-                    'sales_id' => $sales->sales_id,
-                    'source_document' => $sales->reference,
-                    'state' => 2, // Pending
-                ]);
-            }
-
-            // Logika untuk state = 4 (misalnya, pengubahan status penerimaan barang)
-            if ($request->state == 4) {
+            if ($data['state'] == 3) {
+                if (empty($data['items']) || !collect($data['items'])->contains(function ($item) {
+                    return $item['type'] === 'product';
+                })) {
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Sales updated successfully',
+                        'data' => $this->transformSales($sales->load(['customer', 'salesComponents'])),
+                    ]);
+                } else {
+                    $scheduledDate = Carbon::parse($data['scheduled_date']);
+                    $lastOrder = Receipt::where('transaction_type', 'OUT')
+                        ->orderBy('created_at', 'desc')
+                        ->first();
+                    $lastReferenceNumber = $lastOrder && $lastOrder->reference
+                        ? (int) substr($lastOrder->reference, 4)
+                        : 0;
+                    $referenceNumber = $lastReferenceNumber + 1;
+                    $referenceNumberPadded = str_pad($referenceNumber, 5, '0', STR_PAD_LEFT);
+                    $reference = "OUT/{$referenceNumberPadded}";
+                    Receipt::create([
+                        'transaction_type' => 'OUT',
+                        'reference' => $reference,
+                        'sales_id' => $sales->sales_id,
+                        'customer_id' => $sales->customer_id,
+                        'source_document' => $sales->reference,
+                        'scheduled_date' => $scheduledDate,
+                        'state' => 2,
+                    ]);
+                }
+            } else if ($data['state'] == 4) {
                 $receipts = Receipt::where('sales_id', $sales->sales_id)
-                    ->where('state', '!=', 4) // Belum selesai
+                    ->where('state', '!=', 4)
                     ->get();
 
                 foreach ($receipts as $receipt) {
-                    $receipt->update(['state' => 4]); // Selesai
+                    $receipt->update(['state' => 4]);
                 }
             }
-
             DB::commit();
             return response()->json([
                 'success' => true,
@@ -221,9 +225,7 @@ class SalesController extends Controller
                 'data' => $this->transformSales($sales->load(['customer', 'salesComponents'])),
             ]);
         } catch (\Exception $e) {
-            // Rollback jika ada error
             DB::rollBack();
-
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
@@ -232,54 +234,27 @@ class SalesController extends Controller
     }
     public function show($id)
     {
-        // Cari penjualan berdasarkan ID
         $sales = Sales::with(['customer', 'salesComponents'])->find($id);
-
         if (!$sales) {
             return response()->json([
                 'success' => false,
                 'message' => 'Sales not found',
             ], 404);
         }
-
-        // Transformasi data penjualan dan komponen terkait
         $salesData = $this->transformSales($sales);
-
-        // Kembalikan response JSON dengan data penjualan yang ditemukan
         return response()->json([
             'success' => true,
             'data' => $salesData,
         ]);
     }
-    // Validasi input untuk update
     private function validateSales($request, $isUpdate = false)
     {
-        $rules = [
+        return Validator::make($request->all(), [
             'customer_id' => 'required|exists:customers,customer_id',
-            'quantity' => 'required|numeric',
-            'taxes' => 'required|numeric',
-            'total' => 'required|numeric',
-            'order_date' => 'required|date',
-            'expiration' => 'required|date',
-            'invoice_status' => 'required|numeric',
-            'state' => 'required|numeric',
-            'payment_terms' => 'required',
-            'components' => 'nullable|array',
-            'components.*.type' => 'nullable|in:product,service',
-            'components.*.product_id' => 'nullable:components.*.type,product|exists:products,product_id',
-            'components.*.description' => 'nullable',
-            'components.*.qty' => 'nullable|numeric',
-            'components.*.unit_price' => 'nullable|numeric',
-            'components.*.tax' => 'nullable|numeric',
-            'components.*.subtotal' => 'nullable|numeric',
-            'components.*.qty_received' => 'nullable|numeric',
-            'components.*.qty_to_invoice' => 'nullable|numeric',
-            'components.*.qty_invoiced' => 'nullable|numeric',
-        ];
-
-
-
-        return Validator::make($request->all(), $rules);
+        ], [
+            'customer_id.required' => 'customer ID must be filled',
+            'customer_id.exists' => 'customer ID does not exist',
+        ]);
     }
 
 
@@ -287,31 +262,40 @@ class SalesController extends Controller
     {
         return [
             'id' => $sale->sales_id,
-            'customer' => $sale->customer ? $sale->customer->name : null, // Null jika tidak ada customer
-            'quantity' => $sale->quantity,
+            'reference' => $sale->reference,
+            'customer_id' => $sale->customer_id,
+            'customer_name' => $sale->customer->name,
             'taxes' => $sale->taxes,
             'total' => $sale->total,
-            'order_date' => $sale->order_date,
-            'expiration' => $sale->expiration,
+            'order_date' => Carbon::parse($sale->order_date)->format('Y-m-d H:i:s'),
+            'expiration' => Carbon::parse($sale->expiration)->format('Y-m-d H:i:s'),
+            'confirmation_date' => $sale->confirmation_date
+                ? Carbon::parse($sale->confirmation_date)->format('Y-m-d H:i:s')
+                : null,
             'invoice_status' => $sale->invoice_status,
             'state' => $sale->state,
-            'payment_terms' => $sale->payment_terms,
-            'reference' => $sale->reference,
-            'created_at' => $sale->created_at,
-            'updated_at' => $sale->updated_at,
-            'components' => $sale->salesComponents->map(function ($component) {
+            'payment_term_id' => $sale->paymentTerm->payment_term_id ?? null,
+            'receipt' => $sale->receipts->map(function ($receipt) {
+                return [
+                    'id' => $receipt->receipt_id,
+                ];
+            }),
+            'creation_date' => Carbon::parse($sale->created_at)->format('Y-m-d H:i:s'),
+            'items' => $sale->salesComponents->map(function ($component) {
                 return $this->transformSalesComponent($component);
-            }), // Ambil semua komponen terkait
+            }),
         ];
     }
 
     private function transformSalesComponent($component)
     {
         return [
-            'id' => $component->sales_component_id,
-            'product' => $component->product ? $component->product->product_name : null, // Null jika tidak ada product
+            'component_id' => $component->sales_component_id,
+            'type' => $component->display_type,
+            'id' => $component->product_id,
+            'product' => $component->product ? $component->product->product_name : null,
+            'product' => $component->product ? $component->product->internal_reference : null,
             'description' => $component->description,
-            'display_type' => $component->display_type,
             'qty' => $component->qty,
             'unit_price' => $component->unit_price,
             'tax' => $component->tax,

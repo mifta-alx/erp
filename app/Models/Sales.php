@@ -12,14 +12,14 @@ class Sales extends Model
     protected $primaryKey = 'sales_id';
     protected $fillable = [
         'customer_id',
-        'quantity',
         'taxes',
         'total',
         'order_date',
         'expiration',
+        'confirmation_date',
         'invoice_status',
         'state',
-        'payment_terms',
+        'payment_term_id',
         'reference'
     ];
     public function customer()
@@ -30,11 +30,16 @@ class Sales extends Model
     {
         return $this->hasMany(SalesComponent::class, 'sales_id', 'sales_id');
     }
-    public function receipts(){
-        return $this->hasMany(Receipt::class,'sales_id','sales_id');
+    public function receipts()
+    {
+        return $this->hasMany(Receipt::class, 'sales_id', 'sales_id');
     }
     public function invoices()
     {
         return $this->hasMany(Invoice::class, 'sales_id', 'sales_id');
+    }
+    public function paymentTerm()
+    {
+        return $this->belongsTo(PaymentTerm::class, 'payment_term_id', 'payment_term_id');
     }
 }

@@ -54,26 +54,26 @@ class CustomerController extends Controller
         return Validator::make($request->all(), [
             'type' => 'required',
             'name' => 'required|string',
-            'street' => 'required|string',
-            'city' => 'required|string',
-            'state' => 'required|string',
-            'zip' => 'required|string',
-            'phone' => 'required|string',
+            'street' => 'nullable|string',
+            'city' => 'nullable|string',
+            'state' => 'nullable|string',
+            'zip' => 'nullable|string',
+            'phone' => 'nullable|string',
             'mobile' => 'required|string',
-            'email' => 'required|string|email',
-            'image_uuid' => 'required|string|exists:images,image_uuid',
+            'email' => 'nullable|string|email',
+            'image_uuid' => 'nullable|string|exists:images,image_uuid',
             'tag_id' => 'array|nullable',
         ], [
             'type.required' => 'Type Must Be Filled',
-            'name.required' => 'Name Must Be Filled',
-            'street.required' => 'Street Must Be Filled',
-            'city.required' => 'City Must Be Filled',
-            'state.required' => 'State Must Be Filled',
-            'zip.required' => 'Zip Must Be Filled',
-            'phone.required' => 'Phone Must Be Filled',
+            'name.nullable' => 'Name Must Be Filled',
+            'street.nullable' => 'Street Must Be Filled',
+            'city.nullable' => 'City Must Be Filled',
+            'state.nullable' => 'State Must Be Filled',
+            'zip.nullable' => 'Zip Must Be Filled',
+            'phone.nullable' => 'Phone Must Be Filled',
             'mobile.required' => 'Mobile Must Be Filled',
-            'email.required' => 'Email Must Be Filled',
-            'image_uuid.required' => 'Image UUID Must Be Filled',
+            'email.nullable' => 'Email Must Be Filled',
+            'image_uuid.nullable' => 'Image UUID Must Be Filled',
         ]);
     }
 
@@ -90,16 +90,13 @@ class CustomerController extends Controller
             }
 
             $data = $request->json()->all();
-            $image = Image::where('image_uuid', $data['image_uuid'])->first();
+            //  jika image tidak ditemukan maka null
+            // Periksa apakah image_uuid ada dan valid
+            $image = isset($data['image_uuid'])
+                ? Image::where('image_uuid', $data['image_uuid'])->first()
+                : null;
 
-            if (!$image) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Image not found'
-                ], 404);
-            }
-
-            $imageUrl = url('/storage/images/' . $image->image);
+            $imageUrl = $image ? url('/storage/images/' . $image->image) : null;
 
             $customer = new Customer();
             $customer->fill([
@@ -114,10 +111,10 @@ class CustomerController extends Controller
                 'mobile' => $data['mobile'],
                 'email' => $data['email'],
                 'image_url' => $imageUrl,
-                'image_uuid' => $image->image_uuid,
+                'image_uuid' => $image->image_uuid??null,
             ]);
             $customer->save();
-            
+
             if (isset($data['tag_id'])) {
                 $customer->tag()->sync($data['tag_id']);
             }
@@ -166,12 +163,10 @@ class CustomerController extends Controller
             }
 
             $image = Image::where('image_uuid', $data['image_uuid'])->first();
-            if (!$image) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Image not found'
-                ], 404);
-            }
+            $image = isset($data['image_uuid']) 
+            ? Image::where('image_uuid', $data['image_uuid'])->first() 
+            : null;
+
 
             $customer->fill([
                 'company' => $data['company'],
@@ -184,8 +179,8 @@ class CustomerController extends Controller
                 'phone' => $data['phone'],
                 'mobile' => $data['mobile'],
                 'email' => $data['email'],
-                'image_url' => url(Storage::url('images/' . $image->image)), // Updated image URL
-                'image_uuid' => $image->image_uuid,
+                'image_url' => url(Storage::url('images/' . $image->image)) ?? null,
+                'image_uuid' => $image->image_uuid??null,
             ]);
             $customer->save();
 

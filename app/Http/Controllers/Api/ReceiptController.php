@@ -91,7 +91,7 @@ class ReceiptController extends Controller
             'source_document' => $receipt->source_document,
             'sales_id' => $receipt->sales_id,
             'invoice_status' => $receipt->sales->invoice_status,
-            'scheduled_date' => Carbon::parse($receipt->scheduled_date)->format('Y-m-d H:i:s'),
+            'scheduled_date' =>$receipt->scheduled_date ? Carbon::parse($receipt->scheduled_date)->format('Y-m-d H:i:s') : null,
             'state' => $receipt->state,
             'items' => $receipt->sales->salesComponents
                 ->filter(function ($component) {

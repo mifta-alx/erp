@@ -46,7 +46,7 @@ class RfqController extends Controller
                     }),
                     'items' => $item->rfqComponent->map(function ($component) {
                         return [
-                            'rfq_component_id' => $component->rfq_component_id,
+                            'component_id' => $component->rfq_component_id,
                             'type' => $component->display_type,
                             'id' => $component->material_id,
                             'internal_reference' => $component->material->internal_reference ?? null,
@@ -59,6 +59,12 @@ class RfqController extends Controller
                             'qty_received' => $component->qty_received,
                             'qty_to_invoice' =>  $component->qty_to_invoice,
                             'qty_invoiced' =>  $component->qty_invoiced,
+                        ];
+                    }),
+                    'invoices' => $item->invoices->map(function ($invoice) {
+                        return [
+                            'id' => $invoice->invoice_id,
+                            'payment_status' => $invoice->payment_status
                         ];
                     }),
                 ];
@@ -85,7 +91,7 @@ class RfqController extends Controller
                 'vendor_id' => $rfq->vendor_id,
                 'vendor_name' => $rfq->vendor->name,
                 'vendor_reference' => $rfq->vendor_reference,
-                "order_date" => Carbon::parse($rfq->order_date)->format('Y-m-d H:i:s'),
+                'order_date' => Carbon::parse($rfq->order_date)->format('Y-m-d H:i:s'),
                 'state' => $rfq->state,
                 'taxes' => $rfq->taxes,
                 'total' => $rfq->total,
@@ -178,7 +184,7 @@ class RfqController extends Controller
                     RfqComponent::create([
                         'rfq_id' => $rfq->rfq_id,
                         'display_type' => $component['type'],
-                        'material_id' => $component['material_id'],
+                        'material_id' => $component['id'],
                         'description' => $component['description'],
                         'qty' => $component['qty'],
                         'unit_price' => $component['unit_price'],
@@ -256,7 +262,7 @@ class RfqController extends Controller
                     if ($rfqComponent && $rfqComponent->rfq_id === $rfq->rfq_id) {
                         $rfqComponent->update([
                             'display_type' => $component['type'],
-                            'material_id' => $component['type'] == 'material' ? $component['material_id'] : null,
+                            'material_id' => $component['type'] == 'material' ? $component['id'] : null,
                             'description' => $component['description'],
                             'qty' => $component['qty'] ?? 0,
                             'unit_price' => $component['unit_price'] ?? 0,
@@ -271,7 +277,7 @@ class RfqController extends Controller
                     RfqComponent::create([
                         'rfq_id' => $rfq->rfq_id,
                         'display_type' => $component['type'],
-                        'material_id' => $component['type'] == 'material' ? $component['material_id'] : null,
+                        'material_id' => $component['type'] == 'material' ? $component['id'] : null,
                         'description' => $component['description'],
                         'qty' => $component['qty'] ?? 0,
                         'unit_price' => $component['unit_price'] ?? 0,
@@ -283,7 +289,6 @@ class RfqController extends Controller
                     ]);
                 }
             }
-
             if ($data['state'] == 3) {
                 if (empty($data['items']) || !collect($data['items'])->contains(function ($item) {
                     return $item['type'] === 'material';
@@ -348,7 +353,7 @@ class RfqController extends Controller
                 'vendor_id' => $rfq->vendor_id,
                 'vendor_name' => $rfq->vendor->name,
                 'vendor_reference' => $rfq->vendor_reference,
-                "order_date" => Carbon::parse($rfq->order_date)->format('Y-m-d H:i:s'),
+                'order_date' => Carbon::parse($rfq->order_date)->format('Y-m-d H:i:s'),
                 'state' => $rfq->state,
                 'taxes' => $rfq->taxes,
                 'total' => $rfq->total,

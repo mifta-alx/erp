@@ -69,7 +69,7 @@ class SalesController extends Controller
                 if ($component['type'] == 'product') {
                     SalesComponent::create([
                         'sales_id' => $sales->sales_id,
-                        'product_id' => $component['product_id'],
+                        'product_id' => $component['id'],
                         'description' => $component['description'],
                         'display_type' => $component['type'],
                         'qty' => $component['qty'],
@@ -147,7 +147,7 @@ class SalesController extends Controller
                     $salesComponent = SalesComponent::find($component['component_id']);
                     if ($salesComponent && $salesComponent->sales_id === $sales->sales_id) {
                         $salesComponent->update([
-                            'product_id' => $component['type'] == 'product' ? $component['product_id'] : null,
+                            'product_id' => $component['type'] == 'product' ? $component['id'] : null,
                             'description' => $component['description'],
                             'display_type' => $component['type'],
                             'qty' => $component['qty'] ?? 0,
@@ -162,7 +162,7 @@ class SalesController extends Controller
                 } else {
                     SalesComponent::create([
                         'sales_id' => $sales->sales_id,
-                        'product_id' => $component['type'] == 'product' ? $component['product_id'] : null,
+                        'product_id' => $component['type'] == 'product' ? $component['id'] : null,
                         'description' => $component['description'],
                         'display_type' => $component['type'],
                         'qty' => $component['qty'] ?? 0,
@@ -279,6 +279,12 @@ class SalesController extends Controller
             'items' => $sale->salesComponents->map(function ($component) {
                 return $this->transformSalesComponent($component);
             }),
+            'invoices' => $sale->invoices->map(function ($invoice) {
+                    return [
+                        'id' => $invoice->invoice_id,
+                        'payment_status' => $invoice->payment_status
+                    ];
+                })
         ];
     }
 
@@ -288,8 +294,8 @@ class SalesController extends Controller
             'component_id' => $component->sales_component_id,
             'type' => $component->display_type,
             'id' => $component->product_id,
-            'product' => $component->product ? $component->product->product_name : null,
-            'product' => $component->product ? $component->product->internal_reference : null,
+            'name' => $component->product ? $component->product->product_name : null,
+            'internal_reference' => $component->product ? $component->product->internal_reference : null,
             'description' => $component->description,
             'qty' => $component->qty,
             'unit_price' => $component->unit_price,

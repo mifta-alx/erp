@@ -22,7 +22,8 @@ class SalesComponent extends Model
         'qty_received',
         'qty_to_invoice',
         'qty_invoiced',
-        'state'
+        'state',
+        'reserved',
     ];
     public function sales()
     {

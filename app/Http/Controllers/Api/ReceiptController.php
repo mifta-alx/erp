@@ -99,8 +99,6 @@ class ReceiptController extends Controller
                 })
                 ->values()
                 ->map(function ($component) {
-                    $product = Product::find($component->product_id);
-                    $reserved = min($product->stock, $component->qty_received);
                     return [
                         'component_id' => $component->sales_component_id,
                         'type' => $component->display_type,
@@ -115,7 +113,7 @@ class ReceiptController extends Controller
                         'qty_received' => $component->qty_received,
                         'qty_to_invoice' => $component->qty_to_invoice,
                         'qty_invoiced' => $component->qty_invoiced,
-                        'reserved' => $reserved,
+                        'reserved' => $component->reserved,
                     ];
                 }),
         ];
@@ -275,11 +273,11 @@ class ReceiptController extends Controller
 
             $scheduled_date = Carbon::parse($data['scheduled_date']);
             $this->updateReceipt($receipt, $data, $scheduled_date);
-            if ($data['transaction_type'] == 'OUT' && $data['state'] == 3) {
+            if ($data['transaction_type'] == 'OUT' && $data['state'] == 4) {
                 foreach ($data['items'] as $component) {
                     $this->processItem($data, $component);
                 }
-            } else if($data['transaction_type'] == 'IN'){
+            } else if ($data['transaction_type'] == 'IN') {
                 foreach ($data['items'] as $component) {
                     $this->processItem($data, $component);
                 }
@@ -311,7 +309,6 @@ class ReceiptController extends Controller
             'scheduled_date' => $scheduled_date,
             'state' => $data['state']
         ];
-
         if ($data['transaction_type'] === 'IN') {
             $rfq = Rfq::findOrFail($data['rfq_id']);
             $receipt->update(array_merge($commonData, [
@@ -319,7 +316,7 @@ class ReceiptController extends Controller
                 'vendor_id' => $data['vendor_id'],
                 'source_document' => $rfq->reference,
             ]));
-            if ($data['state'] == 4 || $data['state'] == 5) {
+            if (in_array($data['state'], [4, 5])) {
                 if ($rfq) {
                     $rfq->update([
                         'invoice_status' => $data['invoice_status'],
@@ -337,10 +334,21 @@ class ReceiptController extends Controller
                 $canUpdateState = true;
                 foreach ($data['items'] as $component) {
                     if ($component['type'] === 'product' && isset($component['id'])) {
-                        $product = Product::find($component['id']);
-                        if ($product && $product->stock < $component['qty']) {
-                            $canUpdateState = false;
-                            break;
+                        $salesComponent = SalesComponent::where('product_id', $component['id'])
+                            ->where('sales_id', $sales->sales_id)
+                            ->first();
+                        if ($salesComponent) {
+                            $product = Product::find($component['id']);
+                            if ($product) {
+                                $stockAvailable = $product->stock;
+                                $requiredQty = $component['qty'];
+                                $reservedQty = min($stockAvailable, $requiredQty);
+                                $salesComponent->update(['reserved' => $reservedQty]);
+                                if ($reservedQty < $requiredQty) {
+                                    $canUpdateState = false;
+                                    break;
+                                }
+                            }
                         }
                     }
                 }
@@ -348,10 +356,9 @@ class ReceiptController extends Controller
                     $receipt->update([
                         'state' => 3,
                     ]);
-                    $this->processItem($data, $component);
                 }
             }
-            if ($data['state'] == 4 || $data['state'] == 5) {
+            if (in_array($data['state'], [4, 5])) {
                 if ($sales) {
                     $sales->update([
                         'invoice_status' => $data['invoice_status'],

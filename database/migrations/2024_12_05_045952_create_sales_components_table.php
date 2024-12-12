@@ -26,6 +26,7 @@ return new class extends Migration
             $table->double('qty_received')->default(0);
             $table->double('qty_to_invoice')->default(0);
             $table->double('qty_invoiced')->default(0);
+            $table->double('reserved')->nullable();
             $table->timestamps();
         });
     }

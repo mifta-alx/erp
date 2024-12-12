@@ -272,7 +272,6 @@ class InvoiceController extends Controller
             $data = $request->json()->all();
             $invoice_date = Carbon::parse($data['invoice_date']) ?? null;
             $accounting_date = Carbon::parse($data['accounting_date']);
-            $deliveryDate = Carbon::parse($data['delivery_date']);
             $due_date = Carbon::parse($data['due_date']) ?? null;
             if ($data['action_type'] !== 'confirm') {
                 $invoice = Invoice::find($id);
@@ -286,6 +285,7 @@ class InvoiceController extends Controller
                 if ($data['transaction_type'] === 'BILL') {
                     $this->processBillTransaction($data, $invoice, $invoice_date, $accounting_date, $due_date);
                 } else if ($data['transaction_type'] === 'INV') {
+                    $deliveryDate = Carbon::parse($data['delivery_date']);
                     $this->processInvTransaction($data, $invoice, $invoice_date, $accounting_date, $due_date, $deliveryDate);
                 }
 
@@ -312,6 +312,7 @@ class InvoiceController extends Controller
             if ($data['transaction_type'] === 'BILL') {
                 $this->processBillTransaction($data, $invoice, $invoice_date, $accounting_date, $due_date);
             } else if ($data['transaction_type'] === 'INV') {
+                $deliveryDate = Carbon::parse($data['delivery_date']);
                 $this->processInvTransaction($data, $invoice, $invoice_date, $accounting_date, $due_date, $deliveryDate);
             }
 
@@ -358,24 +359,42 @@ class InvoiceController extends Controller
             'items.*.qty_invoiced' => [
                 'required',
                 function ($attribute, $value, $fail) use ($request) {
+                    $transactionType = $request->input('transaction_type');
                     $index = str_replace(['items.', '.qty_invoiced'], '', $attribute);
                     $state = $request->input('state');
-                    if ($state == 1) {
-                        return;
-                    } else {
-                        $type = $request->input("items.$index.type");
-                        if ($type === 'line_section') {
-                            return;
-                        }
-                        $componentId = $request->input("items.$index.component_id");
-                        $rfqComponent = RfqComponent::where('rfq_component_id', $componentId)->first();
-                        if ($rfqComponent && $value > $rfqComponent->qty_to_invoice) {
-                            $fail('Qty invoiced must not exceed the available qty.');
-                        }
+                    $componentId = $request->input("items.$index.component_id");
+                    $type = $request->input("items.$index.type");
+
+                    if ($state == 1 || $type === 'line_section') {
+                        return; // Tidak perlu validasi untuk state 1 atau line_section
+                    }
+
+                    if ($transactionType == 'BILL') {
+                        $this->validateRfqComponent($componentId, $value, $fail);
+                    }
+
+                    if ($transactionType == 'INV') {
+                        $this->validateSalesComponent($componentId, $value, $fail);
                     }
                 }
             ],
         ];
+    }
+
+    protected function validateRfqComponent($componentId, $value, $fail)
+    {
+        $rfqComponent = RfqComponent::where('rfq_component_id', $componentId)->first();
+        if ($rfqComponent && $value > $rfqComponent->qty_to_invoice) {
+            $fail('Qty invoiced must not exceed the available qty for RFQ.');
+        }
+    }
+
+    protected function validateSalesComponent($componentId, $value, $fail)
+    {
+        $salesComponent = SalesComponent::where('sales_component_id', $componentId)->first();
+        if ($salesComponent && $value > $salesComponent->qty_to_invoice) {
+            $fail('Qty invoiced must not exceed the available qty for Sales.');
+        }
     }
 
     private function getValidationMessages()

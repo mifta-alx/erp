@@ -1,6 +1,9 @@
 <?php
 
+use App\Http\Controllers\Api\CheckAvailability;
 use App\Http\Controllers\Api\ImageController;
+use App\Http\Controllers\Api\ProductController;
+use App\Models\Product;
 use Illuminate\Auth\Middleware\Authenticate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -29,3 +32,4 @@ Route::apiResource('/invoices', App\Http\Controllers\Api\InvoiceController::clas
 Route::apiResource('/sales', App\Http\Controllers\Api\SalesController::class);
 Route::apiResource('/payment-terms', App\Http\Controllers\Api\PaymentTermController::class);
 Route::apiResource('/register-payments', App\Http\Controllers\Api\PaymentController::class);
+Route::post('/product/check-availability', [ProductController::class, 'checkAvailability']);

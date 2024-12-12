@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ProductResource;
 use App\Models\Image;
+use App\Models\SalesComponent;
 use App\Models\Tag;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\Request;
@@ -190,6 +191,61 @@ class ProductController extends Controller
                 'message' => 'An error occurred',
                 'error' => $e->getMessage()
             ], 500);
+        }
+    }
+
+    public function checkAvailability(Request $request)
+    {
+        $request->validate([
+            'id' => 'required|exists:products,product_id',
+            'qty' => 'required|numeric',
+        ]);
+        $product = Product::find($request->id);
+
+        if (!$product) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Product not found.',
+            ], 404);
+        }
+
+        $reserved = min($product->stock, $request->qty);
+
+        $salesComponents = SalesComponent::where('product_id', $request->id)
+            ->where('display_type', '!=', 'line_section')
+            ->get();
+
+        $items = $salesComponents->map(function ($component) use ($reserved) {
+            return [
+                'component_id' => $component->sales_component_id,
+                'type' => $component->display_type,
+                'id' => $component->product_id,
+                'internal_reference' => $component->product->internal_reference,
+                'name' => $component->product->product_name,
+                'description' => $component->description,
+                'qty' => $component->qty,
+                'unit_price' => $component->unit_price,
+                'tax' => $component->tax,
+                'subtotal' => $component->subtotal,
+                'qty_received' => $component->qty_received,
+                'qty_to_invoice' => $component->qty_to_invoice,
+                'qty_invoiced' => $component->qty_invoiced,
+                'reserved' => $reserved,
+            ];
+        });
+
+        if ($product->stock >= $request->qty) {
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Stock is sufficient.',
+                'items' => $items,
+            ], 200);
+        } else {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Insufficient stock.',
+                'items' => $items,
+            ], 200);
         }
     }
 

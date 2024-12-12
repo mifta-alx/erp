@@ -12,9 +12,13 @@ use Illuminate\Support\Facades\Storage;
 
 class CustomerController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $customers = Customer::with('tag')->orderBy('created_at', 'ASC')->get();
+        $query = Customer::query();
+        if ($request->has('type') && $request->type == 'company') {
+            $query->where('type', 2);
+        }
+        $customers = $query->with('tag')->orderBy('created_at', 'ASC')->get();
         $customerData = $customers->map(function ($customer) {
             return $this->transformCustomer($customer);
         });
@@ -111,7 +115,7 @@ class CustomerController extends Controller
                 'mobile' => $data['mobile'],
                 'email' => $data['email'],
                 'image_url' => $imageUrl,
-                'image_uuid' => $image->image_uuid??null,
+                'image_uuid' => $image->image_uuid ?? null,
             ]);
             $customer->save();
 
@@ -163,9 +167,9 @@ class CustomerController extends Controller
             }
 
             $image = Image::where('image_uuid', $data['image_uuid'])->first();
-            $image = isset($data['image_uuid']) 
-            ? Image::where('image_uuid', $data['image_uuid'])->first() 
-            : null;
+            $image = isset($data['image_uuid'])
+                ? Image::where('image_uuid', $data['image_uuid'])->first()
+                : null;
 
 
             $customer->fill([
@@ -180,7 +184,7 @@ class CustomerController extends Controller
                 'mobile' => $data['mobile'],
                 'email' => $data['email'],
                 'image_url' => url(Storage::url('images/' . $image->image)) ?? null,
-                'image_uuid' => $image->image_uuid??null,
+                'image_uuid' => $image->image_uuid ?? null,
             ]);
             $customer->save();
 

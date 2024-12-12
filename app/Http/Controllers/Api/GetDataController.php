@@ -337,7 +337,11 @@ class GetDataController extends Controller
             'data' => []
         ];
 
-        $customers = Customer::orderBy('created_at', 'ASC')->get();
+        $queryCust = Customer::query();
+        if ($request->has('category') && $request->category == 'company') {
+            $queryCust->where('type', 2);
+        }
+        $customers = $queryCust->with('tag')->orderBy('created_at', 'ASC')->get();
         $customerData = $customers->map(function ($customer) {
             return [
                 'id' => $customer->customer_id,

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Product extends Model
 {
@@ -37,5 +38,9 @@ class Product extends Model
     public function ManufacturingOrder()
     {
         return $this->hasMany(ManufacturingOrder::class, 'product_id', 'product_id');
+    }
+
+    public function salesComponents(){
+        return $this->hasMany(Sales::class, 'product_id', 'product_id');
     }
 }

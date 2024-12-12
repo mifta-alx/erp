@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Product;
 use App\Models\Receipt;
 use App\Models\Sales;
 use App\Models\SalesComponent;
@@ -203,6 +204,20 @@ class SalesController extends Controller
                     $referenceNumber = $lastReferenceNumber + 1;
                     $referenceNumberPadded = str_pad($referenceNumber, 5, '0', STR_PAD_LEFT);
                     $reference = "OUT/{$referenceNumberPadded}";
+                    $reservedFullyMet = true;
+                    foreach ($data['items'] as $component) {
+                        if ($component['type'] === 'product' && isset($component['id'])) {
+                            $product = Product::find($component['id']);
+                            if ($product) {
+                                $reservedQty = min($product->stock, $component['qty']);
+                                if ($reservedQty < $component['qty']) {
+                                    $reservedFullyMet = false;
+                                }
+                            } else {
+                                $reservedFullyMet = false;
+                            }
+                        }
+                    }
                     Receipt::create([
                         'transaction_type' => 'OUT',
                         'reference' => $reference,
@@ -210,7 +225,7 @@ class SalesController extends Controller
                         'customer_id' => $sales->customer_id,
                         'source_document' => $sales->reference,
                         'scheduled_date' => $scheduledDate,
-                        'state' => 2,
+                        'state' => $reservedFullyMet ? 3 : 2,
                     ]);
                 }
             } else if ($data['state'] == 4) {

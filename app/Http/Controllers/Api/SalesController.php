@@ -278,6 +278,7 @@ class SalesController extends Controller
             'invoice_status' => $sale->invoice_status,
             'state' => $sale->state,
             'payment_term_id' => $sale->paymentTerm->payment_term_id ?? null,
+            'payment_term_name' => $sale->paymentTerm->name ?? null,
             'receipt' => $sale->receipts->map(function ($receipt) {
                 return [
                     'id' => $receipt->receipt_id,

@@ -185,6 +185,14 @@ class SalesController extends Controller
                         'data' => $this->transformSales($sales->load(['customer', 'salesComponents'])),
                     ]);
                 } else {
+                    $existingReceipt = Receipt::where('sales_id', $sales->sales_id)->first();
+                    if ($existingReceipt) {
+                        return response()->json([
+                            'success' => true,
+                            'message' => 'Sales updated successfully. Receipt already exists.',
+                            'data' => $this->transformSales($sales->load(['customer', 'salesComponents'])),
+                        ]);
+                    }
                     $scheduledDate = Carbon::parse($data['scheduled_date']);
                     $lastOrder = Receipt::where('transaction_type', 'OUT')
                         ->orderBy('created_at', 'desc')
@@ -270,6 +278,7 @@ class SalesController extends Controller
             'invoice_status' => $sale->invoice_status,
             'state' => $sale->state,
             'payment_term_id' => $sale->paymentTerm->payment_term_id ?? null,
+            'payment_term_name' => $sale->paymentTerm->name ?? null,
             'receipt' => $sale->receipts->map(function ($receipt) {
                 return [
                     'id' => $receipt->receipt_id,
@@ -280,11 +289,11 @@ class SalesController extends Controller
                 return $this->transformSalesComponent($component);
             }),
             'invoices' => $sale->invoices->map(function ($invoice) {
-                    return [
-                        'id' => $invoice->invoice_id,
-                        'payment_status' => $invoice->payment_status
-                    ];
-                })
+                return [
+                    'id' => $invoice->invoice_id,
+                    'payment_status' => $invoice->payment_status
+                ];
+            })
         ];
     }
 

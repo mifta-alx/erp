@@ -98,7 +98,9 @@ class ReceiptController extends Controller
                     return $component->display_type !== 'line_section';
                 })
                 ->values()
-                ->map(function ($component) {
+                ->map(function ($component){
+                    $product = Product::find($component->product_id);
+                    $reserved = min($product->stock, $component->qty_received);
                     return [
                         'component_id' => $component->sales_component_id,
                         'type' => $component->display_type,
@@ -113,6 +115,7 @@ class ReceiptController extends Controller
                         'qty_received' => $component->qty_received,
                         'qty_to_invoice' => $component->qty_to_invoice,
                         'qty_invoiced' => $component->qty_invoiced,
+                        'reserved' => $reserved,
                     ];
                 }),
         ];
@@ -382,7 +385,6 @@ class ReceiptController extends Controller
         $salesComponent = SalesComponent::where('sales_id', $data['sales_id'])
             ->where('sales_component_id', $component['component_id'])
             ->first();
-
         if ($salesComponent) {
             $salesComponent->update([
                 'product_id' => $component['id'],
@@ -390,7 +392,6 @@ class ReceiptController extends Controller
                 'qty_to_invoice' => $component['qty_received'],
             ]);
         }
-
         if ($data['state'] == 3) {
             $product = Product::find($component['id']);
             if ($product) {

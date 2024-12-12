@@ -18,7 +18,7 @@ class RfqController extends Controller
     {
         $query = Rfq::query();
         if ($request->has('purchase_order') && $request->purchase_order == 'true') {
-            $query->where('state', 3);
+            $query->where('state', 4);
         }
         $rfq = $query->orderBy('created_at', 'DESC')->get();
         return response()->json([

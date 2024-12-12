@@ -314,7 +314,7 @@ class RfqController extends Controller
                         'rfq_id' => $rfq->rfq_id,
                         'source_document' => $rfq->reference,
                         'scheduled_date' => $scheduledDate,
-                        'state' => 2,
+                        'state' => 3,
                     ]);
                 }
             } else if ($data['state'] == 4) {

@@ -98,7 +98,7 @@ class ReceiptController extends Controller
                     return $component->display_type !== 'line_section';
                 })
                 ->values()
-                ->map(function ($component){
+                ->map(function ($component) {
                     $product = Product::find($component->product_id);
                     $reserved = min($product->stock, $component->qty_received);
                     return [
@@ -239,18 +239,11 @@ class ReceiptController extends Controller
                             $transactionType = $request->input('transaction_type');
                             $index = str_replace(['items.', '.qty_received'], '', $attribute);
                             $componentId = $request->input("items.$index.component_id");
-                            $productId = $request->input("items.$index.id");
                             if ($transactionType === 'OUT') {
                                 $salesComponent = SalesComponent::where('sales_component_id', $componentId)->first();
                                 if ($salesComponent && $value > $salesComponent->qty) {
                                     $fail('Qty received must not be less than the required qty in Sales.');
                                     return;
-                                }
-                                if ($productId) {
-                                    $product = Product::find($productId);
-                                    if ($product && $value > $product->stock) {
-                                        $fail("Insufficient stock for product ID $productId. Available: {$product->stock}, Required: $value.");
-                                    }
                                 }
                             }
                             if ($transactionType === 'IN') {
@@ -282,9 +275,14 @@ class ReceiptController extends Controller
 
             $scheduled_date = Carbon::parse($data['scheduled_date']);
             $this->updateReceipt($receipt, $data, $scheduled_date);
-
-            foreach ($data['items'] as $component) {
-                $this->processItem($data, $component);
+            if ($data['transaction_type'] == 'OUT' && $data['state'] == 3) {
+                foreach ($data['items'] as $component) {
+                    $this->processItem($data, $component);
+                }
+            } else if($data['transaction_type'] == 'IN'){
+                foreach ($data['items'] as $component) {
+                    $this->processItem($data, $component);
+                }
             }
 
             DB::commit();
@@ -321,7 +319,7 @@ class ReceiptController extends Controller
                 'vendor_id' => $data['vendor_id'],
                 'source_document' => $rfq->reference,
             ]));
-            if ($data['state'] == 3 || $data['state'] == 4) {
+            if ($data['state'] == 4 || $data['state'] == 5) {
                 if ($rfq) {
                     $rfq->update([
                         'invoice_status' => $data['invoice_status'],
@@ -335,7 +333,25 @@ class ReceiptController extends Controller
                 'customer_id' => $data['customer_id'],
                 'source_document' => $sales->reference,
             ]));
-            if ($data['state'] == 3 || $data['state'] == 4) {
+            if ($data['state'] == 2) {
+                $canUpdateState = true;
+                foreach ($data['items'] as $component) {
+                    if ($component['type'] === 'product' && isset($component['id'])) {
+                        $product = Product::find($component['id']);
+                        if ($product && $product->stock < $component['qty']) {
+                            $canUpdateState = false;
+                            break;
+                        }
+                    }
+                }
+                if ($canUpdateState) {
+                    $receipt->update([
+                        'state' => 3,
+                    ]);
+                    $this->processItem($data, $component);
+                }
+            }
+            if ($data['state'] == 4 || $data['state'] == 5) {
                 if ($sales) {
                     $sales->update([
                         'invoice_status' => $data['invoice_status'],
@@ -363,16 +379,16 @@ class ReceiptController extends Controller
         if ($rfqComponent) {
             $rfqComponent->update([
                 'material_id' => $component['id'],
-                'qty_received' => ($data['state'] == 3)
+                'qty_received' => ($data['state'] == 4)
                     ? $rfqComponent->qty_received + $component['qty_received']
                     : $component['qty_received'],
-                'qty_to_invoice' => ($data['state'] == 3)
+                'qty_to_invoice' => ($data['state'] == 4)
                     ? $rfqComponent->qty_to_invoice + $component['qty_received']
                     : $component['qty_received'],
             ]);
         }
 
-        if ($data['state'] == 3) {
+        if ($data['state'] == 4) {
             $material = Material::find($component['id']);
             if ($material) {
                 $material->update(['stock' => $material->stock + $component['qty_received']]);
@@ -392,7 +408,7 @@ class ReceiptController extends Controller
                 'qty_to_invoice' => $component['qty_received'],
             ]);
         }
-        if ($data['state'] == 3) {
+        if ($data['state'] == 4) {
             $product = Product::find($component['id']);
             if ($product) {
                 $product->update(['stock' => $product->stock - $component['qty_received']]);

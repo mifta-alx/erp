@@ -24,7 +24,7 @@ return new class extends Migration
             $table->unsignedBigInteger('sales_id')->nullable();
             $table->foreign('sales_id')->references('sales_id')->on('sales')->onDelete('cascade');
             $table->dateTime('invoice_date')->nullable();
-            $table->dateTime('accounting_date');
+            $table->dateTime('accounting_date')->nullable();
             $table->unsignedBigInteger('payment_term_id')->nullable();
             $table->foreign('payment_term_id')->references('payment_term_id')->on('payment_terms')->onDelete('cascade');
             $table->dateTime('due_date')->nullable();

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Invoice;
 use App\Models\PaymentTerm;
+use App\Models\Receipt;
 use App\Models\RegisterPayment;
 use App\Models\Rfq;
 use App\Models\RfqComponent;
@@ -210,6 +211,8 @@ class InvoiceController extends Controller
                     ->orderBy('created_at', 'desc')
                     ->first();
                 $sales = Sales::findOrFail($data['sales_id']);
+                $receipt = Receipt::where('sales_id', $sales->sales_id)->first();
+                $deliveryDate = $receipt->updated_at;
             }
 
             if ($lastOrder && $lastOrder->reference) {
@@ -223,7 +226,9 @@ class InvoiceController extends Controller
             $currentYear = Carbon::now()->year;
             $currentMonth = str_pad(Carbon::now()->month, 2, '0', STR_PAD_LEFT);
             $reference = "{$currentYear}/{$currentMonth}/{$referenceNumberPadded}";
-
+            if ($data['transaction_type'] == 'BILL') {
+                $accounting_date = Carbon::now()->setTimezone('+07:00');
+            }
             $invoice = Invoice::create([
                 'transaction_type' => $data['transaction_type'],
                 'reference' => $reference,
@@ -233,8 +238,8 @@ class InvoiceController extends Controller
                 'customer_id' => $sales->customer_id ?? null,
                 'state' => 1,
                 'invoice_date' => null,
-                'accounting_date' => Carbon::now()->setTimezone('+07:00'),
-                'delivery_date' => null,
+                'accounting_date' => $accounting_date ?? null,
+                'delivery_date' => $deliveryDate ?? null,
                 'payment_term_id' => $sales->payment_term_id ?? null,
                 'due_date' => $data['due_date'] ?? null,
                 'source_document' => $rfqReference ?? $salesReference,
@@ -312,8 +317,7 @@ class InvoiceController extends Controller
             if ($data['transaction_type'] === 'BILL') {
                 $this->processBillTransaction($data, $invoice, $invoice_date, $accounting_date, $due_date);
             } else if ($data['transaction_type'] === 'INV') {
-                $deliveryDate = Carbon::parse($data['delivery_date']);
-                $this->processInvTransaction($data, $invoice, $invoice_date, $accounting_date, $due_date, $deliveryDate);
+                $this->processInvTransaction($data, $invoice, $invoice_date, $accounting_date, $due_date);
             }
 
             DB::commit();
@@ -353,7 +357,7 @@ class InvoiceController extends Controller
                 'exists:sales,sales_id',
             ],
             'invoice_date' => 'required',
-            'accounting_date' => 'required',
+            'accounting_date' => ['required_without:sales_id'],
             'due_date' => 'required_without:payment_term_id',
             'payment_term_id' => 'nullable|exists:payment_terms,payment_term_id',
             'items.*.qty_invoiced' => [
@@ -468,7 +472,7 @@ class InvoiceController extends Controller
         }
     }
 
-    private function processInvTransaction(array $data, $invoice, $invoice_date, $accounting_date, $due_date, $deliveryDate)
+    private function processInvTransaction(array $data, $invoice, $invoice_date, $accounting_date, $due_date)
     {
         $sales = Sales::findOrFail($data['sales_id']);
         if ($data['state'] == 1) {
@@ -481,8 +485,8 @@ class InvoiceController extends Controller
             'customer_id' => $data['customer_id'] ?? null,
             'state' => $data['state'],
             'invoice_date' => $invoice_date,
-            'accounting_date' => $accounting_date,
-            'delivery_date' => $deliveryDate,
+            'accounting_date' => null,
+            'delivery_date' => $data['delivery_date'] ?? $invoice->delivery_date,
             'due_date' => $due_date,
             'payment_term_id' => $data['payment_term_id'] ?? null,
             'payment_status' => $payment_status,
@@ -499,7 +503,7 @@ class InvoiceController extends Controller
                 'state' => $data['state'],
                 'invoice_date' => $invoice_date,
                 'accounting_date' => $accounting_date,
-                'delivery_date' => $deliveryDate,
+                'delivery_date' => $data['delivery_date'] ?? $invoice->delivery_date,
                 'due_date' => $due_date,
                 'payment_term_id' => $data['payment_term_id'] ?? null,
             ]);

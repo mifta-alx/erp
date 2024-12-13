@@ -65,7 +65,7 @@ class CustomerController extends Controller
             'phone' => 'nullable|string',
             'mobile' => 'nullable|string',
             'email' => 'required|string|email',
-            'company' => 'nullable|string',
+            'company' => 'nullable',
             'image_uuid' => 'required|string|exists:images,image_uuid',
             'tag_id' => 'array|nullable',
         ], [

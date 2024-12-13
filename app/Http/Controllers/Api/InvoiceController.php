@@ -124,7 +124,7 @@ class InvoiceController extends Controller
                 ? Carbon::parse($invoice->due_date)->format('Y-m-d H:i:s') : null,
             'delivery_date' => $invoice->delivery_date
                 ? Carbon::parse($invoice->delivery_date)->format('Y-m-d H:i:s') : null,
-            'payment_term_id' => $invoice->paymentTerm->payment_term_id ?? null,
+            'payment_term_id' => $invoice->payment_term_id ?? null,
             'source_document' => $invoice->source_document,
             'taxes' => $invoice->sales->taxes,
             'total' => $invoice->sales->total,
@@ -235,7 +235,7 @@ class InvoiceController extends Controller
                 'invoice_date' => null,
                 'accounting_date' => Carbon::now()->setTimezone('+07:00'),
                 'delivery_date' => null,
-                'payment_term_id' => $data['payment_term_id'] ?? null,
+                'payment_term_id' => $sales->payment_term_id ?? null,
                 'due_date' => $data['due_date'] ?? null,
                 'source_document' => $rfqReference ?? $salesReference,
                 'payment_status' => 1,
@@ -366,7 +366,7 @@ class InvoiceController extends Controller
                     $type = $request->input("items.$index.type");
 
                     if ($state == 1 || $type === 'line_section') {
-                        return; // Tidak perlu validasi untuk state 1 atau line_section
+                        return;
                     }
 
                     if ($transactionType == 'BILL') {

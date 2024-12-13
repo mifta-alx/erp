@@ -276,7 +276,6 @@ class InvoiceController extends Controller
         try {
             $data = $request->json()->all();
             $invoice_date = Carbon::parse($data['invoice_date']) ?? null;
-            $accounting_date = Carbon::parse($data['accounting_date']);
             $due_date = Carbon::parse($data['due_date']) ?? null;
             if ($data['action_type'] !== 'confirm') {
                 $invoice = Invoice::find($id);
@@ -288,10 +287,11 @@ class InvoiceController extends Controller
                 }
 
                 if ($data['transaction_type'] === 'BILL') {
+                    $accounting_date = Carbon::parse($data['accounting_date']);
                     $this->processBillTransaction($data, $invoice, $invoice_date, $accounting_date, $due_date);
                 } else if ($data['transaction_type'] === 'INV') {
                     $deliveryDate = Carbon::parse($data['delivery_date']);
-                    $this->processInvTransaction($data, $invoice, $invoice_date, $accounting_date, $due_date, $deliveryDate);
+                    $this->processInvTransaction($data, $invoice, $invoice_date, $due_date, $deliveryDate);
                 }
 
                 DB::commit();
@@ -315,9 +315,10 @@ class InvoiceController extends Controller
                 ], 404);
             }
             if ($data['transaction_type'] === 'BILL') {
+                $accounting_date = Carbon::parse($data['accounting_date']);
                 $this->processBillTransaction($data, $invoice, $invoice_date, $accounting_date, $due_date);
             } else if ($data['transaction_type'] === 'INV') {
-                $this->processInvTransaction($data, $invoice, $invoice_date, $accounting_date, $due_date);
+                $this->processInvTransaction($data, $invoice, $invoice_date, $due_date);
             }
 
             DB::commit();
@@ -409,7 +410,7 @@ class InvoiceController extends Controller
             'sales_id.required_without' => 'Sales ID must be provided if Vendor ID is not selected.',
             'sales_id.exists' => 'Sales ID does not exist.',
             'invoice_date.required' => 'Invoice date must be filled',
-            'accounting_date.required' => 'Accounting date must be filled',
+            'accounting_date.required_without' => 'Accounting date must be filled',
             'due_date.required_without' => 'Due date must be provided if payment term is not selected',
         ];
     }
@@ -472,7 +473,7 @@ class InvoiceController extends Controller
         }
     }
 
-    private function processInvTransaction(array $data, $invoice, $invoice_date, $accounting_date, $due_date)
+    private function processInvTransaction(array $data, $invoice, $invoice_date, $due_date)
     {
         $sales = Sales::findOrFail($data['sales_id']);
         if ($data['state'] == 1) {
@@ -502,7 +503,7 @@ class InvoiceController extends Controller
                 'customer_id' => $data['customer_id'] ?? null,
                 'state' => $data['state'],
                 'invoice_date' => $invoice_date,
-                'accounting_date' => $accounting_date,
+                'accounting_date' => null,
                 'delivery_date' => $data['delivery_date'] ?? $invoice->delivery_date,
                 'due_date' => $due_date,
                 'payment_term_id' => $data['payment_term_id'] ?? null,

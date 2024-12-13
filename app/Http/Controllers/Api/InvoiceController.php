@@ -476,6 +476,7 @@ class InvoiceController extends Controller
     private function processInvTransaction(array $data, $invoice, $invoice_date, $due_date)
     {
         $sales = Sales::findOrFail($data['sales_id']);
+        $deliveryDate = Carbon::parse($data['delivery_date']);
         if ($data['state'] == 1) {
             $payment_status = 1;
         } else {
@@ -487,7 +488,7 @@ class InvoiceController extends Controller
             'state' => $data['state'],
             'invoice_date' => $invoice_date,
             'accounting_date' => null,
-            'delivery_date' => $data['delivery_date'] ?? $invoice->delivery_date,
+            'delivery_date' => $deliveryDate ?? $invoice->delivery_date,
             'due_date' => $due_date,
             'payment_term_id' => $data['payment_term_id'] ?? null,
             'payment_status' => $payment_status,
@@ -504,7 +505,7 @@ class InvoiceController extends Controller
                 'state' => $data['state'],
                 'invoice_date' => $invoice_date,
                 'accounting_date' => null,
-                'delivery_date' => $data['delivery_date'] ?? $invoice->delivery_date,
+                'delivery_date' => $deliveryDate ?? $invoice->delivery_date,
                 'due_date' => $due_date,
                 'payment_term_id' => $data['payment_term_id'] ?? null,
             ]);

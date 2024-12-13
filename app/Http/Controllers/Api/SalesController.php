@@ -376,6 +376,7 @@ class SalesController extends Controller
             'customer_id' => $sale->customer_id,
             'customer_name' => $sale->customer->name,
             'customer_company' => $sale->customer->company,
+            'customer_type' => $sale->customer->type,
             'taxes' => $sale->taxes,
             'total' => $sale->total,
             'expiration' => Carbon::parse($sale->expiration)->format('Y-m-d H:i:s'),

@@ -55,7 +55,7 @@ class CustomerController extends Controller
 
     private function validateCustomer(Request $request)
     {
-        return Validator::make($request->all(), [
+        $rules = [
             'type' => 'required',
             'name' => 'required|string',
             'street' => 'required|string',
@@ -65,13 +65,20 @@ class CustomerController extends Controller
             'phone' => 'nullable|string',
             'mobile' => 'nullable|string',
             'email' => 'required|string|email',
-            'company' => 'nullable',
+            'company' => 'nullable', 
             'image_uuid' => 'required|string|exists:images,image_uuid',
             'tag_id' => 'array|nullable',
-        ], [
+        ];
+
+        if ($request->type == 1) {
+            $rules['company'] = 'required';  
+        }
+    
+        return Validator::make($request->all(), $rules, [
             'type.required' => 'Type Must Be Filled',
+            'type.in' => 'Type Must Be 1 or 2',
             'name.required' => 'Name Must Be Filled',
-            'company.nullable' => 'Company Must Be Filled',
+            'company.required' => 'Company Must Be Filled',  
             'street.required' => 'Street Must Be Filled',
             'city.required' => 'City Must Be Filled',
             'state.required' => 'State Must Be Filled',
@@ -79,9 +86,10 @@ class CustomerController extends Controller
             'phone.nullable' => 'Phone Must Be Filled',
             'mobile.nullable' => 'Mobile Must Be Filled',
             'email.required' => 'Email Must Be Filled',
-            'image_uuid.required' => 'Image UUID Must Be Filled',
+            'image_uuid.required' => 'Image Must Be Filled',
         ]);
     }
+    
 
     public function store(Request $request)
     {

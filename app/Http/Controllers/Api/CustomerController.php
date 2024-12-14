@@ -82,7 +82,6 @@ class CustomerController extends Controller
 
         return Validator::make($request->all(), $rules, [
             'type.required' => 'Type Must Be Filled',
-            'type.in' => 'Type Must Be 1 or 2',
             'name.required' => 'Name Must Be Filled',
             'company.required' => 'Company Must Be Filled',
             'street.required' => 'Street Must Be Filled',

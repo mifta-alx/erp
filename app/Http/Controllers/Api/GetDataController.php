@@ -343,9 +343,15 @@ class GetDataController extends Controller
         }
         $customers = $queryCust->with('tag')->orderBy('created_at', 'ASC')->get();
         $customerData = $customers->map(function ($customer) {
+            $companyName = null;
+            if ($customer->type == 1 && $customer->company !== null) {
+                $customerCompany = Customer::where('company', $customer->company)->first();
+                $companyName = $customerCompany ? $customerCompany->name : null;
+            }
             return [
                 'id' => $customer->customer_id,
                 'company' => $customer->company,
+                'company_name' => $companyName,
                 'type' => $customer->type,
                 'name' => $customer->name,
                 'street' => $customer->street,

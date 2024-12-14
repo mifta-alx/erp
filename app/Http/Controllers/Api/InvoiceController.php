@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\PaymentTerm;
 use App\Models\Receipt;
@@ -109,12 +110,20 @@ class InvoiceController extends Controller
     }
     private function responseInv($invoice)
     {
+        $companyName = null;
+        if ($invoice->customer->type == 1 && $invoice->customer->company !== null) {
+            $customerCompany = Customer::where('customer_id', $invoice->customer->company)->first();
+            $companyName = $customerCompany ? $customerCompany->name : null;
+        }
         return [
             'id' => $invoice->invoice_id,
             'transaction_type' => $invoice->transaction_type,
             'reference' => $invoice->reference,
             'customer_id' => $invoice->customer_id,
             'customer_name' => $invoice->customer->name,
+            'customer_company' => $invoice->customer->company,
+            'customer_company_name' => $companyName,
+            'customer_type' => $invoice->customer->type,
             'sales_id' => $invoice->sales_id,
             'reference' => $invoice->reference,
             'invoice_date' => $invoice->invoice_date

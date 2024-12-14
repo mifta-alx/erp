@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Customer;
 use App\Models\Product;
 use App\Models\Receipt;
 use App\Models\Sales;
@@ -365,12 +366,18 @@ class SalesController extends Controller
 
     private function transformSales($sale)
     {
+        $companyName = null;
+        if ($sale->customer->type == 1 && $sale->customer->company !== null) {
+            $customerCompany = Customer::where('customer_id', $sale->customer->company)->first();
+            $companyName = $customerCompany ? $customerCompany->name : null;
+        }
         return [
             'id' => $sale->sales_id,
             'reference' => $sale->reference,
             'customer_id' => $sale->customer_id,
             'customer_name' => $sale->customer->name,
             'customer_company' => $sale->customer->company,
+            'customer_company_name' => $companyName,
             'customer_type' => $sale->customer->type,
             'taxes' => $sale->taxes,
             'total' => $sale->total,

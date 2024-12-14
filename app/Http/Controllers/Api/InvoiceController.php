@@ -318,7 +318,8 @@ class InvoiceController extends Controller
                 $accounting_date = Carbon::parse($data['accounting_date']);
                 $this->processBillTransaction($data, $invoice, $invoice_date, $accounting_date, $due_date);
             } else if ($data['transaction_type'] === 'INV') {
-                $this->processInvTransaction($data, $invoice, $invoice_date, $due_date);
+                $deliveryDate = Carbon::parse($data['delivery_date']);
+                $this->processInvTransaction($data, $invoice, $invoice_date, $due_date, $deliveryDate);
             }
 
             DB::commit();
@@ -473,10 +474,9 @@ class InvoiceController extends Controller
         }
     }
 
-    private function processInvTransaction(array $data, $invoice, $invoice_date, $due_date)
+    private function processInvTransaction(array $data, $invoice, $invoice_date, $due_date, $deliveryDate)
     {
         $sales = Sales::findOrFail($data['sales_id']);
-        $deliveryDate = Carbon::parse($data['delivery_date']);
         if ($data['state'] == 1) {
             $payment_status = 1;
         } else {

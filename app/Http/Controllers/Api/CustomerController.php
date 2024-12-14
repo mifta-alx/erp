@@ -28,9 +28,15 @@ class CustomerController extends Controller
 
     private function transformCustomer($customer)
     {
+        $companyName = null;
+        if ($customer->type == 1 && $customer->company !== null) {
+            $customerCompany = Customer::where('customer_id', $customer->company)->first();
+            $companyName = $customerCompany ? $customerCompany->name : null;
+        }
         return [
             'id' => $customer->customer_id,
             'company' => $customer->company,
+            'company_name' => $companyName,
             'type' => $customer->type,
             'name' => $customer->name,
             'street' => $customer->street,
@@ -65,20 +71,20 @@ class CustomerController extends Controller
             'phone' => 'nullable|string',
             'mobile' => 'nullable|string',
             'email' => 'required|string|email',
-            'company' => 'nullable', 
+            'company' => 'nullable',
             'image_uuid' => 'required|string|exists:images,image_uuid',
             'tag_id' => 'array|nullable',
         ];
 
         if ($request->type == 1) {
-            $rules['company'] = 'required';  
+            $rules['company'] = 'required';
         }
-    
+
         return Validator::make($request->all(), $rules, [
             'type.required' => 'Type Must Be Filled',
             'type.in' => 'Type Must Be 1 or 2',
             'name.required' => 'Name Must Be Filled',
-            'company.required' => 'Company Must Be Filled',  
+            'company.required' => 'Company Must Be Filled',
             'street.required' => 'Street Must Be Filled',
             'city.required' => 'City Must Be Filled',
             'state.required' => 'State Must Be Filled',
@@ -89,7 +95,7 @@ class CustomerController extends Controller
             'image_uuid.required' => 'Image Must Be Filled',
         ]);
     }
-    
+
 
     public function store(Request $request)
     {
@@ -126,7 +132,7 @@ class CustomerController extends Controller
                 'mobile' => $data['mobile'],
                 'email' => $data['email'],
                 'image_url' => $imageUrl,
-                'image_uuid' => $image->image_uuid ,
+                'image_uuid' => $image->image_uuid,
             ]);
             $customer->save();
 
@@ -185,7 +191,7 @@ class CustomerController extends Controller
             }
             $imageUrl = url('/storage/images/' . $image->image);
 
-            
+
 
 
             $customer->fill([

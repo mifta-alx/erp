@@ -39,6 +39,7 @@ class PaymentController extends Controller
     private function successResponse($payment, $type)
     {
         $relations = $type === 'outbound' ? $payment->vendor : $payment->customer;
+        $amountDue = $type === 'outbound' ? $payment->invoice->rfq->total :  $payment->invoice->sales->total;
 
         return [
             'id' => $payment->payment_id,
@@ -58,7 +59,7 @@ class PaymentController extends Controller
             'payment_amount' => $payment
                 ? $payment->where('invoice_id', $payment->invoice_id)->sum('amount')
                 : 0,
-            'amount_due' => $payment->invoice->rfq->total - ($payment
+            'amount_due' => $amountDue - ($payment
                 ? $payment->where('invoice_id', $payment->invoice_id)->sum('amount')
                 : 0),
         ];
@@ -68,8 +69,8 @@ class PaymentController extends Controller
     {
         $isInbound = $payment->payment_type === 'inbound';
         $totalAmount = $isInbound
-            ? $payment->invoice->sales->total
-            : $payment->invoice->rfq->total;
+            ? $payment->invoice->rfq->total
+            : $payment->invoice->sales->total;
         $paidAmount = $payment
             ? $payment->where('invoice_id', $payment->invoice_id)->sum('amount')
             : 0;

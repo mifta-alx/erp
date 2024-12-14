@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Customer;
 use App\Models\Material;
 use App\Models\Product;
 use App\Models\Receipt;
@@ -82,6 +83,11 @@ class ReceiptController extends Controller
     }
     private function responseOut($receipt)
     {
+        $companyName = null;
+        if ($receipt->customer->type == 1 && $receipt->customer->company !== null) {
+            $customerCompany = Customer::where('customer_id', $receipt->customer->company)->first();
+            $companyName = $customerCompany ? $customerCompany->name : null;
+        }
         return [
             'id' => $receipt->receipt_id,
             'transaction_type' => $receipt->transaction_type,
@@ -89,6 +95,7 @@ class ReceiptController extends Controller
             'customer_id' => $receipt->customer_id,
             'customer_name' => $receipt->customer->name,
             'customer_company' => $receipt->customer->company,
+            'customer_company_name' => $companyName,
             'customer_type' => $receipt->customer->type,
             'source_document' => $receipt->source_document,
             'sales_id' => $receipt->sales_id,

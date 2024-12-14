@@ -293,7 +293,7 @@ class RfqController extends Controller
                 if (empty($data['items']) || !collect($data['items'])->contains(function ($item) {
                     return $item['type'] === 'material';
                 })) {
-                    return $this->successResponse($rfq, 'RFQ Updated Successfully', true);
+                    return $this->successResponse($rfq, 'RFQ Updated Successfully');
                 } else {
                     $scheduledDate = Carbon::parse($data['scheduled_date']);
                     $lastOrder = Receipt::where('transaction_type', 'IN')
@@ -319,12 +319,12 @@ class RfqController extends Controller
                 }
             } else if ($data['state'] == 4) {
                 $receipts = Receipt::where('rfq_id', $rfq->rfq_id)
-                    ->where('state', '!=', 4)
+                    ->where('state', '!=', 5)
                     ->get();
 
                 foreach ($receipts as $receipt) {
                     $receipt->update([
-                        'state' => 4,
+                        'state' => 5,
                     ]);
                 }
             }

@@ -19,7 +19,7 @@ class SalesController extends Controller
     {
         $query = Sales::query();
         if ($request->has('sales_order') && $request->sales_order == 'true') {
-            $query->where('state', 4);
+            $query->where('state', 3);
         }
         $sales = $query->with(['customer', 'salesComponents'])->orderBy('created_at', 'DESC')->get();
         $salesData = $sales->map(function ($sale) {
@@ -244,22 +244,17 @@ class SalesController extends Controller
 
     private function handleStateThree($sales, $data)
     {
-        if (empty($data['items']) || !collect($data['items'])->contains(fn($item) => $item['type'] === 'product')) {
-            return null;
-        }
-
-        $existingReceipt = Receipt::where('sales_id', $sales->sales_id)->first();
-        if ($existingReceipt) {
+        if (empty($data['items']) || !collect($data['items'])->contains(function ($item) {
+            return $item['type'] === 'product';
+        })) {
             return response()->json([
                 'success' => true,
                 'message' => 'Sales updated successfully. Receipt already exists.',
                 'data' => $this->transformSales($sales->load(['customer', 'salesComponents'])),
             ]);
         }
-
         $this->updateReservedForComponents($data['items']);
         $this->createReceipt($sales, $data);
-
         return null;
     }
     private function updateReservedForComponents($components)
@@ -336,11 +331,11 @@ class SalesController extends Controller
     private function finalizeReceipts($sales)
     {
         $receipts = Receipt::where('sales_id', $sales->sales_id)
-            ->where('state', '!=', 4)
+            ->where('state', '!=', 5)
             ->get();
 
         foreach ($receipts as $receipt) {
-            $receipt->update(['state' => 4]);
+            $receipt->update(['state' => 5]);
         }
     }
     public function show($id)

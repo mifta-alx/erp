@@ -88,6 +88,8 @@ class ReceiptController extends Controller
             'reference' => $receipt->reference,
             'customer_id' => $receipt->customer_id,
             'customer_name' => $receipt->customer->name,
+            'customer_company' => $receipt->customer->company,
+            'customer_type' => $receipt->customer->type,
             'source_document' => $receipt->source_document,
             'sales_id' => $receipt->sales_id,
             'invoice_status' => $receipt->sales->invoice_status,
@@ -307,7 +309,6 @@ class ReceiptController extends Controller
         $commonData = [
             'transaction_type' => $data['transaction_type'],
             'scheduled_date' => $scheduled_date,
-            'state' => $data['state']
         ];
         if ($data['transaction_type'] === 'IN') {
             $rfq = Rfq::findOrFail($data['rfq_id']);
@@ -315,6 +316,7 @@ class ReceiptController extends Controller
                 'rfq_id' => $rfq->rfq_id,
                 'vendor_id' => $data['vendor_id'],
                 'source_document' => $rfq->reference,
+                'state' => $data['state']
             ]));
             if (in_array($data['state'], [4, 5])) {
                 if ($rfq) {
@@ -329,6 +331,7 @@ class ReceiptController extends Controller
                 'sales_id' => $sales->sales_id,
                 'customer_id' => $data['customer_id'],
                 'source_document' => $sales->reference,
+                'state' => $data['state']
             ]));
             if ($data['state'] == 2) {
                 $canUpdateState = true;
@@ -356,6 +359,9 @@ class ReceiptController extends Controller
                     $receipt->update([
                         'state' => 3,
                     ]);
+                    foreach ($data['items'] as $component) {
+                        $this->processItem($data, $component);
+                    }
                 }
             }
             if (in_array($data['state'], [4, 5])) {

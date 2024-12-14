@@ -345,7 +345,7 @@ class GetDataController extends Controller
         $customerData = $customers->map(function ($customer) {
             $companyName = null;
             if ($customer->type == 1 && $customer->company !== null) {
-                $customerCompany = Customer::where('company', $customer->company)->first();
+                $customerCompany = Customer::where('customer_id', $customer->company)->first();
                 $companyName = $customerCompany ? $customerCompany->name : null;
             }
             return [

@@ -139,9 +139,7 @@ class SalesController extends Controller
             } elseif ($data['state'] == 4) {
                 $this->finalizeReceipts($sales);
             }
-
             DB::commit();
-
             return response()->json([
                 'success' => true,
                 'message' => 'Sales updated successfully',
@@ -202,7 +200,7 @@ class SalesController extends Controller
     {
         $salesComponent = SalesComponent::find($component['component_id']);
         if ($salesComponent && $salesComponent->sales_id === $sales->sales_id) {
-            $reservedQty = $this->calculateReservedQty($component);
+            $reservedQty = $this->updateReservedForComponents($component, $sales);
             $salesComponent->update([
                 'product_id' => $component['type'] == 'product' ? $component['id'] : null,
                 'description' => $component['description'],
@@ -237,12 +235,6 @@ class SalesController extends Controller
         ]);
     }
 
-    private function calculateReservedQty($component)
-    {
-        $product = $component['type'] == 'product' && isset($component['id']) ? Product::find($component['id']) : null;
-        return $product ? min($product->stock, $component['qty']) : 0;
-    }
-
     private function handleStateThree($sales, $data)
     {
         if (empty($data['items']) || !collect($data['items'])->contains(function ($item) {
@@ -250,25 +242,27 @@ class SalesController extends Controller
         })) {
             return response()->json([
                 'success' => true,
-                'message' => 'Sales updated successfully. Receipt already exists.',
+                'message' => 'Sales updated successfully.',
                 'data' => $this->transformSales($sales->load(['customer', 'salesComponents'])),
             ]);
         }
-        $this->updateReservedForComponents($data['items']);
         $this->createReceipt($sales, $data);
         return null;
     }
-    private function updateReservedForComponents($components)
+    private function updateReservedForComponents($components, $sales)
     {
         foreach ($components as $component) {
             if ($component['type'] === 'product' && isset($component['id'])) {
-                $product = Product::find($component['id']);
-                if ($product) {
-                    $salesComponent = SalesComponent::where('product_id', $component['id'])->first();
-                    if ($salesComponent) {
-                        $reservedQty = min($product->stock, $component['qty']);
+                $salesComponent = SalesComponent::where('product_id', $component['id'])
+                    ->where('sales_id', $sales->sales_id)
+                    ->first();
+                if ($salesComponent) {
+                    $product = Product::find($component['id']);
+                    if ($product) {
+                        $stockAvailable = $product->stock;
+                        $requiredQty = $component['qty'];
+                        $reservedQty = min($stockAvailable, $requiredQty);
                         $salesComponent->update(['reserved' => $reservedQty]);
-                        $product->decrement('stock', $reservedQty);
                     }
                 }
             }
@@ -279,8 +273,7 @@ class SalesController extends Controller
     {
         $scheduledDate = Carbon::parse($data['scheduled_date']);
         $reference = $this->generateReference('OUT');
-
-        $reservedFullyMet = $this->checkReservedFullyMet($data['items']);
+        $reservedFullyMet = $this->checkReservedFullyMet($data['items'], $sales);
 
         Receipt::create([
             'transaction_type' => 'OUT',
@@ -293,20 +286,21 @@ class SalesController extends Controller
         ]);
     }
 
-    private function checkReservedFullyMet($components)
+    private function checkReservedFullyMet($components, $sales)
     {
         foreach ($components as $component) {
             if ($component['type'] === 'product' && isset($component['id'])) {
-                $product = Product::find($component['id']);
-                if ($product) {
-                    $salesComponent = SalesComponent::where('product_id', $component['id'])->first();
-                    $reservedQty = $salesComponent ? $salesComponent->reserved : 0;
-
-                    if ($reservedQty < $component['qty']) {
-                        return false;
+                $salesComponent = SalesComponent::where('product_id', $component['id'])
+                    ->where('sales_id', $sales->sales_id)
+                    ->first();
+                if ($salesComponent) {
+                    $product = Product::find($component['id']);
+                    if ($product) {
+                        $stockAvailable = $product->stock;
+                        $requiredQty = $component['qty'];
+                        $reservedQty = min($stockAvailable, $requiredQty);
+                        $salesComponent->update(['reserved' => $reservedQty]);
                     }
-                } else {
-                    return false;
                 }
             }
         }

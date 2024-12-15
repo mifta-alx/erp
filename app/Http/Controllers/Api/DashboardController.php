@@ -15,6 +15,7 @@ use App\Models\Rfq;
 use App\Models\Sales;
 use App\Models\Vendor;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -28,6 +29,38 @@ class DashboardController extends Controller
         $rfq = Rfq::count();
         $sales = Sales::count();
         $customer = Customer::count();
+        $customersBuy = Customer::select(
+            'customers.customer_id',
+            'customers.type',
+            'customers.name',
+            'customers.company',
+            'customers.image_url',
+            'customers.name',
+            DB::raw('SUM(sales.total) as total_purchases'),
+            DB::raw('SUM(sales_components.qty) as total_products'),
+            DB::raw('COUNT(DISTINCT sales.sales_id) as purchase_frequency')
+        )
+            ->join('sales', 'customers.customer_id', '=', 'sales.customer_id')
+            ->join('sales_components', 'sales.sales_id', '=', 'sales_components.sales_id')
+            ->groupBy('customers.customer_id', 'customers.name', 'customers.company', 'customers.type', 'customers.image_url')
+            ->orderByDesc('total_products')
+            ->get();
+        $formatCustomerBuy = $customersBuy->map(function ($customer) {
+            $companyName = null;
+            if ($customer->type == 1) {
+                $customerCompany = Customer::where('customer_id', $customer->company)->first();
+                $companyName = $customerCompany ? $customerCompany->name : null;
+            }
+            return [
+                'id' => $customer->customer_id,
+                'name' => $customer->name,
+                'company_name' => $companyName,
+                'total_purchases' => $customer->total_purchases,
+                'total_products' => $customer->total_products,
+                'purchase_frequency' => $customer->purchase_frequency,
+                'image_url' => $customer->image_url,
+            ];
+        });
         $receipt = Receipt::count();
         $invoice = Invoice::count();
         $currentMonthPayments = RegisterPayment::whereYear('payment_date', date('Y'))
@@ -74,6 +107,7 @@ class DashboardController extends Controller
                 'customer' => [
                     'total' => $customer,
                 ],
+                'customers' => $formatCustomerBuy,
                 'sale' => [
                     'total' => $sales,
                 ],

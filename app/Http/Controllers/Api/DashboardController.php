@@ -32,7 +32,7 @@ class DashboardController extends Controller
         $invoice = Invoice::count();
         $currentMonthPayments = RegisterPayment::whereYear('payment_date', date('Y'))
             ->whereMonth('payment_date', date('m'))
-            ->orderBy('payment_date', 'ASC')
+            ->orderBy('payment_date', 'DESC')
             ->get(['payment_date', 'payment_type', 'amount']);
 
         $paymentData = $currentMonthPayments->map(function ($payment) {

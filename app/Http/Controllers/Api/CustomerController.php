@@ -116,7 +116,7 @@ class CustomerController extends Controller
                     'message' => 'Image not found'
                 ], 404);
             }
-            $imageUrl = url('/storage/images/' . $image->image);
+            $imageUrl = url('images/' . $image->image);
 
             $customer = new Customer();
             $customer->fill([
@@ -188,7 +188,7 @@ class CustomerController extends Controller
                     'message' => 'Image not found'
                 ], 404);
             }
-            $imageUrl = url('/storage/images/' . $image->image);
+            $imageUrl = url('images/' . $image->image);
 
 
 

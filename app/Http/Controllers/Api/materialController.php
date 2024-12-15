@@ -108,7 +108,7 @@ class MaterialController extends Controller
                 ], 404);
             }
 
-            $imageUrl = url('/storage/images/' . $image->image);
+            $imageUrl = url('images/' . $image->image);
 
             $material = Material::create([
                 'material_name' => $data['material_name'],
@@ -210,7 +210,11 @@ class MaterialController extends Controller
         $imageUuid = $material->image_uuid;  
         $image = Image::where('image_uuid', $imageUuid)->first();
         if($image){
-            Storage::delete('public/images/'. $image->image);
+            $oldImagePath = public_path('images/' . $image->image);
+            if (file_exists($oldImagePath)) {
+                unlink($oldImagePath);
+            }
+            $image->delete();
         }
         DB::table('images')->where('image_uuid', $imageUuid)->delete();
 

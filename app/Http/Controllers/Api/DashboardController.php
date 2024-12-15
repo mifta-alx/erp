@@ -27,7 +27,18 @@ class DashboardController extends Controller
         $manufacturing = ManufacturingOrder::count();
         $vendor = Vendor::count();
         $rfq = Rfq::count();
-        $sales = Sales::count();
+        $sales = Sales::get();
+        $totalOrder = $sales->where('state', 3)->count('sales_id');
+        $totalQuotation = $sales->where('state', '<', 3)->count('sales_id');
+        $totalSales = $sales->count('sales_id');
+        $formatSales = [
+            'total_data' => $totalSales,
+            'total_income' => $sales->sum('total'),
+            'total_order' => $totalOrder,
+            'precentage_order' => round(($totalOrder / $totalSales) * 100, 1),
+            'total_quotation' => $totalQuotation,
+            'precentage_quotation' => round(($totalQuotation / $totalSales) * 100, 1),
+        ];
         $customer = Customer::count();
         $customersBuy = Customer::select(
             'customers.customer_id',
@@ -36,7 +47,6 @@ class DashboardController extends Controller
             'customers.company',
             'customers.image_url',
             'customers.name',
-            DB::raw('SUM(sales.total) as total_purchases'),
             DB::raw('SUM(sales_components.qty) as total_products'),
             DB::raw('COUNT(DISTINCT sales.sales_id) as purchase_frequency')
         )
@@ -45,7 +55,8 @@ class DashboardController extends Controller
             ->groupBy('customers.customer_id', 'customers.name', 'customers.company', 'customers.type', 'customers.image_url')
             ->orderByDesc('total_products')
             ->get();
-        $formatCustomerBuy = $customersBuy->map(function ($customer) {
+        $formatCustomerBuy = $customersBuy->map(function ($customer) use ($sales) {
+            $totalPurchase = $sales->where('customer_id', $customer->customer_id)->sum('total');
             $companyName = null;
             if ($customer->type == 1) {
                 $customerCompany = Customer::where('customer_id', $customer->company)->first();
@@ -55,7 +66,7 @@ class DashboardController extends Controller
                 'id' => $customer->customer_id,
                 'name' => $customer->name,
                 'company_name' => $companyName,
-                'total_purchases' => $customer->total_purchases,
+                'total_purchases' => $totalPurchase,
                 'total_products' => $customer->total_products,
                 'purchase_frequency' => $customer->purchase_frequency,
                 'image_url' => $customer->image_url,
@@ -108,9 +119,7 @@ class DashboardController extends Controller
                     'total' => $customer,
                 ],
                 'customers' => $formatCustomerBuy,
-                'sale' => [
-                    'total' => $sales,
-                ],
+                'sales' => $formatSales,
                 'payments' => $paymentData,
             ]
         ]);

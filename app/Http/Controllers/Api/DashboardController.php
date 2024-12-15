@@ -21,32 +21,122 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        $product = Product::count();
-        $material = Material::count();
-        $bom = Bom::count();
-        $manufacturing = ManufacturingOrder::count();
-        $vendor = Vendor::count();
-        $rfq = Rfq::count();
+        $product = $this->getProductCount();
+        $material = $this->getMaterialCount();
+        $bom = $this->getBomCount();
+        $manufacturing = $this->getManufacturingCount();
+        $vendor = $this->getVendorCount();
+        $rfq = $this->getRfqCount();
+        $formatSales = $this->getSalesData();
+        $formatCustomerBuy = $this->getCustomerData();
+        $receipt = $this->getReceiptCount();
+        $invoice = $this->getInvoiceCount();
+        $paymentData = $this->getPaymentData();
+
+        return response()->json([
+            'sucsess' => true,
+            'message' => 'Total Data',
+            'data' => [
+                'products' => [
+                    'total' => $product,
+                ],
+                'materials' => [
+                    'total' => $material,
+                ],
+                'bom' => [
+                    'total' => $bom,
+                ],
+                'mo' => $manufacturing,
+                'vendor' => [
+                    'total' => $vendor,
+                ],
+                'rfq' => [
+                    'total' => $rfq,
+                ],
+                'receipt' => [
+                    'total' => $receipt,
+                ],
+                'invoice' => [
+                    'total' => $invoice,
+                ],
+                'customer' => [
+                    'total' => Customer::count(),
+                ],
+                'customers' => $formatCustomerBuy,
+                'sales' => $formatSales,
+                'payments' => $paymentData,
+            ]
+        ]);
+    }
+
+    private function getProductCount()
+    {
+        return Product::count();
+    }
+
+    private function getMaterialCount()
+    {
+        return Material::count();
+    }
+
+    private function getBomCount()
+    {
+        return Bom::count();
+    }
+
+    private function getManufacturingCount()
+    {
+        $manufacturingOrder = ManufacturingOrder::orderBy('created_at', 'DESC')->get();
+        return $manufacturingOrder->map(function ($mo){
+            return [
+                'id' => $mo->mo_id,
+                'reference' => $mo->reference,
+                'qty' => $mo->qty,
+                'product_name' => $mo->product->product_name,
+                'product_internal_reference' => $mo->product->internal_reference,
+                'state' => $mo->state,
+                'status' => $mo->status,
+            ];
+        });
+    }
+
+    private function getVendorCount()
+    {
+        return Vendor::count();
+    }
+
+    private function getRfqCount()
+    {
+        return Rfq::count();
+    }
+
+    private function getSalesData()
+    {
         $sales = Sales::get();
+        $payment = RegisterPayment::get();
         $totalOrder = $sales->where('state', 3)->count('sales_id');
         $totalQuotation = $sales->where('state', '<', 3)->count('sales_id');
         $totalSales = $sales->count('sales_id');
-        $formatSales = [
+
+        return [
             'total_data' => $totalSales,
-            'total_income' => $sales->sum('total'),
+            'total_income' => $payment->sum('amount'),
             'total_order' => $totalOrder,
-            'precentage_order' => round(($totalOrder / $totalSales) * 100, 1),
+            'precentage_order' => $totalSales > 0 ? round(($totalOrder / $totalSales) * 100, 1) : 0,
             'total_quotation' => $totalQuotation,
-            'precentage_quotation' => round(($totalQuotation / $totalSales) * 100, 1),
+            'precentage_quotation' => $totalSales > 0 ? round(($totalQuotation / $totalSales) * 100, 1) : 0,
         ];
-        $customer = Customer::count();
+    }
+
+    private function getCustomerData()
+    {
+        $sales = Sales::get();
         $customersBuy = Customer::select(
             'customers.customer_id',
             'customers.type',
             'customers.name',
             'customers.company',
             'customers.image_url',
-            'customers.name',
             DB::raw('SUM(sales_components.qty) as total_products'),
             DB::raw('COUNT(DISTINCT sales.sales_id) as purchase_frequency')
         )
@@ -55,7 +145,8 @@ class DashboardController extends Controller
             ->groupBy('customers.customer_id', 'customers.name', 'customers.company', 'customers.type', 'customers.image_url')
             ->orderByDesc('total_products')
             ->get();
-        $formatCustomerBuy = $customersBuy->map(function ($customer) use ($sales) {
+
+        return $customersBuy->map(function ($customer) use ($sales) {
             $totalPurchase = $sales->where('customer_id', $customer->customer_id)->sum('total');
             $companyName = null;
             if ($customer->type == 1) {
@@ -72,14 +163,26 @@ class DashboardController extends Controller
                 'image_url' => $customer->image_url,
             ];
         });
-        $receipt = Receipt::count();
-        $invoice = Invoice::count();
+    }
+
+    private function getReceiptCount()
+    {
+        return Receipt::count();
+    }
+
+    private function getInvoiceCount()
+    {
+        return Invoice::count();
+    }
+
+    private function getPaymentData()
+    {
         $currentMonthPayments = RegisterPayment::whereYear('payment_date', date('Y'))
             ->whereMonth('payment_date', date('m'))
             ->orderBy('payment_date', 'DESC')
             ->get(['payment_date', 'payment_type', 'amount', 'journal']);
 
-        $paymentData = $currentMonthPayments->map(function ($payment) {
+        return $currentMonthPayments->map(function ($payment) {
             return [
                 'payment_date' => $payment->payment_date,
                 'payment_type' => $payment->payment_type,
@@ -87,41 +190,5 @@ class DashboardController extends Controller
                 'amount' => $payment->amount,
             ];
         });
-        return response()->json([
-            'sucsess' => true,
-            'message' => 'Total Data',
-            'data' => [
-                'products' => [
-                    'total' => $product,
-                ],
-                'materials' => [
-                    'total' => $material,
-                ],
-                'bom' => [
-                    'total' => $bom,
-                ],
-                'mo' => [
-                    'total' => $manufacturing,
-                ],
-                'vendor' => [
-                    'total' => $vendor,
-                ],
-                'rfq' => [
-                    'total' => $rfq,
-                ],
-                'receipt' => [
-                    'total' => $receipt,
-                ],
-                'invoice' => [
-                    'total' => $invoice,
-                ],
-                'customer' => [
-                    'total' => $customer,
-                ],
-                'customers' => $formatCustomerBuy,
-                'sales' => $formatSales,
-                'payments' => $paymentData,
-            ]
-        ]);
     }
 }

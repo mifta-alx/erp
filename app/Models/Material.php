@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class Material extends Model
 {
+    //test comment
     use HasFactory;
     protected $table = "materials";
     protected $primaryKey = 'material_id';

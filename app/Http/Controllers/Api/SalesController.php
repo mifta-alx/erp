@@ -119,25 +119,113 @@ class SalesController extends Controller
         DB::beginTransaction();
         try {
             $data = $request->json()->all();
-
             $validator = $this->validateSales($request);
             if ($validator->fails()) {
                 return $this->validationErrorResponse($validator);
             }
-
             $sales = Sales::find($id);
             if (!$sales) {
                 return $this->notFoundResponse('Sales not found');
             }
-
-            $this->updateSalesRecord($sales, $data);
-            $this->processSalesComponents($sales, $data['items']);
-
+            $sales->update([
+                'customer_id' => $data['customer_id'],
+                'taxes' => $data['taxes'],
+                'total' => $data['total'],
+                'expiration' => Carbon::parse($data['expiration']),
+                'confirmation_date' => isset($data['confirmation_date']) ? Carbon::parse($data['confirmation_date']) : null,
+                'invoice_status' => $data['invoice_status'],
+                'state' => $data['state'],
+                'payment_term_id' => $data['payment_term_id'],
+            ]);
+            if (!empty($data['items'])) {
+                foreach ($data['items'] as $component) {
+                    if (isset($component['component_id']) && $component['component_id'] !== null) {
+                        $salesComponent = SalesComponent::find($component['component_id']);
+                        if ($salesComponent && $salesComponent->sales_id === $sales->sales_id) {
+                            $reservedQty = 0;
+                            if (isset($component['id']) && $component['type'] == 'product') {
+                                $product = Product::find($component['id']);
+                                if ($product) {
+                                    $stockAvailable = $product->stock;
+                                    $requiredQty = $component['qty'];
+                                    $reservedQty = min($stockAvailable, $requiredQty);
+                                }
+                            }
+                            $salesComponent->update([
+                                'product_id' => $component['type'] == 'product' ? $component['id'] : null,
+                                'description' => $component['description'],
+                                'display_type' => $component['type'],
+                                'qty' => $component['qty'] ?? 0,
+                                'unit_price' => $component['unit_price'] ?? 0,
+                                'tax' => $component['tax'] ?? 0,
+                                'subtotal' => $component['subtotal'] ?? 0,
+                                'qty_received' => $component['qty_received'] ?? 0,
+                                'qty_to_invoice' => $component['qty_to_invoice'] ?? 0,
+                                'qty_invoiced' => $component['qty_invoiced'] ?? 0,
+                                'reserved' => $reservedQty,
+                            ]);
+                        }
+                    } elseif (isset($component['id']) && $component['id'] !== null && $component['type'] !== 'line_section') {
+                        SalesComponent::create([
+                            'sales_id' => $sales->sales_id,
+                            'product_id' => $component['type'] == 'product' ? $component['id'] : null,
+                            'description' => $component['description'],
+                            'display_type' => $component['type'],
+                            'qty' => $component['qty'] ?? 0,
+                            'unit_price' => $component['unit_price'] ?? 0,
+                            'tax' => $component['tax'] ?? 0,
+                            'subtotal' => $component['subtotal'] ?? 0,
+                            'qty_received' => $component['qty_received'] ?? 0,
+                            'qty_to_invoice' => $component['qty_to_invoice'] ?? 0,
+                            'qty_invoiced' => $component['qty_invoiced'] ?? 0,
+                            'reserved' => 0,
+                        ]);
+                    }
+                }
+            }
             if ($data['state'] == 3) {
-                $response = $this->handleStateThree($sales, $data);
-                if ($response) return $response;
+                if (!empty($data['items']) && collect($data['items'])->contains(function ($item) {
+                    return $item['type'] === 'product';
+                })) {
+                    $scheduledDate = Carbon::parse($data['scheduled_date']);
+                    $reference = $this->generateReference('OUT');
+                    $reservedFullyMet = true;
+                    foreach ($data['items'] as $component) {
+                        if ($component['type'] === 'product' && isset($component['id'])) {
+                            $salesComponent = SalesComponent::where('product_id', $component['id'])
+                                ->where('sales_id', $sales->sales_id)
+                                ->first();
+                            if ($salesComponent) {
+                                $product = Product::find($component['id']);
+                                if ($product) {
+                                    $stockAvailable = $product->stock;
+                                    $requiredQty = $component['qty'];
+                                    $reservedQty = min($stockAvailable, $requiredQty);
+                                    $salesComponent->update(['reserved' => $reservedQty]);
+                                }
+                                if ($reservedQty < $requiredQty) {
+                                    $reservedFullyMet = false;
+                                }
+                            }
+                        }
+                    }
+                    Receipt::create([
+                        'transaction_type' => 'OUT',
+                        'reference' => $reference,
+                        'sales_id' => $sales->sales_id,
+                        'customer_id' => $sales->customer_id,
+                        'source_document' => $sales->reference,
+                        'scheduled_date' => $scheduledDate,
+                        'state' => $reservedFullyMet ? 3 : 2,
+                    ]);
+                }
             } elseif ($data['state'] == 4) {
-                $this->finalizeReceipts($sales);
+                $receipts = Receipt::where('sales_id', $sales->sales_id)
+                    ->where('state', '!=', 5)
+                    ->get();
+                foreach ($receipts as $receipt) {
+                    $receipt->update(['state' => 5]);
+                }
             }
             DB::commit();
             return response()->json([
@@ -152,159 +240,6 @@ class SalesController extends Controller
                 'message' => $e->getMessage(),
             ], 500);
         }
-    }
-
-    private function validationErrorResponse($validator)
-    {
-        return response()->json([
-            'success' => false,
-            'message' => 'Validation errors',
-            'errors' => $validator->errors(),
-        ], 422);
-    }
-
-    private function notFoundResponse($message)
-    {
-        return response()->json([
-            'success' => false,
-            'message' => $message,
-        ], 404);
-    }
-
-    private function updateSalesRecord($sales, $data)
-    {
-        $sales->update([
-            'customer_id' => $data['customer_id'],
-            'taxes' => $data['taxes'],
-            'total' => $data['total'],
-            'expiration' => Carbon::parse($data['expiration']),
-            'confirmation_date' => isset($data['confirmation_date']) ? Carbon::parse($data['confirmation_date']) : null,
-            'invoice_status' => $data['invoice_status'],
-            'state' => $data['state'],
-            'payment_term_id' => $data['payment_term_id'],
-        ]);
-    }
-
-    private function processSalesComponents($sales, $components)
-    {
-        foreach ($components as $component) {
-            if (isset($component['component_id'])) {
-                $this->updateSalesComponent($sales, $component);
-            } else {
-                $this->createSalesComponent($sales, $component);
-            }
-        }
-    }
-
-    private function updateSalesComponent($sales, $component)
-    {
-        $salesComponent = SalesComponent::find($component['component_id']);
-        if ($salesComponent && $salesComponent->sales_id === $sales->sales_id) {
-            $reservedQty = $this->updateReservedForComponents($component, $sales);
-            $salesComponent->update([
-                'product_id' => $component['type'] == 'product' ? $component['id'] : null,
-                'description' => $component['description'],
-                'display_type' => $component['type'],
-                'qty' => $component['qty'] ?? 0,
-                'unit_price' => $component['unit_price'] ?? 0,
-                'tax' => $component['tax'] ?? 0,
-                'subtotal' => $component['subtotal'] ?? 0,
-                'qty_received' => $component['qty_received'] ?? 0,
-                'qty_to_invoice' => $component['qty_to_invoice'] ?? 0,
-                'qty_invoiced' => $component['qty_invoiced'] ?? 0,
-                'reserved' => $reservedQty,
-            ]);
-        }
-    }
-
-    private function createSalesComponent($sales, $component)
-    {
-        SalesComponent::create([
-            'sales_id' => $sales->sales_id,
-            'product_id' => $component['type'] == 'product' ? $component['id'] : null,
-            'description' => $component['description'],
-            'display_type' => $component['type'],
-            'qty' => $component['qty'] ?? 0,
-            'unit_price' => $component['unit_price'] ?? 0,
-            'tax' => $component['tax'] ?? 0,
-            'subtotal' => $component['subtotal'] ?? 0,
-            'qty_received' => $component['qty_received'] ?? 0,
-            'qty_to_invoice' => $component['qty_to_invoice'] ?? 0,
-            'qty_invoiced' => $component['qty_invoiced'] ?? 0,
-            'reserved' => 0,
-        ]);
-    }
-
-    private function handleStateThree($sales, $data)
-    {
-        if (empty($data['items']) || !collect($data['items'])->contains(function ($item) {
-            return $item['type'] === 'product';
-        })) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Sales updated successfully.',
-                'data' => $this->transformSales($sales->load(['customer', 'salesComponents'])),
-            ]);
-        }
-        $this->createReceipt($sales, $data);
-        return null;
-    }
-    private function updateReservedForComponents($components, $sales)
-    {
-        foreach ($components as $component) {
-            if ($component['type'] === 'product' && isset($component['id'])) {
-                $salesComponent = SalesComponent::where('product_id', $component['id'])
-                    ->where('sales_id', $sales->sales_id)
-                    ->first();
-                if ($salesComponent) {
-                    $product = Product::find($component['id']);
-                    if ($product) {
-                        $stockAvailable = $product->stock;
-                        $requiredQty = $component['qty'];
-                        $reservedQty = min($stockAvailable, $requiredQty);
-                        $salesComponent->update(['reserved' => $reservedQty]);
-                    }
-                }
-            }
-        }
-    }
-
-    private function createReceipt($sales, $data)
-    {
-        $scheduledDate = Carbon::parse($data['scheduled_date']);
-        $reference = $this->generateReference('OUT');
-        $reservedFullyMet = $this->checkReservedFullyMet($data['items'], $sales);
-
-        Receipt::create([
-            'transaction_type' => 'OUT',
-            'reference' => $reference,
-            'sales_id' => $sales->sales_id,
-            'customer_id' => $sales->customer_id,
-            'source_document' => $sales->reference,
-            'scheduled_date' => $scheduledDate,
-            'state' => $reservedFullyMet ? 3 : 2,
-        ]);
-    }
-
-    private function checkReservedFullyMet($components, $sales)
-    {
-        foreach ($components as $component) {
-            if ($component['type'] === 'product' && isset($component['id'])) {
-                $salesComponent = SalesComponent::where('product_id', $component['id'])
-                    ->where('sales_id', $sales->sales_id)
-                    ->first();
-                if ($salesComponent) {
-                    $product = Product::find($component['id']);
-                    if ($product) {
-                        $stockAvailable = $product->stock;
-                        $requiredQty = $component['qty'];
-                        $reservedQty = min($stockAvailable, $requiredQty);
-                        $salesComponent->update(['reserved' => $reservedQty]);
-                    }
-                }
-            }
-        }
-        return true;
     }
 
     private function generateReference($prefix)
@@ -322,16 +257,21 @@ class SalesController extends Controller
 
         return "$prefix/{$referenceNumberPadded}";
     }
-
-    private function finalizeReceipts($sales)
+    private function validationErrorResponse($validator)
     {
-        $receipts = Receipt::where('sales_id', $sales->sales_id)
-            ->where('state', '!=', 5)
-            ->get();
+        return response()->json([
+            'success' => false,
+            'message' => 'Validation errors',
+            'errors' => $validator->errors(),
+        ], 422);
+    }
 
-        foreach ($receipts as $receipt) {
-            $receipt->update(['state' => 5]);
-        }
+    private function notFoundResponse($message)
+    {
+        return response()->json([
+            'success' => false,
+            'message' => $message,
+        ], 404);
     }
     public function show($id)
     {

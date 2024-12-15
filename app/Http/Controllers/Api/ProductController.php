@@ -106,7 +106,7 @@ class ProductController extends Controller
                 ], 404);
             }
 
-            $imageUrl = url('/storage/images/' . $image->image);
+            $imageUrl = url('images/' . $image->image);
 
             $product = Product::create([
                 'product_name' => $data['product_name'],
@@ -262,7 +262,11 @@ class ProductController extends Controller
         $imageUuid = $product->image_uuid;
         $image = Image::where('image_uuid', $imageUuid)->first();
         if ($image) {
-            Storage::delete('public/images/' . $image->image);
+            $oldImagePath = public_path('images/' . $image->image);
+            if (file_exists($oldImagePath)) {
+                unlink($oldImagePath);
+            }
+            $image->delete();
         }
         DB::table('images')->where('image_uuid', $imageUuid)->delete();
 

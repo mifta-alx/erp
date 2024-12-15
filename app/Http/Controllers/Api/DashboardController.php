@@ -76,7 +76,7 @@ class DashboardController extends Controller
                 'sale' => [
                     'total' => $sales,
                 ],
-                'paymments' => $paymentData,
+                'payments' => $paymentData,
             ]
         ]);
     }

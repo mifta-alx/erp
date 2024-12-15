@@ -85,7 +85,7 @@ class VendorController extends Controller
         }
 
         $image = Image::where('image_uuid', $data['image_uuid'])->first();
-        $imageUrl = $image ? url('/storage/images/' . $image->image) : null;
+        $imageUrl = $image ? url('images/' . $image->image) : null;
 
         $vendor = Vendor::create([
             'name' => $data['name'],
@@ -176,7 +176,7 @@ class VendorController extends Controller
         }
 
         $image = Image::where('image_uuid', $data['image_uuid'])->first();
-        $imageUrl = $image ? url('/storage/images/' . $image->image) : $vendor->image_url;
+        $imageUrl = $image ? url('images/' . $image->image) : $vendor->image_url;
 
         $vendor->update([
             'name' => $data['name'],
@@ -227,9 +227,12 @@ class VendorController extends Controller
         $imageUuid = $vendor->image_uuid;
         $image = Image::where('image_uuid', $imageUuid)->first();
         if ($image) {
-            Storage::delete('public/images/' . $image->image);
+            $oldImagePath = public_path('images/' . $image->image);
+            if (file_exists($oldImagePath)) {
+                unlink($oldImagePath);
+            }
+            $image->delete();
         }
-        DB::table('images')->where('image_uuid', $imageUuid)->delete();
         $vendor->delete();
 
         return response()->json([

@@ -18,7 +18,7 @@ Route::apiResource('/categories', App\Http\Controllers\Api\CategoryController::c
 Route::apiResource('/boms', App\Http\Controllers\Api\BomController::class);
 Route::apiResource('/upload-images', App\Http\Controllers\Api\ImageController::class);
 Route::get('/upload-images/{uuid}', [ImageController::class, 'show']);
-Route::put('/upload-images/{uuid}', [ImageController::class, 'update']);
+Route::post('/upload-images/{uuid}', [ImageController::class, 'update']);
 Route::delete('/upload-images/{uuid}', [ImageController::class, 'destroy']);
 Route::apiResource('/tags', App\Http\Controllers\Api\TagController::class);
 Route::apiResource('/manufacturing-orders', App\Http\Controllers\Api\MoController::class);

@@ -31,7 +31,7 @@ class ImageController extends Controller
                 'id' => $image->image_id,
                 'uuid' => $image->image_uuid,
                 'name' => $image->image,
-                'url' => url('/storage/images/' . $image->image),
+                'url' => url('images/' . $image->image),
             ];
         });
         return new ImageResource(true, 'List Image Data', $imageData);
@@ -50,12 +50,13 @@ class ImageController extends Controller
             'id' => $image->image_id,
             'uuid' => $image->image_uuid,
             'name' => $image->image,
-            'url' => url('/storage/images/' . $image->image),
+            'url' => url('images/' . $image->image),
         ]);
     }
 
     public function store(Request $request)
     {
+        // Validasi input gambar
         $validator = $this->validateImage($request);
         if ($validator->fails()) {
             return response()->json([
@@ -67,20 +68,25 @@ class ImageController extends Controller
 
         $image = $request->file('image');
         $imageName = $image->hashName();
-        $image->storeAs('public/images', $imageName);
 
+        // Memindahkan gambar ke dalam folder public/images
+        $image->move(public_path('images'), $imageName);
+
+        // Menyimpan informasi gambar ke database
         $image = Image::create([
             'image_uuid' => $request->image_uuid,
             'image' => $imageName,
         ]);
 
+        // Mengembalikan respon dengan URL gambar yang dapat diakses
         return new ImageResource(true, 'Image Successfully Uploaded', [
             'id' => $image->image_id,
             'uuid' => $image->image_uuid,
             'name' => $image->image,
-            'url' => url('/storage/images/' . $image->image),
+            'url' => url('images/' . $image->image),
         ]);
     }
+
 
 
     public function update(Request $request, $uuid)
@@ -100,25 +106,36 @@ class ImageController extends Controller
                 'message' => 'Image not found'
             ], 404);
         }
+
         if ($request->hasFile('image')) {
-            Storage::delete('public/images/' . $image->image);
+
+            // Hapus file lama di folder public/images
+            $oldImagePath = public_path('images/' . $image->image);
+            if (file_exists($oldImagePath)) {
+                unlink($oldImagePath);
+            }
+
+            // Simpan file baru ke folder public/images
             $newImageFile = $request->file('image');
             $newImageName = $newImageFile->hashName();
-            $newImageFile->storeAs('public/images', $newImageName);
+            $newImageFile->move(public_path('images'), $newImageName);
+
+
+            // Update data di database
             $image->image = $newImageName;
             $image->save();
         }
+
         return new ImageResource(true, 'Image Updated Successfully', [
             'id' => $image->image_id,
             'uuid' => $image->image_uuid,
             'name' => $image->image,
-            'url' => url('/storage/images/' . $image->image),
+            'url' => url('images/' . $image->image),
         ]);
     }
 
     public function destroy($uuid)
     {
-        // $image = Image::find($id);
         $image = Image::where('image_uuid', $uuid)->first();
         if (!$image) {
             return response()->json([
@@ -126,8 +143,17 @@ class ImageController extends Controller
                 'message' => 'Image not found'
             ], 404);
         }
-        Storage::delete('public/images/' . $image->image);
+    
+        // Hapus file dari folder public/images
+        $imagePath = public_path('images/' . $image->image);
+        if (file_exists($imagePath)) {
+            unlink($imagePath);
+        }
+    
+        // Hapus data dari database
         $image->delete();
+    
         return new ImageResource(true, 'Image Deleted Successfully', []);
     }
+    
 }

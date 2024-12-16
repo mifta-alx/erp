@@ -7,6 +7,7 @@ use App\Http\Resources\CustomerResource;
 use App\Models\Customer;
 use App\Models\Image;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
 
@@ -225,17 +226,41 @@ class CustomerController extends Controller
 
     public function destroy($id)
     {
-        $customer = Customer::find($id);
-        if (!$customer) {
+        try {
+            $customer = Customer::find($id);
+            if (!$customer) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Customer not found'
+                ], 404);
+            }
+            $imageUuid = $customer->image_uuid;
+            $customer->delete();
+            $image = Image::where('image_uuid', $imageUuid)->first();
+            if ($image) {
+                $oldImagePath = public_path('images/' . $image->image);
+                if (file_exists($oldImagePath)) {
+                    unlink($oldImagePath);
+                }
+                $image->delete();
+            }
+            DB::table('images')->where('image_uuid', $imageUuid)->delete();
+            return response()->json([
+                'success' => true,
+                'message' => 'Customer Data Deleted'
+            ]);
+        } catch (\Exception $e) {
+            if ($e->getCode() == '23000') {
+                return response()->json([
+                    'success' => false,
+                    'title' => 'The customer cannot be deleted',
+                    'message' => 'Customer is used in another table'
+                ], 400);
+            }
             return response()->json([
                 'success' => false,
-                'message' => 'Customer not found'
-            ], 404);
+                'message' => 'An error occurred while deleting the product.'
+            ], 500);
         }
-        $customer->delete();
-        return response()->json([
-            'success' => true,
-            'message' => 'Customer Data Deleted'
-        ]);
     }
 }

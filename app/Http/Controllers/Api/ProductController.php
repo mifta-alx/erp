@@ -251,26 +251,40 @@ class ProductController extends Controller
 
     public function destroy($id)
     {
-        $product = Product::find($id);
-        if (!$product) {
+        try {
+            $product = Product::find($id);
+            if (!$product) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Product not found'
+                ], 404);
+            }
+
+            $imageUuid = $product->image_uuid;
+            $product->delete();
+            $image = Image::where('image_uuid', $imageUuid)->first();
+            if ($image) {
+                $oldImagePath = public_path('images/' . $image->image);
+                if (file_exists($oldImagePath)) {
+                    unlink($oldImagePath);
+                }
+                $image->delete();
+            }
+            DB::table('images')->where('image_uuid', $imageUuid)->delete();
+
+            return new ProductResource(true, 'Data Deleted Successfully', []);
+        } catch (\Exception $e) {
+            if ($e->getCode() == '23000') {
+                return response()->json([
+                    'success' => false,
+                    'title' => 'The product cannot be deleted',
+                    'message' => 'Product is used in another table'
+                ], 400);
+            }
             return response()->json([
                 'success' => false,
-                'message' => 'Product not found'
-            ], 404);
+                'message' => 'An error occurred while deleting the product.'
+            ], 500);
         }
-
-        $imageUuid = $product->image_uuid;
-        $image = Image::where('image_uuid', $imageUuid)->first();
-        if ($image) {
-            $oldImagePath = public_path('images/' . $image->image);
-            if (file_exists($oldImagePath)) {
-                unlink($oldImagePath);
-            }
-            $image->delete();
-        }
-        DB::table('images')->where('image_uuid', $imageUuid)->delete();
-
-        $product->delete();
-        return new ProductResource(true, 'Data Deleted Successfully', []);
     }
 }

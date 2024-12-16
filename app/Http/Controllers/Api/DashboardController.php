@@ -137,16 +137,17 @@ class DashboardController extends Controller
             'customers.name',
             'customers.company',
             'customers.image_url',
+            'customers.created_at',
             DB::raw('SUM(sales_components.qty) as total_products'),
             DB::raw('COUNT(DISTINCT sales.sales_id) as purchase_frequency')
         )
             ->join('sales', 'customers.customer_id', '=', 'sales.customer_id')
             ->join('sales_components', 'sales.sales_id', '=', 'sales_components.sales_id')
-            ->groupBy('customers.customer_id', 'customers.name', 'customers.company', 'customers.type', 'customers.image_url')
-            ->orderByDesc('total_products')
+            ->whereYear('customers.created_at', date('Y'))
+            ->whereMonth('customers.created_at', date('m'))
+            ->groupBy('customers.customer_id', 'customers.name', 'customers.company', 'customers.type', 'customers.image_url', 'customers.created_at')
             ->get();
-
-        return $customersBuy->map(function ($customer) use ($sales) {
+        $customerData = $customersBuy->map(function ($customer) use ($sales) {
             $totalPurchase = $sales->where('customer_id', $customer->customer_id)->sum('total');
             $companyName = null;
             if ($customer->type == 1) {
@@ -163,7 +164,9 @@ class DashboardController extends Controller
                 'image_url' => $customer->image_url,
             ];
         });
+        return $customerData->sortByDesc('total_purchases')->values();
     }
+
 
     private function getReceiptCount()
     {

@@ -148,7 +148,10 @@ class DashboardController extends Controller
             ->groupBy('customers.customer_id', 'customers.name', 'customers.company', 'customers.type', 'customers.image_url', 'customers.created_at')
             ->get();
         $customerData = $customersBuy->map(function ($customer) use ($sales) {
-            $totalPurchase = $sales->where('customer_id', $customer->customer_id)->where('invoice_status', 3)->sum('total');
+            $totalPurchase = $sales->where('invoice_status', 3)->where('customer_id', $customer->customer_id)->sum('total');
+            if ($totalPurchase <= 0) {
+                return;
+            }
             $companyName = null;
             if ($customer->type == 1) {
                 $customerCompany = Customer::where('customer_id', $customer->company)->first();
@@ -163,7 +166,7 @@ class DashboardController extends Controller
                 'purchase_frequency' => $customer->purchase_frequency,
                 'image_url' => $customer->image_url,
             ];
-        });
+        })->filter();
         return $customerData->sortByDesc('total_purchases')->values();
     }
 

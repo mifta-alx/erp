@@ -87,7 +87,7 @@ class DashboardController extends Controller
     private function getManufacturingCount()
     {
         $manufacturingOrder = ManufacturingOrder::orderBy('created_at', 'DESC')->get();
-        return $manufacturingOrder->map(function ($mo){
+        return $manufacturingOrder->map(function ($mo) {
             return [
                 'id' => $mo->mo_id,
                 'reference' => $mo->reference,
@@ -113,14 +113,17 @@ class DashboardController extends Controller
     private function getSalesData()
     {
         $sales = Sales::get();
-        $payment = RegisterPayment::get();
+        $income = RegisterPayment::join('invoices', 'register_payments.invoice_id', '=', 'invoices.invoice_id')
+            ->where('invoices.transaction_type', 'INV')
+            ->where('invoices.payment_status', 2)
+            ->sum('register_payments.amount');
         $totalOrder = $sales->where('state', 3)->count('sales_id');
         $totalQuotation = $sales->where('state', '<', 3)->count('sales_id');
         $totalSales = $sales->count('sales_id');
 
         return [
             'total_data' => $totalSales,
-            'total_income' => $payment->sum('amount'),
+            'total_income' => $income,
             'total_order' => $totalOrder,
             'precentage_order' => $totalSales > 0 ? round(($totalOrder / $totalSales) * 100, 1) : 0,
             'total_quotation' => $totalQuotation,

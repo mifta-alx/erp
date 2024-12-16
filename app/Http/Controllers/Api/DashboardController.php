@@ -115,7 +115,7 @@ class DashboardController extends Controller
         $sales = Sales::get();
         $income = RegisterPayment::join('invoices', 'register_payments.invoice_id', '=', 'invoices.invoice_id')
             ->where('invoices.transaction_type', 'INV')
-            ->where('invoices.payment_status', 2)
+            ->where('invoices.payment_status', 3)
             ->sum('register_payments.amount');
         $totalOrder = $sales->where('state', 3)->count('sales_id');
         $totalQuotation = $sales->where('state', '<', 3)->count('sales_id');

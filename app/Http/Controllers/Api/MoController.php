@@ -252,7 +252,10 @@ class MoController extends Controller
                     ]);
                     break;
                 case 3:
-                    $this->processState3($manufacturing, $data);
+                    $response = $this->processState3($manufacturing, $data);
+                    if ($response) {
+                        return $response;
+                    }
                     break;
 
                 case 4:
@@ -317,12 +320,18 @@ class MoController extends Controller
                 'state' => 3,
                 'status' => $status
             ]);
+            return response()->json([
+                'success' => false,
+                'title' => 'Check availability failed',
+                'message' => 'Material not yet available'
+            ], 422);
         } else {
             $manufacturing->update([
                 'state' => 4,
                 'status' => $status
             ]);
         }
+        return null;
     }
 
     private function processState4($manufacturing, $data)

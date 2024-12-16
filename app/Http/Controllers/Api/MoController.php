@@ -312,10 +312,17 @@ class MoController extends Controller
         }
 
         $status = $hasInsufficientStock ? 'failed' : 'process';
-        $manufacturing->update([
-            'state' => $data['state'],
-            'status' => $status
-        ]);
+        if ($hasInsufficientStock == true) {
+            $manufacturing->update([
+                'state' => 3,
+                'status' => $status
+            ]);
+        } else {
+            $manufacturing->update([
+                'state' => 4,
+                'status' => $status
+            ]);
+        }
     }
 
     private function processState4($manufacturing, $data)

@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id('rfq_id');
             $table->string('reference');
             $table->unsignedBigInteger('vendor_id');
-            $table->foreign('vendor_id')->references('vendor_id')->on('vendors')->onDelete('cascade');
+            $table->foreign('vendor_id')->references('vendor_id')->on('vendors')->onDelete('restrict');
             $table->string('vendor_reference')->nullable();
             $table->integer('state');
             $table->double('taxes');

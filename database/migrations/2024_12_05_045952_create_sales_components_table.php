@@ -14,9 +14,9 @@ return new class extends Migration
         Schema::create('sales_components', function (Blueprint $table) {
             $table->id('sales_component_id');
             $table->unsignedBigInteger('sales_id');
-            $table->foreign('sales_id')->references('sales_id')->on('sales')->onDelete('cascade');
+            $table->foreign('sales_id')->references('sales_id')->on('sales')->onDelete('restrict');
             $table->unsignedBigInteger('product_id')->nullable();
-            $table->foreign('product_id')->references('product_id')->on('products')->onDelete('cascade');
+            $table->foreign('product_id')->references('product_id')->on('products')->onDelete('restrict');
             $table->string('description')->nullable();
             $table->string('display_type')->nullable();
             $table->double('qty');

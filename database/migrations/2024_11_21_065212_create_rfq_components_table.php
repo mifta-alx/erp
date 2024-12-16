@@ -14,9 +14,9 @@ return new class extends Migration
         Schema::create('rfq_components', function (Blueprint $table) {
             $table->id('rfq_component_id');
             $table->unsignedBigInteger('rfq_id');
-            $table->foreign('rfq_id')->references('rfq_id')->on('rfqs')->onDelete('cascade');
+            $table->foreign('rfq_id')->references('rfq_id')->on('rfqs')->onDelete('restrict');
             $table->unsignedBigInteger('material_id')->nullable();
-            $table->foreign('material_id')->references('material_id')->on('materials')->onDelete('cascade');
+            $table->foreign('material_id')->references('material_id')->on('materials')->onDelete('restrict');
             $table->string('description')->nullable();
             $table->string('display_type')->nullable();
             $table->double('qty');

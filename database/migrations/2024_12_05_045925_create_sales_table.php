@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('sales', function (Blueprint $table) {
             $table->id('sales_id');
             $table->unsignedBigInteger('customer_id');
-            $table->foreign('customer_id')->references('customer_id')->on('customers')->onDelete('cascade');
+            $table->foreign('customer_id')->references('customer_id')->on('customers')->onDelete('restrict');
             $table->double('taxes');
             $table->double('total');
             $table->dateTime('expiration');
@@ -22,7 +22,7 @@ return new class extends Migration
             $table->integer('invoice_status');
             $table->integer('state');
             $table->unsignedBigInteger('payment_term_id')->nullable();
-            $table->foreign('payment_term_id')->references('payment_term_id')->on('payment_terms')->onDelete('cascade');
+            $table->foreign('payment_term_id')->references('payment_term_id')->on('payment_terms')->onDelete('restrict');
             $table->string('reference');
             $table->timestamps();
         });

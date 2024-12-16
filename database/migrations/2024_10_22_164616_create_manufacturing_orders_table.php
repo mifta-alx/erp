@@ -15,10 +15,10 @@ return new class extends Migration
             $table->id('mo_id');
             $table->string('reference')->nullable();
             $table->unsignedBigInteger('product_id');
-            $table->foreign('product_id')->references('product_id')->on('products')->onDelete('cascade');
+            $table->foreign('product_id')->references('product_id')->on('products')->onDelete('restrict');
             $table->double('qty');
             $table->unsignedBigInteger('bom_id');
-            $table->foreign('bom_id')->references('bom_id')->on('boms')->onDelete('cascade');
+            $table->foreign('bom_id')->references('bom_id')->on('boms')->onDelete('restrict');
             $table->integer('state');
             $table->string('status');
             $table->timestamps();

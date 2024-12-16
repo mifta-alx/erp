@@ -15,11 +15,11 @@ return new class extends Migration
             $table->id('payment_id');
             $table->string('reference');
             $table->unsignedBigInteger('invoice_id');
-            $table->foreign('invoice_id')->references('invoice_id')->on('invoices')->onDelete('no action');
+            $table->foreign('invoice_id')->references('invoice_id')->on('invoices')->onDelete('restrict');
             $table->unsignedBigInteger('vendor_id')->nullable();
-            $table->foreign('vendor_id')->references('vendor_id')->on('vendors')->onDelete('no action');
+            $table->foreign('vendor_id')->references('vendor_id')->on('vendors')->onDelete('restrict');
             $table->unsignedBigInteger('customer_id')->nullable();
-            $table->foreign('customer_id')->references('customer_id')->on('customers')->onDelete('no action');
+            $table->foreign('customer_id')->references('customer_id')->on('customers')->onDelete('restrict');
             $table->integer('journal');
             $table->double('amount');
             $table->dateTime('payment_date');

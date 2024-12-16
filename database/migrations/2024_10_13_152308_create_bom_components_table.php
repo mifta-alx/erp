@@ -14,9 +14,9 @@ return new class extends Migration
         Schema::create('bom_components', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('bom_id');
-            $table->foreign('bom_id')->references('bom_id')->on('boms')->onDelete('cascade');
+            $table->foreign('bom_id')->references('bom_id')->on('boms')->onDelete('restrict');
             $table->unsignedBigInteger('material_id');
-            $table->foreign('material_id')->references('material_id')->on('materials')->onDelete('cascade');
+            $table->foreign('material_id')->references('material_id')->on('materials')->onDelete('restrict');
             $table->double('material_qty');
             $table->timestamps();
         });

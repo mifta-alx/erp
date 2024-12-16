@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('boms', function (Blueprint $table) {
             $table->id('bom_id');
             $table->unsignedBigInteger('product_id');
-            $table->foreign('product_id')->references('product_id')->on('products')->onDelete('cascade');
+            $table->foreign('product_id')->references('product_id')->on('products')->onDelete('restrict');
             $table->double('bom_qty');
             $table->string('bom_reference')->nullable(); 
             $table->timestamps();

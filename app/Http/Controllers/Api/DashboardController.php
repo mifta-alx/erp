@@ -148,7 +148,7 @@ class DashboardController extends Controller
             ->groupBy('customers.customer_id', 'customers.name', 'customers.company', 'customers.type', 'customers.image_url', 'customers.created_at')
             ->get();
         $customerData = $customersBuy->map(function ($customer) use ($sales) {
-            $totalPurchase = $sales->where('customer_id', $customer->customer_id)->sum('total');
+            $totalPurchase = $sales->where('customer_id', $customer->customer_id)->where('invoice_status', 3)->sum('total');
             $companyName = null;
             if ($customer->type == 1) {
                 $customerCompany = Customer::where('customer_id', $customer->company)->first();

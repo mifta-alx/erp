@@ -113,19 +113,14 @@ class DashboardController extends Controller
     private function getSalesData()
     {
         $sales = Sales::get();
-        $income = RegisterPayment::join('invoices', 'register_payments.invoice_id', '=', 'invoices.invoice_id')
-            ->join('sales', 'invoices.sales_id', '=', 'sales.sales_id')
-            ->where('invoices.transaction_type', 'INV')
-            ->where('invoices.payment_status', 2)
-            ->where('sales.invoice_status', 3)
-            ->sum('register_payments.amount');
+        $income = RegisterPayment::where('payment_type', 'inbound')->get();
         $totalOrder = $sales->where('state', 3)->count('sales_id');
         $totalQuotation = $sales->where('state', '<', 3)->count('sales_id');
         $totalSales = $sales->count('sales_id');
 
         return [
             'total_data' => $totalSales,
-            'total_income' => $income,
+            'total_income' => $income->sum('amount'),
             'total_order' => $totalOrder,
             'precentage_order' => $totalSales > 0 ? round(($totalOrder / $totalSales) * 100, 1) : 0,
             'total_quotation' => $totalQuotation,

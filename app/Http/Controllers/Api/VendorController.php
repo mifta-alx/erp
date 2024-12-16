@@ -216,29 +216,43 @@ class VendorController extends Controller
 
     public function destroy($id)
     {
-        $vendor = Vendor::find($id);
-        if (!$vendor) {
+        try {
+            $vendor = Vendor::find($id);
+            if (!$vendor) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Vendor not found'
+                ], 404);
+            }
+
+            $imageUuid = $vendor->image_uuid;
+            $vendor->delete();
+            $image = Image::where('image_uuid', $imageUuid)->first();
+            if ($image) {
+                $oldImagePath = public_path('images/' . $image->image);
+                if (file_exists($oldImagePath)) {
+                    unlink($oldImagePath);
+                }
+                $image->delete();
+            }
+            DB::table('images')->where('image_uuid', $imageUuid)->delete();
+            return response()->json([
+                'success' => true,
+                'message' => 'Vendor Data Deleted Successfully',
+                'data' => []
+            ]);
+        } catch (\Exception $e) {
+            if ($e->getCode() == '23000') {
+                return response()->json([
+                    'success' => false,
+                    'title' => 'The vendor cannot be deleted',
+                    'message' => 'Vendor is used in another table'
+                ], 400);
+            }
             return response()->json([
                 'success' => false,
-                'message' => 'Vendor not found'
-            ], 404);
+                'message' => 'An error occurred while deleting the product.'
+            ], 500);
         }
-
-        $imageUuid = $vendor->image_uuid;
-        $image = Image::where('image_uuid', $imageUuid)->first();
-        if ($image) {
-            $oldImagePath = public_path('images/' . $image->image);
-            if (file_exists($oldImagePath)) {
-                unlink($oldImagePath);
-            }
-            $image->delete();
-        }
-        $vendor->delete();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Vendor Data Deleted Successfully',
-            'data' => []
-        ]);
     }
 }

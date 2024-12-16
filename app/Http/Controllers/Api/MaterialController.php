@@ -63,7 +63,8 @@ class MaterialController extends Controller
         );
     }
 
-    private function successResponse($materialWithTag, $message){
+    private function successResponse($materialWithTag, $message)
+    {
         return new MaterialResource(true, $message, [
             'id' => $materialWithTag->material_id,
             'name' => $materialWithTag->material_name,
@@ -199,26 +200,40 @@ class MaterialController extends Controller
 
     public function destroy($id)
     {
-        $material = Material::find($id);
-        if (!$material) {
+        try {
+            $material = Material::find($id);
+            if (!$material) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Material not found'
+                ], 404);
+            }
+
+            $imageUuid = $material->image_uuid;
+            $material->delete();
+            $image = Image::where('image_uuid', $imageUuid)->first();
+            if ($image) {
+                $oldImagePath = public_path('images/' . $image->image);
+                if (file_exists($oldImagePath)) {
+                    unlink($oldImagePath);
+                }
+                $image->delete();
+            }
+            DB::table('images')->where('image_uuid', $imageUuid)->delete();
+
+            return new MaterialResource(true, 'Data Deleted Successfully', []);
+        } catch (\Exception $e) {
+            if ($e->getCode() == '23000') {
+                return response()->json([
+                    'success' => false,
+                    'title' => 'The material cannot be deleted',
+                    'message' => 'Material is used in another table'
+                ], 400);
+            }
             return response()->json([
                 'success' => false,
-                'message' => 'Material not found'
-            ], 404);
+                'message' => 'An error occurred while deleting the product.'
+            ], 500);
         }
-
-        $imageUuid = $material->image_uuid;  
-        $image = Image::where('image_uuid', $imageUuid)->first();
-        if($image){
-            $oldImagePath = public_path('images/' . $image->image);
-            if (file_exists($oldImagePath)) {
-                unlink($oldImagePath);
-            }
-            $image->delete();
-        }
-        DB::table('images')->where('image_uuid', $imageUuid)->delete();
-
-        $material->delete();
-        return new MaterialResource(true, 'Data Deleted Successfully', []);
     }
 }

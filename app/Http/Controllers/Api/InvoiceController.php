@@ -380,6 +380,10 @@ class InvoiceController extends Controller
                     $componentId = $request->input("items.$index.component_id");
                     $type = $request->input("items.$index.type");
 
+                    if ($state == 3) {
+                        return;
+                    }
+
                     if ($state == 1 || $type === 'line_section') {
                         return;
                     }
@@ -457,9 +461,14 @@ class InvoiceController extends Controller
             'payment_term_id' => $data['payment_term_id'] ?? null,
             'payment_status' => $payment_status,
         ]);
-
-        foreach ($data['items'] as $component) {
-            $this->updateRfqComponent($rfq->rfq_id, $component, 1);
+        if ($data['state'] == 1) {
+            foreach ($data['items'] as $component) {
+                $this->updateRfqComponent($rfq->rfq_id, $component, 1);
+            }
+        } else if ($data['state'] == 3) {
+            foreach ($data['items'] as $component) {
+                $this->updateRfqComponent($rfq->rfq_id, $component, 0);
+            }
         }
 
         if ($data['state'] === 2) {
@@ -502,9 +511,14 @@ class InvoiceController extends Controller
             'payment_term_id' => $data['payment_term_id'] ?? null,
             'payment_status' => $payment_status,
         ]);
-
-        foreach ($data['items'] as $component) {
-            $this->updateSalesComponent($sales->sales_id, $component, 1);
+        if ($data['state'] == 1) {
+            foreach ($data['items'] as $component) {
+                $this->updateSalesComponent($sales->sales_id, $component, 1);
+            }
+        } else if ($data['state'] == 3) {
+            foreach ($data['items'] as $component) {
+                $this->updateSalesComponent($sales->sales_id, $component, 0);
+            }
         }
 
         if ($data['state'] === 2) {
@@ -533,14 +547,12 @@ class InvoiceController extends Controller
     private function updateRfqComponent($rfq_id, $component, $mes)
     {
         $rfqComponent = RfqComponent::where('rfq_id', $rfq_id)->where('rfq_component_id', $component['component_id'])->first();
-        if ($mes == 2) {
-            if ($rfqComponent) {
-                $rfqComponent->update([
-                    'qty_to_invoice' => max(0, $rfqComponent->qty_to_invoice - $component['qty_invoiced']),
-                    'qty_invoiced' => $component['qty_invoiced'] + $rfqComponent->qty_invoiced,
-                ]);
-            }
-        } else {
+
+        if ($mes == 0) {
+            return;
+        }
+
+        if ($mes == 1) {
             if ($rfqComponent) {
                 $rfqComponent->update([
                     'qty_to_invoice' => $rfqComponent->qty_to_invoice == 0
@@ -549,24 +561,36 @@ class InvoiceController extends Controller
                     'qty_invoiced' => 0,
                 ]);
             }
+        } else if ($mes == 2) {
+            if ($rfqComponent) {
+                $rfqComponent->update([
+                    'qty_to_invoice' => max(0, $rfqComponent->qty_to_invoice - $component['qty_invoiced']),
+                    'qty_invoiced' => $component['qty_invoiced'] + $rfqComponent->qty_invoiced,
+                ]);
+            }
         }
     }
 
     private function updateSalesComponent($sales_id, $component, $mes)
     {
         $salesComponent = SalesComponent::where('sales_id', $sales_id)->where('sales_component_id', $component['component_id'])->first();
-        if ($mes == 2) {
-            if ($salesComponent) {
-                $salesComponent->update([
-                    'qty_to_invoice' => max(0, $salesComponent->qty_to_invoice - $component['qty_invoiced']),
-                    'qty_invoiced' => $component['qty_invoiced'] + $salesComponent->qty_invoiced,
-                ]);
-            }
-        } else {
+
+        if ($mes == 0) {
+            return;
+        }
+
+        if ($mes == 1) {
             if ($salesComponent) {
                 $salesComponent->update([
                     'qty_to_invoice' => $component['qty_invoiced'],
                     'qty_invoiced' => 0,
+                ]);
+            }
+        } else if ($mes == 2) {
+            if ($salesComponent) {
+                $salesComponent->update([
+                    'qty_to_invoice' => max(0, $salesComponent->qty_to_invoice - $component['qty_invoiced']),
+                    'qty_invoiced' => $component['qty_invoiced'] + $salesComponent->qty_invoiced,
                 ]);
             }
         }

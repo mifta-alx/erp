@@ -238,15 +238,14 @@ class VendorController extends Controller
             DB::table('images')->where('image_uuid', $imageUuid)->delete();
             return response()->json([
                 'success' => true,
-                'message' => 'Vendor Data Deleted Successfully',
+                'message' => 'Vendor deleted success',
                 'data' => []
             ]);
         } catch (\Exception $e) {
             if ($e->getCode() == '23000') {
                 return response()->json([
                     'success' => false,
-                    'title' => 'The vendor cannot be deleted',
-                    'message' => 'Vendor is used in another table'
+                    'message' => 'Vendor is in use, cannot be deleted!'
                 ], 400);
             }
             return response()->json([

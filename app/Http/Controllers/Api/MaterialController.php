@@ -221,13 +221,12 @@ class MaterialController extends Controller
             }
             DB::table('images')->where('image_uuid', $imageUuid)->delete();
 
-            return new MaterialResource(true, 'Data Deleted Successfully', []);
+            return new MaterialResource(true, 'Material deleted success', []);
         } catch (\Exception $e) {
             if ($e->getCode() == '23000') {
                 return response()->json([
                     'success' => false,
-                    'title' => 'The material cannot be deleted',
-                    'message' => 'Material is used in another table'
+                    'message' => 'Material is in use, cannot be deleted!'
                 ], 400);
             }
             return response()->json([

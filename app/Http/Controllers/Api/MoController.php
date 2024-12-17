@@ -322,8 +322,7 @@ class MoController extends Controller
             ]);
             return response()->json([
                 'success' => false,
-                'title' => 'Check availability failed',
-                'message' => 'Material not yet available'
+                'message' => 'Failed, material is not available now!'
             ], 422);
         } else {
             $manufacturing->update([

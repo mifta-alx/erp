@@ -103,7 +103,7 @@ class SalesController extends Controller
             DB::commit();
             return response()->json([
                 'success' => true,
-                'message' => 'Sales successfully added',
+                'message' => 'Quotation successfully added',
                 'data' => $this->transformSales($sales->load(['customer', 'salesComponents'])),
             ]);
         } catch (\Exception $e) {
@@ -230,7 +230,7 @@ class SalesController extends Controller
             DB::commit();
             return response()->json([
                 'success' => true,
-                'message' => 'Sales successfully updated',
+                'message' => 'Quotation successfully updated',
                 'data' => $this->transformSales($sales->load(['customer', 'salesComponents'])),
             ]);
         } catch (\Exception $e) {

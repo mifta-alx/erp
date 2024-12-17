@@ -147,7 +147,7 @@ class PaymentController extends Controller
             DB::commit();
             return response()->json([
                 'success' => true,
-                'message' => 'Payment Successfully Created',
+                'message' => 'Payment successfully added',
                 'data' => $this->buildInvoiceData($payment)
             ]);
         } catch (\Exception $e) {

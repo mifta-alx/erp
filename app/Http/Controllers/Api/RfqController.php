@@ -212,7 +212,7 @@ class RfqController extends Controller
             }
 
             DB::commit();
-            return $this->successResponse($rfq, 'RFQ Successfully Added');
+            return $this->successResponse($rfq, 'RFQ successfully added');
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('RFQ Creation Failed: ' . $e->getMessage());
@@ -330,7 +330,7 @@ class RfqController extends Controller
             }
 
             DB::commit();
-            return $this->successResponse($rfq, 'RFQ Updated Successfully');
+            return $this->successResponse($rfq, 'RFQ successfully updated');
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('RFQ Update Failed: ' . $e->getMessage());

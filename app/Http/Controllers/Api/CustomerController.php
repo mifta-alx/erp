@@ -140,7 +140,7 @@ class CustomerController extends Controller
                 $customer->tag()->sync($data['tag_id']);
             }
 
-            return new CustomerResource(true, 'Customer Data Created', $this->transformCustomer($customer));
+            return new CustomerResource(true, 'Customer successfully added', $this->transformCustomer($customer));
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -191,9 +191,6 @@ class CustomerController extends Controller
             }
             $imageUrl = url('images/' . $image->image);
 
-
-
-
             $customer->fill([
                 'company' => $data['company'],
                 'type' => $data['type'],
@@ -214,7 +211,7 @@ class CustomerController extends Controller
                 $customer->tag()->sync($data['tag_id']);
             }
 
-            return new CustomerResource(true, 'Customer Data Updated', $this->transformCustomer($customer));
+            return new CustomerResource(true, 'Customer successfully updated', $this->transformCustomer($customer));
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -247,7 +244,7 @@ class CustomerController extends Controller
             DB::table('images')->where('image_uuid', $imageUuid)->delete();
             return response()->json([
                 'success' => true,
-                'message' => 'Customer Data Deleted'
+                'message' => 'Customer deleted success'
             ]);
         } catch (\Exception $e) {
             if ($e->getCode() == '23000') {

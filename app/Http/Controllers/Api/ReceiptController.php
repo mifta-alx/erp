@@ -185,13 +185,13 @@ class ReceiptController extends Controller
             if ($data['transaction_type'] == 'IN') {
                 return response()->json([
                     'success' => true,
-                    'message' => 'Receipt Successfully Added',
+                    'message' => 'Receipt successfully added',
                     'data' => $this->responseIn($receipt)
                 ], 201);
             } else {
                 return response()->json([
                     'success' => true,
-                    'message' => 'Receipt Successfully Added',
+                    'message' => 'Receipt successfully added',
                     'data' => $this->responseOut($receipt)
                 ], 201);
             }
@@ -296,7 +296,7 @@ class ReceiptController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Receipt Successfully Updated',
+                'message' => 'Receipt successfully updated',
                 'data' => $data['transaction_type'] === 'IN'
                     ? $this->responseIn($receipt)
                     : $this->responseOut($receipt)

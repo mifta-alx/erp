@@ -123,7 +123,7 @@ class ProductController extends Controller
 
             $product->tag()->sync($data['tags']);
             $productWithTag = Product::with('tag')->find($product->product_id);
-            return $this->successResponse($productWithTag, 'Product Data Successfully Added');
+            return $this->successResponse($productWithTag, 'Product successfully added');
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -184,7 +184,7 @@ class ProductController extends Controller
             $product->tag()->sync($data['tags']);
 
             $productWithTag = Product::with('tag')->find($product->product_id);
-            return $this->successResponse($productWithTag, 'Product Data Successfully Updated');
+            return $this->successResponse($productWithTag, 'Product successfully updated');
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -272,7 +272,7 @@ class ProductController extends Controller
             }
             DB::table('images')->where('image_uuid', $imageUuid)->delete();
 
-            return new ProductResource(true, 'Product Deleted Success', []);
+            return new ProductResource(true, 'Product deleted success', []);
         } catch (\Exception $e) {
             if ($e->getCode() == '23000') {
                 return response()->json([

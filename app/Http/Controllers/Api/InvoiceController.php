@@ -258,13 +258,13 @@ class InvoiceController extends Controller
             if ($data['transaction_type'] == 'BILL') {
                 return response()->json([
                     'success' => true,
-                    'message' => 'Invoice Successfully Added',
+                    'message' => 'Invoice successfully added',
                     'data' => $this->responseBill($invoice),
                 ]);
             } else {
                 return response()->json([
                     'success' => true,
-                    'message' => 'Invoice Successfully Added',
+                    'message' => 'Invoice successfully added',
                     'data' => $this->responseInv($invoice),
                 ]);
             }
@@ -332,7 +332,7 @@ class InvoiceController extends Controller
             }
 
             DB::commit();
-            return $this->generateResponse($data['transaction_type'], $invoice, 'Receipt Successfully Updated');
+            return $this->generateResponse($data['transaction_type'], $invoice, 'Invoice successfully updated');
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([

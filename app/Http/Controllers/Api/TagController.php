@@ -51,7 +51,7 @@ class TagController extends Controller
             'type' => $type,
             'name_tag' => $data['name_tag'],
         ]);
-        return new TagResource(true, 'Tag Successfully Uploaded', [
+        return new TagResource(true, 'Tag auccessfully added', [
             'id' => $tag->tag_id,
             'type' => $tag->type,
             'name' => $tag->name_tag
@@ -72,7 +72,7 @@ class TagController extends Controller
             'type' => $data['type'],
             'name_tag' => $data['name_tag'],
         ]);
-        return new TagResource(true, 'Product Tag Successfully Updated', [
+        return new TagResource(true, 'Tag successfully updated', [
             'id' => $tag->tag_id,
             'type' => $tag->type,
             'name' => $tag->name_tag
@@ -89,6 +89,6 @@ class TagController extends Controller
             ], 404);
         }
         $tag->delete();
-        return new TagResource(true, 'Data Deleted Successfully', []);
+        return new TagResource(true, 'Tag deleted success', []);
     }
 }

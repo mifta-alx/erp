@@ -127,7 +127,7 @@ class MaterialController extends Controller
             $material->tag()->sync($data['tags']);
 
             $materialWithTag = Material::with('tag')->find($material->material_id);
-            return $this->successResponse($materialWithTag, 'Product Data Successfully Added');
+            return $this->successResponse($materialWithTag, 'Material successfully added');
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -188,7 +188,7 @@ class MaterialController extends Controller
             $material->tag()->sync($data['tags']);
 
             $materialWithTag = Material::with('tag')->find($material->material_id);
-            return $this->successResponse($materialWithTag, 'Material Data Successfully Updated');
+            return $this->successResponse($materialWithTag, 'Material successfully updated');
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,

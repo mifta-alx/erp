@@ -103,7 +103,7 @@ class VendorController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Vendor Data Successfully Added',
+            'message' => 'Vendor successfully added',
             'data' => [
                 'id' => $vendor->vendor_id,
                 'name' => $vendor->name,
@@ -194,7 +194,7 @@ class VendorController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Vendor Data Successfully Updated',
+            'message' => 'Vendor successfully updated',
             'data' => [
                 'id' => $vendor->vendor_id,
                 'name' => $vendor->name,

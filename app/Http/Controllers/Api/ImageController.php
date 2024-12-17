@@ -79,7 +79,7 @@ class ImageController extends Controller
         ]);
 
         // Mengembalikan respon dengan URL gambar yang dapat diakses
-        return new ImageResource(true, 'Image Successfully Uploaded', [
+        return new ImageResource(true, 'Image successfully added', [
             'id' => $image->image_id,
             'uuid' => $image->image_uuid,
             'name' => $image->image,
@@ -126,7 +126,7 @@ class ImageController extends Controller
             $image->save();
         }
 
-        return new ImageResource(true, 'Image Updated Successfully', [
+        return new ImageResource(true, 'Image successfully updated', [
             'id' => $image->image_id,
             'uuid' => $image->image_uuid,
             'name' => $image->image,
@@ -153,7 +153,7 @@ class ImageController extends Controller
         // Hapus data dari database
         $image->delete();
     
-        return new ImageResource(true, 'Image Deleted Successfully', []);
+        return new ImageResource(true, 'Image deleted success', []);
     }
     
 }

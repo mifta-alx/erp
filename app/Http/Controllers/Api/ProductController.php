@@ -272,13 +272,12 @@ class ProductController extends Controller
             }
             DB::table('images')->where('image_uuid', $imageUuid)->delete();
 
-            return new ProductResource(true, 'Data Deleted Successfully', []);
+            return new ProductResource(true, 'Product Deleted Success', []);
         } catch (\Exception $e) {
             if ($e->getCode() == '23000') {
                 return response()->json([
                     'success' => false,
-                    'title' => 'The product cannot be deleted',
-                    'message' => 'Product is used in another table'
+                    'message' => 'Product is in use, cannot be deleted!'
                 ], 400);
             }
             return response()->json([

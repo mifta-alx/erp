@@ -253,8 +253,7 @@ class CustomerController extends Controller
             if ($e->getCode() == '23000') {
                 return response()->json([
                     'success' => false,
-                    'title' => 'The customer cannot be deleted',
-                    'message' => 'Customer is used in another table'
+                    'message' => 'Customer is in use, cannot be deleted!'
                 ], 400);
             }
             return response()->json([

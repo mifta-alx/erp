@@ -270,11 +270,19 @@ class MoController extends Controller
                     $manufacturing->update([
                         'state' => $data['state'],
                     ]);
-                    return $this->successResponse($manufacturing);
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Manufacturing Order successfully updated',
+                        'data' => $this->successResponse($manufacturing)
+                    ]);
             }
 
             DB::commit();
-            return $this->successResponse($manufacturing);
+            return response()->json([
+                'success' => true,
+                'message' => 'Manufacturing Order successfully updated',
+                'data' => $this->successResponse($manufacturing)
+            ]);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Manufacturing Order Update Failed: ' . $e->getMessage());
@@ -322,7 +330,8 @@ class MoController extends Controller
             ]);
             return response()->json([
                 'success' => false,
-                'message' => 'Failed, material is not available now!'
+                'message' => 'Failed, material is not available now!',
+                'data' => $this->successResponse($manufacturing)
             ], 422);
         } else {
             $manufacturing->update([
@@ -414,41 +423,37 @@ class MoController extends Controller
 
     private function successResponse($manufacturing)
     {
-        return response()->json([
-            'success' => true,
-            'message' => 'Manufacturing Order successfully updated',
-            'data' => [
-                'id' => $manufacturing->mo_id,
-                'reference' => $manufacturing->reference,
-                'qty' => $manufacturing->qty,
-                'bom_id' => $manufacturing->bom_id,
-                'product' => [
-                    'id' => $manufacturing->product->product_id,
-                    'name' => $manufacturing->product->product_name,
-                    'cost' => $manufacturing->product->cost,
-                    'sales_price' => $manufacturing->product->sales_price,
-                    'barcode' => $manufacturing->product->barcode,
-                    'internal_reference' => $manufacturing->product->internal_reference,
-                ],
-                'state' => $manufacturing->state,
-                'status' => $manufacturing->status,
-                'mo_components' => $manufacturing->mo->unique('material_id')->map(function ($component) {
-                    return [
-                        'material' => [
-                            'id' => $component->material->material_id,
-                            'name' => $component->material->material_name,
-                            'cost' => $component->material->cost,
-                            'sales_price' => $component->material->sales_price,
-                            'barcode' => $component->material->barcode,
-                            'internal_reference' => $component->material->internal_reference,
-                        ],
-                        'to_consume' => $component->to_consume,
-                        'reserved' => $component->reserved,
-                        'consumed' => $component->consumed,
-                    ];
-                })
-            ]
-        ], 201);
+        return [
+            'id' => $manufacturing->mo_id,
+            'reference' => $manufacturing->reference,
+            'qty' => $manufacturing->qty,
+            'bom_id' => $manufacturing->bom_id,
+            'product' => [
+                'id' => $manufacturing->product->product_id,
+                'name' => $manufacturing->product->product_name,
+                'cost' => $manufacturing->product->cost,
+                'sales_price' => $manufacturing->product->sales_price,
+                'barcode' => $manufacturing->product->barcode,
+                'internal_reference' => $manufacturing->product->internal_reference,
+            ],
+            'state' => $manufacturing->state,
+            'status' => $manufacturing->status,
+            'mo_components' => $manufacturing->mo->unique('material_id')->map(function ($component) {
+                return [
+                    'material' => [
+                        'id' => $component->material->material_id,
+                        'name' => $component->material->material_name,
+                        'cost' => $component->material->cost,
+                        'sales_price' => $component->material->sales_price,
+                        'barcode' => $component->material->barcode,
+                        'internal_reference' => $component->material->internal_reference,
+                    ],
+                    'to_consume' => $component->to_consume,
+                    'reserved' => $component->reserved,
+                    'consumed' => $component->consumed,
+                ];
+            })
+        ];
     }
 
 
